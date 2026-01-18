@@ -1,0 +1,9 @@
+{
+  "/chatbot/page": "app/chatbot/page.js",
+  "/comments/page": "app/comments/page.js",
+  "/requests/page": "app/requests/page.js",
+  "/dead-links/page": "app/dead-links/page.js",
+  "/settings/page": "app/settings/page.js",
+  "/page": "app/page.js",
+  "/edit/[id]/page": "app/edit/[id]/page.js"
+}
