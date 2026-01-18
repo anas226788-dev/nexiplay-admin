@@ -149,3 +149,20 @@ export interface EpisodeDownloadLink {
     youtube_link?: string;
     created_at?: string;
 }
+
+export interface Comment {
+    id: string;
+    movie_id: string;
+    name: string;
+    email: string;
+    message: string;
+    created_at: string;
+    is_approved: boolean;
+}
+
+export interface ContentRequest {
+    id: string;
+    content_name: string;
+    status: 'pending' | 'added' | 'rejected';
+    created_at: string;
+}
