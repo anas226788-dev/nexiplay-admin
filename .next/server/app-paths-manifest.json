@@ -1,8 +1,7 @@
 {
-  "/dmca/page": "app/dmca/page.js",
+  "/requests/page": "app/requests/page.js",
   "/ads/page": "app/ads/page.js",
   "/ads/edit/[id]/page": "app/ads/edit/[id]/page.js",
-  "/ads/add/page": "app/ads/add/page.js",
-  "/requests/page": "app/requests/page.js",
-  "/settings/page": "app/settings/page.js"
+  "/settings/page": "app/settings/page.js",
+  "/ads/add/page": "app/ads/add/page.js"
 }

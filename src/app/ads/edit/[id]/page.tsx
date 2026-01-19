@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function EditAdPage({ params }: { params: { id: string } }) {
+export default function EditAdPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -24,7 +25,7 @@ export default function EditAdPage({ params }: { params: { id: string } }) {
             const { data, error } = await supabase
                 .from('ads')
                 .select('*')
-                .eq('id', params.id)
+                .eq('id', id)
                 .single();
 
             if (error) {
@@ -37,7 +38,7 @@ export default function EditAdPage({ params }: { params: { id: string } }) {
         }
 
         fetchAd();
-    }, [params.id, router]);
+    }, [id, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -46,7 +47,7 @@ export default function EditAdPage({ params }: { params: { id: string } }) {
         const { error } = await supabase
             .from('ads')
             .update(formData)
-            .eq('id', params.id);
+            .eq('id', id);
 
         setSaving(false);
 
