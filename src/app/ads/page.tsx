@@ -1,35 +1,58 @@
 
 
+'use client';
+
 import { createClient } from '@/lib/supabase';
 import { Ad } from '@/lib/types';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-// Note: Ensure supabase is imported correctly or re-created
 const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-async function getAds(): Promise<Ad[]> {
-    const { data, error } = await supabase
-        .from('ads')
-        .select('*')
-        .order('created_at', { ascending: false });
+export default function AdsPage() {
+    const [ads, setAds] = useState<Ad[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    if (error) {
-        console.error('Error fetching ads:', error);
-        return [];
+    useEffect(() => {
+        fetchAds();
+    }, []);
+
+    async function fetchAds() {
+        const { data, error } = await supabase
+            .from('ads')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (!error && data) {
+            setAds(data);
+        }
+        setLoading(false);
     }
-    return data || [];
-}
 
-export default async function AdsPage() {
-    const ads = await getAds();
+    async function deleteAd(id: string) {
+        if (!confirm('Are you sure you want to delete this ad? This will remove it from the website immediately.')) return;
+
+        const { error } = await supabase
+            .from('ads')
+            .delete()
+            .eq('id', id);
+
+        if (!error) {
+            setAds(ads.filter(ad => ad.id !== id));
+        } else {
+            alert('Failed to delete ad');
+        }
+    }
+
+    if (loading) return <div className="p-8 text-white">Loading ads...</div>;
 
     return (
         <div>
             <div className="flex items-center justify-between mb-8">
-                <h1 className="text-2xl font-bold">Ad Management</h1>
+                <h1 className="text-2xl font-bold font-outfit text-white">Ad Manager</h1>
                 <Link
                     href="/ads/add"
                     className="btn-primary flex items-center gap-2"
@@ -41,39 +64,44 @@ export default async function AdsPage() {
                 </Link>
             </div>
 
-            <div className="glass rounded-xl border border-white/5 overflow-hidden">
+            <div className="bg-dark-800 rounded-xl border border-white/5 overflow-hidden shadow-xl">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left">
+                    <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white/5 border-b border-white/5">
-                                <th className="px-6 py-4 font-semibold text-gray-300">Title</th>
-                                <th className="px-6 py-4 font-semibold text-gray-300">Placement</th>
-                                <th className="px-6 py-4 font-semibold text-gray-300">Type</th>
-                                <th className="px-6 py-4 font-semibold text-gray-300">Status</th>
-                                <th className="px-6 py-4 font-semibold text-gray-300 text-right">Actions</th>
+                                <th className="px-6 py-4 font-semibold text-gray-300 text-sm">Title</th>
+                                <th className="px-6 py-4 font-semibold text-gray-300 text-sm">Placement</th>
+                                <th className="px-6 py-4 font-semibold text-gray-300 text-sm">Type</th>
+                                <th className="px-6 py-4 font-semibold text-gray-300 text-sm">Status</th>
+                                <th className="px-6 py-4 font-semibold text-gray-300 text-sm text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody className="divide-y divide-white/5">
                             {ads.map((ad) => (
-                                <tr key={ad.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4 font-medium">{ad.title}</td>
-                                    <td className="px-6 py-4 font-mono text-xs text-red-400">{ad.placement}</td>
+                                <tr key={ad.id} className="hover:bg-white/5 transition-colors">
+                                    <td className="px-6 py-4 font-medium text-white">{ad.title}</td>
+                                    <td className="px-6 py-4 font-mono text-xs text-red-400 font-bold">{ad.placement}</td>
                                     <td className="px-6 py-4">
-                                        <span className="px-2 py-1 bg-white/10 rounded text-xs font-bold uppercase">{ad.ad_type}</span>
+                                        <span className="px-2 py-1 bg-white/10 rounded text-xs font-bold uppercase text-gray-300">{ad.ad_type}</span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <span className={`px-2 py-1 rounded-full text-xs font-bold ${ad.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                                             {ad.is_active ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Link
+                                    <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
+                                        {/* <Link
                                             href={`/ads/edit/${ad.id}`}
-                                            className="text-gray-400 hover:text-white transition-colors mr-4"
+                                            className="text-gray-400 hover:text-white transition-colors"
                                         >
                                             Edit
-                                        </Link>
-                                        {/* Delete functionality to be implemented in a component */}
+                                        </Link> */}
+                                        <button
+                                            onClick={() => deleteAd(ad.id)}
+                                            className="text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1.5 rounded text-xs font-bold transition-colors"
+                                        >
+                                            Delete
+                                        </button>
                                     </td>
                                 </tr>
                             ))}

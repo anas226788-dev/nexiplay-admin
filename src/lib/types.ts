@@ -166,3 +166,27 @@ export interface ContentRequest {
     status: 'pending' | 'added' | 'rejected';
     created_at: string;
 }
+
+export interface ContactMessage {
+    id: string;
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+    created_at: string;
+    is_read: boolean;
+}
+
+export interface DMCARequest {
+    id: string;
+    name: string;
+    company?: string;
+    email: string;
+    original_link: string;
+    infringing_link: string;
+    proof_link?: string;
+    message?: string;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+    updated_at: string;
+}
