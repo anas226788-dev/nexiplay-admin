@@ -1,8 +1,3 @@
 {
-  "/notices/page": "app/notices/page.js",
-  "/notices/add/page": "app/notices/add/page.js",
-  "/dead-links/page": "app/dead-links/page.js",
-  "/notices/edit/[id]/page": "app/notices/edit/[id]/page.js",
-  "/page": "app/page.js",
-  "/chatbot/page": "app/chatbot/page.js"
+  "/page": "app/page.js"
 }

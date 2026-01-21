@@ -1,9 +1,7 @@
 import { createClient } from '@/lib/supabase';
 import { Movie } from '@/lib/types';
 import Link from 'next/link';
-
-// Note: In a real app, you should add authentication check here
-// to prevent unauthorized access.
+import ContentList from '@/components/ContentList';
 
 // Re-creating client here to ensure fresh data
 const supabase = createClient(
@@ -25,6 +23,9 @@ async function getMovies(): Promise<Movie[]> {
     return data || [];
 }
 
+// Force dynamic rendering to ensure fresh data
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboard() {
     const movies = await getMovies();
 
@@ -43,55 +44,7 @@ export default async function AdminDashboard() {
                 </Link>
             </div>
 
-            <div className="glass rounded-xl border border-white/5 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="bg-white/5 border-b border-white/5">
-                                <th className="px-6 py-4 font-semibold text-gray-300">Title</th>
-                                <th className="px-6 py-4 font-semibold text-gray-300">Type</th>
-                                <th className="px-6 py-4 font-semibold text-gray-300">Year</th>
-                                <th className="px-6 py-4 font-semibold text-gray-300 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {movies.map((movie) => (
-                                <tr key={movie.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                    <td className="px-6 py-4 font-medium">
-                                        {movie.title}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-2 py-1 text-xs rounded bg-white/10 uppercase font-bold text-gray-300">
-                                            {movie.type}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-400">
-                                        {movie.release_year}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Link
-                                            href={`/edit/${movie.id}`}
-                                            className="text-gray-400 hover:text-white transition-colors mr-4"
-                                        >
-                                            Edit
-                                        </Link>
-                                        <button className="text-red-400 hover:text-red-300 transition-colors">
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                            {movies.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                                        No content found. Click "Add New" to get started.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            <ContentList initialMovies={movies} />
         </div>
     );
 }
