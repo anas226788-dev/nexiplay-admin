@@ -21,7 +21,6 @@ export default function RunningTasksPage() {
             .from('movies')
             .select('*')
             .eq('is_running', true)
-            .in('type', ['anime', 'series'])
             .order('updated_at', { ascending: false });
 
         if (data) setTasks(data);
