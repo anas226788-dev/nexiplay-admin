@@ -11,40 +11,30 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
-    "/messages/page": [
+    "/notices/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/messages/page.js"
+      "static/chunks/app/notices/page.js"
     ],
-    "/dmca/page": [
+    "/notices/add/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dmca/page.js"
+      "static/chunks/app/notices/add/page.js"
     ],
-    "/requests/page": [
+    "/notices/edit/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/requests/page.js"
+      "static/chunks/app/notices/edit/[id]/page.js"
     ],
-    "/ads/page": [
+    "/dead-links/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/ads/page.js"
+      "static/chunks/app/dead-links/page.js"
     ],
-    "/ads/edit/[id]/page": [
+    "/chatbot/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/ads/edit/[id]/page.js"
-    ],
-    "/settings/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/settings/page.js"
-    ],
-    "/ads/add/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/ads/add/page.js"
+      "static/chunks/app/chatbot/page.js"
     ]
   }
 }

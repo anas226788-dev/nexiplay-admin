@@ -1,7 +1,8 @@
 {
-  "/requests/page": "app/requests/page.js",
-  "/ads/page": "app/ads/page.js",
-  "/ads/edit/[id]/page": "app/ads/edit/[id]/page.js",
-  "/settings/page": "app/settings/page.js",
-  "/ads/add/page": "app/ads/add/page.js"
+  "/notices/page": "app/notices/page.js",
+  "/notices/add/page": "app/notices/add/page.js",
+  "/dead-links/page": "app/dead-links/page.js",
+  "/notices/edit/[id]/page": "app/notices/edit/[id]/page.js",
+  "/page": "app/page.js",
+  "/chatbot/page": "app/chatbot/page.js"
 }

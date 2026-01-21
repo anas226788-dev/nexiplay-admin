@@ -15,6 +15,7 @@ export default function AddAdPage() {
         script_code: '',
         image_url: '',
         destination_url: '',
+        device_target: 'both',
         is_active: true
     });
 
@@ -87,6 +88,19 @@ export default function AddAdPage() {
                             <option value="image">Image Banner</option>
                         </select>
                     </div>
+                </div>
+
+                <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">Device Targeting</label>
+                    <select
+                        className="w-full bg-dark-900 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-600"
+                        value={formData.device_target}
+                        onChange={(e) => setFormData({ ...formData, device_target: e.target.value })}
+                    >
+                        <option value="both">Both (Desktop & Mobile)</option>
+                        <option value="desktop">Desktop Only</option>
+                        <option value="mobile">Mobile Only</option>
+                    </select>
                 </div>
 
                 {formData.ad_type === 'script' ? (
