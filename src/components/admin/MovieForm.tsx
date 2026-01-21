@@ -36,7 +36,11 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const [subtitle, setSubtitle] = useState(initialData?.subtitle || 'English');
     const [trailerUrl, setTrailerUrl] = useState(initialData?.trailer_url || '');
 
-    // Downloads State
+    // Tracking State
+    const [isRunning, setIsRunning] = useState(initialData?.is_running || false);
+    const [lastEpisode, setLastEpisode] = useState(initialData?.last_episode || 0);
+
+
     const [downloads, setDownloads] = useState(
         initialData?.downloads && initialData.downloads.length > 0
             ? initialData.downloads.map(d => ({
@@ -173,7 +177,11 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         cast_members: castMembers,
                         format,
                         subtitle,
-                        trailer_url: trailerUrl
+                        /* UPDATE handleSubmit payload */
+                        trailer_url: trailerUrl,
+                        is_running: isRunning,
+                        last_episode: lastEpisode,
+                        next_episode: lastEpisode + 1
                     })
                     .eq('id', movieId);
 
@@ -199,7 +207,10 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         cast_members: castMembers,
                         format,
                         subtitle,
-                        trailer_url: trailerUrl
+                        trailer_url: trailerUrl,
+                        is_running: isRunning,
+                        last_episode: lastEpisode,
+                        next_episode: lastEpisode + 1
                     })
                     .select()
                     .single();
@@ -368,6 +379,48 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                 </div>
             </div>
 
+            {/* Internal Tracking (Series Only) */}
+            {(type === 'series' || type === 'anime') && (
+                <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
+                    <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                        <span>⚡</span> Internal Tracking
+                    </h3>
+                    <div className="flex items-center gap-6">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={isRunning}
+                                onChange={(e) => setIsRunning(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                            <span className="ml-3 text-sm font-medium text-gray-300">Running Series</span>
+                        </label>
+
+                        {isRunning && (
+                            <div className="flex gap-4 animate-fade-in">
+                                <div className="w-32">
+                                    <label className="block text-xs text-gray-500 mb-1">Last Added Ep</label>
+                                    <input
+                                        type="number"
+                                        required={isRunning}
+                                        value={lastEpisode}
+                                        onChange={(e) => setLastEpisode(Number(e.target.value))}
+                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-center font-mono"
+                                    />
+                                </div>
+                                <div className="w-32 opacity-70">
+                                    <label className="block text-xs text-gray-500 mb-1">Next Up</label>
+                                    <div className="w-full bg-dark-800 border border-white/5 rounded-lg p-2 text-green-400 text-center font-mono font-bold">
+                                        {lastEpisode + 1}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
 
             {/* Metadata (Auto-Details) */}
             <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
@@ -416,6 +469,8 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
                                 No Preview
                             </div>
+
+
                         )}
                     </div>
                     <div className="space-y-4">
@@ -528,38 +583,44 @@ export default function MovieForm({ initialData }: MovieFormProps) {
             </div>
 
             {/* Download Links - Only for Movies */}
-            {type === 'movie' && (
-                <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <span className="text-green-500">📥</span> Download Links
-                    </h2>
-                    <p className="text-sm text-gray-400 mb-4">
-                        Add download links for each resolution. Click a resolution tab to add links for that quality.
-                    </p>
-                    <DownloadLinksEditor
-                        movieId={initialData?.id}
-                        initialLinks={initialData?.download_links || []}
-                        onChange={setDownloadLinks}
-                    />
-                </div>
-            )}
+            {
+                type === 'movie' && (
+                    <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <span className="text-green-500">📥</span> Download Links
+                        </h2>
+                        <p className="text-sm text-gray-400 mb-4">
+                            Add download links for each resolution. Click a resolution tab to add links for that quality.
+                        </p>
+                        <DownloadLinksEditor
+                            movieId={initialData?.id}
+                            initialLinks={initialData?.download_links || []}
+                            onChange={setDownloadLinks}
+                        />
+                    </div>
+                )
+            }
 
             {/* Season Editor - Only for Series/Anime (only shown when editing) */}
-            {(type === 'series' || type === 'anime') && initialData?.id && (
-                <SeasonEditor movieId={initialData.id} movieType={type} />
-            )}
+            {
+                (type === 'series' || type === 'anime') && initialData?.id && (
+                    <SeasonEditor movieId={initialData.id} movieType={type} />
+                )
+            }
 
             {/* Note for new series/anime */}
-            {(type === 'series' || type === 'anime') && !initialData?.id && (
-                <div className="glass p-6 rounded-xl border border-purple-500/20 bg-purple-900/10">
-                    <h2 className="text-xl font-bold flex items-center gap-2 text-purple-400">
-                        <span>📺</span> Seasons & Episodes
-                    </h2>
-                    <p className="text-sm text-gray-400 mt-2">
-                        Save this content first, then you can add seasons and episodes by editing it.
-                    </p>
-                </div>
-            )}
+            {
+                (type === 'series' || type === 'anime') && !initialData?.id && (
+                    <div className="glass p-6 rounded-xl border border-purple-500/20 bg-purple-900/10">
+                        <h2 className="text-xl font-bold flex items-center gap-2 text-purple-400">
+                            <span>📺</span> Seasons & Episodes
+                        </h2>
+                        <p className="text-sm text-gray-400 mt-2">
+                            Save this content first, then you can add seasons and episodes by editing it.
+                        </p>
+                    </div>
+                )
+            }
 
             {/* Submit */}
             <div className="flex justify-end gap-3 pt-4">

@@ -11,6 +11,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const menuItems = [
         { name: 'Dashboard', path: '/', icon: 'M4 6h16M4 12h16M4 18h16' },
         { name: 'Add Content', path: '/add', icon: 'M12 4v16m8-8H4' },
+        { name: 'Running Tasks', path: '/running', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
         { name: 'Ads', path: '/ads', icon: 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z' },
         { name: 'Comments', path: '/comments', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
         { name: 'Requests', path: '/requests', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },

@@ -8,6 +8,9 @@ export interface Movie {
     release_year: number | null;
     trailer_url?: string;
     created_at: string;
+    is_running?: boolean;
+    last_episode?: number;
+    next_episode?: number;
 }
 
 export interface Download {
