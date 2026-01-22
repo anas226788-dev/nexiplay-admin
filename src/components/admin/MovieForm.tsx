@@ -39,12 +39,20 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     // Tracking State
     const [isRunning, setIsRunning] = useState(initialData?.is_running || false);
     const [lastEpisode, setLastEpisode] = useState(initialData?.last_episode || 0);
+    const [runningStatus, setRunningStatus] = useState<any>(initialData?.running_status || 'Ongoing');
+    const [runningNotice, setRunningNotice] = useState(initialData?.running_notice || '');
+    const [nextEpisodeDate, setNextEpisodeDate] = useState(initialData?.next_episode_date?.split('T')[0] || '');
+
 
     // Trending State
     const [isTrending, setIsTrending] = useState(initialData?.is_trending || false);
     const [trendingRank, setTrendingRank] = useState(initialData?.trending_rank || 0);
     const [bannerDesktop, setBannerDesktop] = useState(initialData?.banner_url_desktop || '');
     const [bannerMobile, setBannerMobile] = useState(initialData?.banner_url_mobile || '');
+
+    // Per-Content Notice State
+    const [noticeEnabled, setNoticeEnabled] = useState(initialData?.notice_enabled || false);
+    const [noticeText, setNoticeText] = useState(initialData?.notice_text || '');
 
 
     const [downloads, setDownloads] = useState(
@@ -204,6 +212,13 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         is_running: isRunning,
                         last_episode: lastEpisode,
                         next_episode: lastEpisode + 1,
+                        running_status: runningStatus,
+                        running_notice: runningNotice,
+                        next_episode_date: nextEpisodeDate ? new Date(nextEpisodeDate).toISOString() : null,
+                        // Per-Content Notice System
+                        notice_enabled: noticeEnabled,
+                        notice_text: noticeText,
+                        // Trending
                         is_trending: isTrending,
                         trending_rank: trendingRank,
                         banner_url_desktop: bannerDesktop,
@@ -237,6 +252,13 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         is_running: isRunning,
                         last_episode: lastEpisode,
                         next_episode: lastEpisode + 1,
+                        running_status: runningStatus,
+                        running_notice: runningNotice,
+                        next_episode_date: nextEpisodeDate ? new Date(nextEpisodeDate).toISOString() : null,
+                        // Per-Content Notice System
+                        notice_enabled: noticeEnabled,
+                        notice_text: noticeText,
+                        // Trending
                         is_trending: isTrending,
                         trending_rank: trendingRank,
                         banner_url_desktop: bannerDesktop,
@@ -428,21 +450,57 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         </label>
 
                         {isRunning && (
-                            <div className="flex gap-4 animate-fade-in">
-                                <div className="w-32">
-                                    <label className="block text-xs text-gray-500 mb-1">Last Added Ep</label>
-                                    <input
-                                        type="number"
-                                        required={isRunning}
-                                        value={lastEpisode}
-                                        onChange={(e) => setLastEpisode(Number(e.target.value))}
-                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-center font-mono"
+                            <div className="space-y-4 pt-4 border-t border-white/5 animate-in fade-in width-full">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+                                        <select
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-red-600 font-medium"
+                                            value={runningStatus}
+                                            onChange={(e) => setRunningStatus(e.target.value)}
+                                        >
+                                            <option value="Ongoing">Ongoing 🟢</option>
+                                            <option value="Completed">Completed ✅</option>
+                                            <option value="Hiatus">Hiatus ⏸️</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Next Episode Date</label>
+                                        <input
+                                            type="date"
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-red-600"
+                                            value={nextEpisodeDate}
+                                            onChange={(e) => setNextEpisodeDate(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Notice / Advertisement</label>
+                                    <textarea
+                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-red-600 text-sm h-16 resize-none"
+                                        value={runningNotice}
+                                        onChange={(e) => setRunningNotice(e.target.value)}
+                                        placeholder="e.g. New Episode Every Thursday @ 8PM!"
                                     />
                                 </div>
-                                <div className="w-32 opacity-70">
-                                    <label className="block text-xs text-gray-500 mb-1">Next Up</label>
-                                    <div className="w-full bg-dark-800 border border-white/5 rounded-lg p-2 text-green-400 text-center font-mono font-bold">
-                                        {lastEpisode + 1}
+
+                                <div className="flex gap-4">
+                                    <div className="w-1/2">
+                                        <label className="block text-xs text-gray-500 mb-1">Last Added Ep</label>
+                                        <input
+                                            type="number"
+                                            required={isRunning}
+                                            value={lastEpisode}
+                                            onChange={(e) => setLastEpisode(Number(e.target.value))}
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-center font-mono"
+                                        />
+                                    </div>
+                                    <div className="w-1/2 opacity-70">
+                                        <label className="block text-xs text-gray-500 mb-1">Next Up</label>
+                                        <div className="w-full bg-dark-800 border border-white/5 rounded-lg p-2 text-green-400 text-center font-mono font-bold">
+                                            {(lastEpisode || 0) + 1}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -450,6 +508,43 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                     </div>
                 </div>
             )}
+
+
+            {/* Content Specific Notice System */}
+            <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>📢</span> Content Notice Settings
+                </h3>
+                <div className="flex items-start gap-6">
+                    <div className="flex items-center h-10">
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={noticeEnabled}
+                                onChange={(e) => setNoticeEnabled(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                            <span className="ml-3 text-sm font-medium text-gray-300">Enable Notice</span>
+                        </label>
+                    </div>
+
+                    {noticeEnabled && (
+                        <div className="flex-1 animate-in fade-in slide-in-from-left-2">
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Notice Text (Specific to this content)</label>
+                            <textarea
+                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-yellow-600 text-sm h-20 resize-none"
+                                value={noticeText}
+                                onChange={(e) => setNoticeText(e.target.value)}
+                                placeholder="e.g. Delay in episode release, Season finale next week, etc."
+                            />
+                            <p className="text-[10px] text-gray-500 mt-1">
+                                This notice will ONLY appear on this specific movie/series page.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
 
 
             {/* Metadata (Auto-Details) */}

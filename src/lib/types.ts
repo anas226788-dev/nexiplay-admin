@@ -16,6 +16,13 @@ export interface Movie {
     trending_rank?: number;
     banner_url_desktop?: string;
     banner_url_mobile?: string;
+    // Running Series Features
+    running_status?: 'Ongoing' | 'Completed' | 'Hiatus';
+    running_notice?: string;
+    next_episode_date?: string;
+    // Per-Content Notice System
+    notice_enabled?: boolean;
+    notice_text?: string;
 }
 
 export interface Download {
