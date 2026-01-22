@@ -43,7 +43,8 @@ export default function AdsPage() {
         if (!error) {
             setAds(ads.filter(ad => ad.id !== id));
         } else {
-            alert('Failed to delete ad');
+            console.error('Delete Error:', error);
+            alert('Failed to delete ad: ' + error.message);
         }
     }
 

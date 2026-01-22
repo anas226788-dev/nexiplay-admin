@@ -30,6 +30,7 @@ export default function AddAdPage() {
         setLoading(false);
 
         if (error) {
+            console.error('Create Error:', error);
             alert('Error creating ad: ' + error.message);
         } else {
             router.push('/ads');
