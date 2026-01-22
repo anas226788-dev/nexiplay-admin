@@ -40,6 +40,12 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const [isRunning, setIsRunning] = useState(initialData?.is_running || false);
     const [lastEpisode, setLastEpisode] = useState(initialData?.last_episode || 0);
 
+    // Trending State
+    const [isTrending, setIsTrending] = useState(initialData?.is_trending || false);
+    const [trendingRank, setTrendingRank] = useState(initialData?.trending_rank || 0);
+    const [bannerDesktop, setBannerDesktop] = useState(initialData?.banner_url_desktop || '');
+    const [bannerMobile, setBannerMobile] = useState(initialData?.banner_url_mobile || '');
+
 
     const [downloads, setDownloads] = useState(
         initialData?.downloads && initialData.downloads.length > 0
@@ -139,6 +145,22 @@ export default function MovieForm({ initialData }: MovieFormProps) {
         setScreenshots(prev => prev.filter((_, i) => i !== index));
     };
 
+    const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'desktop' | 'mobile') => {
+        if (!e.target.files || e.target.files.length === 0) return;
+
+        setUploading(true);
+        const file = e.target.files[0];
+        const url = await uploadPoster(file);
+
+        if (url) {
+            if (type === 'desktop') setBannerDesktop(url);
+            else setBannerMobile(url);
+        } else {
+            alert('Failed to upload banner.');
+        }
+        setUploading(false);
+    };
+
     const addDownloadRow = () => {
         setDownloads([...downloads, { quality: '720p', fileSize: '', fileUrl: '' }]);
     };
@@ -181,7 +203,11 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         trailer_url: trailerUrl,
                         is_running: isRunning,
                         last_episode: lastEpisode,
-                        next_episode: lastEpisode + 1
+                        next_episode: lastEpisode + 1,
+                        is_trending: isTrending,
+                        trending_rank: trendingRank,
+                        banner_url_desktop: bannerDesktop,
+                        banner_url_mobile: bannerMobile
                     })
                     .eq('id', movieId);
 
@@ -210,7 +236,11 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         trailer_url: trailerUrl,
                         is_running: isRunning,
                         last_episode: lastEpisode,
-                        next_episode: lastEpisode + 1
+                        next_episode: lastEpisode + 1,
+                        is_trending: isTrending,
+                        trending_rank: trendingRank,
+                        banner_url_desktop: bannerDesktop,
+                        banner_url_mobile: bannerMobile
                     })
                     .select()
                     .single();
@@ -451,6 +481,106 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                     <input type="text" value={castMembers} onChange={(e) => setCastMembers(e.target.value)} placeholder="Actor 1, Actor 2, Actor 3" className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500" />
                 </div>
 
+            </div>
+
+            {/* Trending & Banners */}
+            <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span className="text-orange-500">🔥</span> Trending Settings
+                </h2>
+
+                <div className="flex items-center gap-6 mb-6">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={isTrending}
+                            onChange={(e) => setIsTrending(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                        <span className="ml-3 text-sm font-medium text-gray-300">Enable Trending</span>
+                    </label>
+
+                    {isTrending && (
+                        <div>
+                            <label className="block text-xs text-gray-500 mb-1">Priority Rank (1-10)</label>
+                            <input
+                                type="number"
+                                min="1"
+                                max="10"
+                                value={trendingRank}
+                                onChange={(e) => setTrendingRank(Number(e.target.value))}
+                                className="w-24 bg-dark-700 border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-orange-500"
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {isTrending && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Desktop Banner */}
+                        <div>
+                            <label className="block text-sm text-gray-400 mb-2">Desktop Banner (Wide)</label>
+                            <div className="aspect-[16/6] bg-dark-700 rounded-lg overflow-hidden relative border border-white/10 group">
+                                {bannerDesktop ? (
+                                    <Image src={bannerDesktop} alt="Desktop Banner" fill className="object-cover" />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">No Image</div>
+                                )}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <label className="cursor-pointer bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-white text-sm backdrop-blur-sm transition-colors">
+                                        Upload Desktop
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleBannerUpload(e, 'desktop')}
+                                            disabled={uploading}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                            <input
+                                type="url"
+                                placeholder="https://..."
+                                value={bannerDesktop}
+                                onChange={(e) => setBannerDesktop(e.target.value)}
+                                className="mt-2 w-full bg-dark-700 border border-white/10 rounded-lg p-2 text-xs text-gray-400 focus:outline-none focus:border-orange-500"
+                            />
+                        </div>
+
+                        {/* Mobile Banner */}
+                        <div>
+                            <label className="block text-sm text-gray-400 mb-2">Mobile Banner (Portrait/Tall)</label>
+                            <div className="aspect-[3/4] bg-dark-700 rounded-lg overflow-hidden relative border border-white/10 group w-1/2 mx-auto md:w-full">
+                                {bannerMobile ? (
+                                    <Image src={bannerMobile} alt="Mobile Banner" fill className="object-cover" />
+                                ) : (
+                                    <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-xs">No Image</div>
+                                )}
+                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <label className="cursor-pointer bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-white text-sm backdrop-blur-sm transition-colors">
+                                        Upload Mobile
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => handleBannerUpload(e, 'mobile')}
+                                            disabled={uploading}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                            <input
+                                type="url"
+                                placeholder="https://..."
+                                value={bannerMobile}
+                                onChange={(e) => setBannerMobile(e.target.value)}
+                                className="mt-2 w-full bg-dark-700 border border-white/10 rounded-lg p-2 text-xs text-gray-400 focus:outline-none focus:border-orange-500"
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Poster Upload */}

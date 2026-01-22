@@ -21,10 +21,13 @@ export default function RunningTasksPage() {
             .from('movies')
             .select('*')
             .eq('is_running', true)
-            .order('updated_at', { ascending: false });
+            .order('created_at', { ascending: false });
 
         if (data) setTasks(data);
-        if (error) console.error('Error fetching tasks:', error);
+        if (error) {
+            console.error('Error fetching tasks details:', JSON.stringify(error, null, 2));
+            console.error('Original error:', error);
+        }
         setLoading(false);
     };
 
@@ -37,8 +40,7 @@ export default function RunningTasksPage() {
             .from('movies')
             .update({
                 last_episode: newLast,
-                next_episode: newNext,
-                updated_at: new Date().toISOString()
+                next_episode: newNext
             })
             .eq('id', task.id);
 
