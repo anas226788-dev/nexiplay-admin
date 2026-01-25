@@ -14,20 +14,83 @@ export default function ContentList({ initialMovies }: ContentListProps) {
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this content? This action cannot be undone.')) return;
+        if (!confirm('Are you sure you want to delete this content? This will permanently remove all data including seasons, episodes, and images. This action cannot be undone.')) return;
 
         setDeletingId(id);
-        const { error } = await supabase
-            .from('movies')
-            .delete()
-            .eq('id', id);
 
-        if (error) {
-            console.error('Error deleting movie:', error);
-            alert('Error deleting content: ' + error.message);
-        } else {
+        try {
+            // 1. First, get the movie data to find storage URLs
+            const { data: movie } = await supabase
+                .from('movies')
+                .select('poster_url, banner_url_desktop, banner_url_mobile')
+                .eq('id', id)
+                .single();
+
+            // 2. Get all screenshots for this movie
+            const { data: screenshots } = await supabase
+                .from('movie_screenshots')
+                .select('image_url')
+                .eq('movie_id', id);
+
+            // 3. Delete storage files
+            const filesToDelete: string[] = [];
+
+            // Helper to extract storage path from URL
+            const extractStoragePath = (url: string | null): string | null => {
+                if (!url) return null;
+                // Supabase Storage URLs contain /storage/v1/object/public/[bucket]/[path]
+                const match = url.match(/\/storage\/v1\/object\/public\/([^/]+)\/(.+)/);
+                if (match) return match[2]; // Return just the path within bucket
+                return null;
+            };
+
+            // Add poster
+            const posterPath = extractStoragePath(movie?.poster_url);
+            if (posterPath) filesToDelete.push(posterPath);
+
+            // Add banners
+            const desktopBannerPath = extractStoragePath(movie?.banner_url_desktop);
+            if (desktopBannerPath) filesToDelete.push(desktopBannerPath);
+
+            const mobileBannerPath = extractStoragePath(movie?.banner_url_mobile);
+            if (mobileBannerPath) filesToDelete.push(mobileBannerPath);
+
+            // Add screenshots
+            screenshots?.forEach(s => {
+                const screenshotPath = extractStoragePath(s.image_url);
+                if (screenshotPath) filesToDelete.push(screenshotPath);
+            });
+
+            // Delete from storage (errors are logged but don't stop the process)
+            if (filesToDelete.length > 0) {
+                const { error: storageError } = await supabase.storage
+                    .from('posters') // Assuming all images are in 'posters' bucket
+                    .remove(filesToDelete);
+
+                if (storageError) {
+                    console.warn('Storage cleanup warning:', storageError);
+                    // Continue with DB deletion even if storage fails
+                }
+            }
+
+            // 4. Delete from database (CASCADE handles related tables)
+            const { error: dbError } = await supabase
+                .from('movies')
+                .delete()
+                .eq('id', id);
+
+            if (dbError) {
+                throw dbError;
+            }
+
+            // Success - update UI
             setMovies(movies.filter(m => m.id !== id));
+
+        } catch (error: any) {
+            console.error('Error deleting content:', error);
+            alert('Error deleting content: ' + (error.message || 'Unknown error'));
         }
+
         setDeletingId(null);
     };
 

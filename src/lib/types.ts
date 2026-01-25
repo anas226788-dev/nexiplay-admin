@@ -23,6 +23,8 @@ export interface Movie {
     // Per-Content Notice System
     notice_enabled?: boolean;
     notice_text?: string;
+    // Dual Action Click System
+    ad_link?: string;
 }
 
 export interface Download {

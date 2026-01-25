@@ -54,6 +54,9 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const [noticeEnabled, setNoticeEnabled] = useState(initialData?.notice_enabled || false);
     const [noticeText, setNoticeText] = useState(initialData?.notice_text || '');
 
+    // Dual Action Click System
+    const [adLink, setAdLink] = useState(initialData?.ad_link || '');
+
 
     const [downloads, setDownloads] = useState(
         initialData?.downloads && initialData.downloads.length > 0
@@ -66,7 +69,16 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     );
 
     // Download Links State (new resolution-based system)
-    const [downloadLinks, setDownloadLinks] = useState<Record<string, DownloadLink>>({});
+    const [downloadLinks, setDownloadLinks] = useState<Record<string, DownloadLink>>(() => {
+        if (!initialData?.download_links) return {};
+        const links: Record<string, DownloadLink> = {};
+        initialData.download_links.forEach(link => {
+            if (link.resolution) {
+                links[link.resolution] = link;
+            }
+        });
+        return links;
+    });
 
     // Screenshots State
     const [screenshots, setScreenshots] = useState<string[]>(
@@ -218,6 +230,8 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         // Per-Content Notice System
                         notice_enabled: noticeEnabled,
                         notice_text: noticeText,
+                        // Dual Action Click System
+                        ad_link: adLink || null,
                         // Trending
                         is_trending: isTrending,
                         trending_rank: trendingRank,
@@ -258,6 +272,8 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         // Per-Content Notice System
                         notice_enabled: noticeEnabled,
                         notice_text: noticeText,
+                        // Dual Action Click System
+                        ad_link: adLink || null,
                         // Trending
                         is_trending: isTrending,
                         trending_rank: trendingRank,
@@ -674,6 +690,25 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                                 className="mt-2 w-full bg-dark-700 border border-white/10 rounded-lg p-2 text-xs text-gray-400 focus:outline-none focus:border-orange-500"
                             />
                         </div>
+                    </div>
+                )}
+
+                {/* Banner Ad Link (Dual Action Click) */}
+                {isTrending && (
+                    <div className="mt-6 pt-4 border-t border-white/5">
+                        <label className="block text-sm text-gray-400 mb-2">
+                            🔗 Banner Ad Link <span className="text-gray-600 text-xs">(Opens in new tab when banner clicked)</span>
+                        </label>
+                        <input
+                            type="url"
+                            placeholder="https://your-ad-link.com/shortlink"
+                            value={adLink}
+                            onChange={(e) => setAdLink(e.target.value)}
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-orange-500"
+                        />
+                        <p className="text-[10px] text-gray-500 mt-1">
+                            When users click this banner, both the content page AND this ad will open simultaneously.
+                        </p>
                     </div>
                 )}
             </div>

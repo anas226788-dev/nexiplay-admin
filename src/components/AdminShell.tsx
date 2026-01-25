@@ -25,57 +25,24 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
     return (
         <div className="flex min-h-screen bg-black">
-            {/* Mobile Header */}
-            <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-dark-800 border-b border-white/5 flex items-center justify-between px-4 z-50">
-                <h1 className="text-lg font-bold bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
-                    Nexiplay Admin
-                </h1>
-                <button
-                    onClick={() => setSidebarOpen(!sidebarOpen)}
-                    className="p-2 text-gray-400 hover:text-white"
-                >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        {sidebarOpen ? (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        ) : (
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                        )}
-                    </svg>
-                </button>
-            </header>
-
-            {/* Sidebar Overlay (Mobile) */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/80 z-40 md:hidden backdrop-blur-sm"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
-
-            {/* Sidebar */}
-            <aside className={`
-                fixed top-0 left-0 bottom-0 w-64 bg-dark-800 border-r border-white/5 z-50 transition-transform duration-300
-                md:transform-none md:static md:block
-                ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-            `}>
-                <div className="p-6 hidden md:block">
+            {/* Sidebar (Desktop Only) */}
+            <aside className="
+                hidden md:block fixed top-0 left-0 bottom-0 w-64
+                bg-dark-800 border-r border-white/5 z-50
+            ">
+                <div className="p-6">
                     <h1 className="text-xl font-bold bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
                         Nexiplay Admin
                     </h1>
                 </div>
 
-                <div className="p-6 md:hidden mt-16">
-                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Navigation</p>
-                </div>
-
-                <nav className="px-4 space-y-2 mt-4 md:mt-0">
+                <nav className="px-4 space-y-2 mt-4">
                     {menuItems.map((item) => {
                         const isActive = pathname === item.path || (item.path !== '/' && pathname?.startsWith(item.path));
                         return (
                             <Link
                                 key={item.path}
                                 href={item.path}
-                                onClick={() => setSidebarOpen(false)}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive
                                     ? 'bg-red-600/10 text-red-400 border border-red-500/10'
                                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
@@ -104,8 +71,76 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 </nav>
             </aside>
 
+            {/* Mobile Bottom Navigation */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-dark-800/95 backdrop-blur-xl border-t border-white/10 z-50 pb-safe">
+                <nav className="flex items-center justify-around p-2">
+                    {menuItems.slice(0, 5).map((item) => { // Show top 5 items on mobile bar
+                        const isActive = pathname === item.path || (item.path !== '/' && pathname?.startsWith(item.path));
+                        return (
+                            <Link
+                                key={item.path}
+                                href={item.path}
+                                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${isActive
+                                    ? 'text-red-500'
+                                    : 'text-gray-500'
+                                    }`}
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                                </svg>
+                                <span className="text-[10px] font-medium">{item.name}</span>
+                            </Link>
+                        );
+                    })}
+                    {/* More Menu (for remaining items) */}
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl text-gray-500 ${sidebarOpen ? 'text-white' : ''}`}
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <span className="text-[10px] font-medium">More</span>
+                    </button>
+                </nav>
+            </div>
+
+            {/* Mobile Full Menu Overlay (when "More" is clicked) */}
+            {sidebarOpen && (
+                <div className="fixed inset-0 z-40 bg-dark-900/95 backdrop-blur-md md:hidden flex flex-col p-6 animate-fade-in-up">
+                    <div className="flex items-center justify-between mb-8">
+                        <h2 className="text-xl font-bold text-white">Menu</h2>
+                        <button onClick={() => setSidebarOpen(false)} className="p-2 bg-white/10 rounded-full">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                        {menuItems.slice(5).map((item) => (
+                            <Link
+                                key={item.path}
+                                href={item.path}
+                                onClick={() => setSidebarOpen(false)}
+                                className="flex flex-col items-center gap-3 p-4 bg-white/5 rounded-2xl border border-white/5 active:scale-95 transition-transform"
+                            >
+                                <div className="w-10 h-10 bg-dark-800 rounded-full flex items-center justify-center text-gray-300">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
+                                    </svg>
+                                </div>
+                                <span className="text-xs text-gray-400 font-medium">{item.name}</span>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Content Area */}
-            <main className="flex-1 min-w-0 p-4 pt-20 md:p-8">
+            <main className="flex-1 min-w-0 p-4 pb-24 md:p-8 md:pl-72">
+                <div className="md:hidden mb-6 flex items-center justify-between">
+                    <h1 className="text-xl font-bold text-white">Nexiplay Admin</h1>
+                </div>
                 {children}
             </main>
         </div>
