@@ -1,13 +1,13 @@
 {
   "/page": "app/page.js",
-  "/ads/page": "app/ads/page.js",
-  "/comments/page": "app/comments/page.js",
-  "/requests/page": "app/requests/page.js",
-  "/messages/page": "app/messages/page.js",
   "/notices/page": "app/notices/page.js",
+  "/requests/page": "app/requests/page.js",
+  "/comments/page": "app/comments/page.js",
   "/dmca/page": "app/dmca/page.js",
+  "/ads/page": "app/ads/page.js",
+  "/messages/page": "app/messages/page.js",
   "/chatbot/page": "app/chatbot/page.js",
-  "/edit/[id]/page": "app/edit/[id]/page.js",
   "/settings/page": "app/settings/page.js",
-  "/dead-links/page": "app/dead-links/page.js"
+  "/dead-links/page": "app/dead-links/page.js",
+  "/edit/[id]/page": "app/edit/[id]/page.js"
 }

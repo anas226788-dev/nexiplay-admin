@@ -1,8 +1,8 @@
-// File: D:\nexiplay-admin\src\app\running\page.tsx
-import * as entry from '../../../../src/app/running/page.js'
+// File: D:\nexiplay-admin\src\app\ads\add\page.tsx
+import * as entry from '../../../../../src/app/ads/add/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
-type TEntry = typeof import('../../../../src/app/running/page.js')
+type TEntry = typeof import('../../../../../src/app/ads/add/page.js')
 
 type SegmentParams<T extends Object = any> = T extends Record<string, any>
   ? { [K in keyof T]: T[K] extends string ? string | string[] | undefined : never }
