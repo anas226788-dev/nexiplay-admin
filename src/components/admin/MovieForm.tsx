@@ -8,6 +8,7 @@ import { uploadPoster } from '@/lib/upload';
 import { Category, FullMovie, Screenshot, DownloadLink } from '@/lib/types';
 import DownloadLinksEditor from './DownloadLinksEditor';
 import SeasonEditor from './SeasonEditor';
+import EpisodeImporter from './EpisodeImporter';
 
 interface MovieFormProps {
     initialData?: FullMovie;
@@ -18,6 +19,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [seasonEditorKey, setSeasonEditorKey] = useState(0);
 
     // Form State
     const [title, setTitle] = useState(initialData?.title || '');
@@ -939,10 +941,21 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                 )
             }
 
+            {/* Auto Import Episodes - Only for Series/Anime (only shown when editing) */}
+            {
+                (type === 'series' || type === 'anime') && initialData?.id && (
+                    <EpisodeImporter
+                        movieId={initialData.id}
+                        movieType={type}
+                        onImportComplete={() => setSeasonEditorKey(prev => prev + 1)}
+                    />
+                )
+            }
+
             {/* Season Editor - Only for Series/Anime (only shown when editing) */}
             {
                 (type === 'series' || type === 'anime') && initialData?.id && (
-                    <SeasonEditor movieId={initialData.id} movieType={type} />
+                    <SeasonEditor key={seasonEditorKey} movieId={initialData.id} movieType={type} />
                 )
             }
 
