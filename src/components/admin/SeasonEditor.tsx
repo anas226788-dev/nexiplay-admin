@@ -116,18 +116,20 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
         setSaving(true);
         try {
             if (editingSeason?.id) {
-                await supabase.from('seasons').update({
+                const { error } = await supabase.from('seasons').update({
                     season_number: seasonNumber,
                     season_title: seasonTitle || null,
                     season_zip_link: seasonZipLink || null,
                 }).eq('id', editingSeason.id);
+                if (error) throw error;
             } else {
-                await supabase.from('seasons').insert({
+                const { error } = await supabase.from('seasons').insert({
                     movie_id: movieId,
                     season_number: seasonNumber,
                     season_title: seasonTitle || null,
                     season_zip_link: seasonZipLink || null,
                 });
+                if (error) throw error;
             }
 
             // Latest Update upsert
@@ -144,7 +146,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                             .eq('content_id', movie.id)
                             .maybeSingle();
 
-                        await supabase.from('updates').upsert({
+                        const { error: upsertError } = await supabase.from('updates').upsert({
                             content_id: movie.id,
                             title: movie.title,
                             poster_url: movie.poster_url,
@@ -156,6 +158,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                             is_active: true,
                             updated_at: new Date().toISOString(),
                         }, { onConflict: 'content_id' });
+                        if (upsertError) throw upsertError;
                     }
                 } catch (e) {
                     console.warn('Latest update upsert failed:', e);
@@ -164,17 +167,23 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
 
             await fetchSeasons();
             setShowSeasonModal(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving season:', error);
-            alert('Failed to save season');
+            alert(`Failed to save season: ${error.message || error.details || JSON.stringify(error)}`);
         }
         setSaving(false);
     };
 
     const deleteSeason = async (seasonId: string) => {
         if (!confirm('Delete this season and all its episodes?')) return;
-        await supabase.from('seasons').delete().eq('id', seasonId);
-        await fetchSeasons();
+        try {
+            const { error } = await supabase.from('seasons').delete().eq('id', seasonId);
+            if (error) throw error;
+            await fetchSeasons();
+        } catch (error: any) {
+            console.error('Error deleting season:', error);
+            alert(`Failed to delete season: ${error.message || JSON.stringify(error)}`);
+        }
     };
 
     // Episode CRUD
@@ -209,10 +218,11 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
 
             if (episodeId) {
                 // Update episode
-                await supabase.from('episodes').update({
+                const { error: updateError } = await supabase.from('episodes').update({
                     episode_number: episodeNumber,
                     episode_title: episodeTitle || null,
                 }).eq('id', episodeId);
+                if (updateError) throw updateError;
             } else {
                 // Insert episode
                 const { data, error } = await supabase.from('episodes').insert({
@@ -226,7 +236,8 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
             }
 
             // Save download links
-            await supabase.from('episode_download_links').delete().eq('episode_id', episodeId);
+            const { error: deleteError } = await supabase.from('episode_download_links').delete().eq('episode_id', episodeId);
+            if (deleteError) throw deleteError;
 
             const linkInserts = Object.values(episodeLinks)
                 .filter(link =>
@@ -246,7 +257,8 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                 }));
 
             if (linkInserts.length > 0) {
-                await supabase.from('episode_download_links').insert(linkInserts);
+                const { error: insertError } = await supabase.from('episode_download_links').insert(linkInserts);
+                if (insertError) throw insertError;
             }
 
             await fetchSeasons();
@@ -259,7 +271,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                         .eq('id', selectedSeason.movie_id || movieId)
                         .single();
                     if (movie) {
-                        await supabase.from('updates').upsert({
+                        const { error: upsertError } = await supabase.from('updates').upsert({
                             content_id: movie.id,
                             title: movie.title,
                             poster_url: movie.poster_url,
@@ -271,6 +283,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                             is_active: true,
                             updated_at: new Date().toISOString(),
                         }, { onConflict: 'content_id' });
+                        if (upsertError) throw upsertError;
                     }
                 } catch (e) {
                     console.warn('Latest update upsert failed:', e);
@@ -278,17 +291,23 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
             }
 
             setShowEpisodeModal(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error saving episode:', error);
-            alert('Failed to save episode');
+            alert(`Failed to save episode: ${error.message || error.details || JSON.stringify(error)}`);
         }
         setSaving(false);
     };
 
     const deleteEpisode = async (episodeId: string) => {
         if (!confirm('Delete this episode?')) return;
-        await supabase.from('episodes').delete().eq('id', episodeId);
-        await fetchSeasons();
+        try {
+            const { error } = await supabase.from('episodes').delete().eq('id', episodeId);
+            if (error) throw error;
+            await fetchSeasons();
+        } catch (error: any) {
+            console.error('Error deleting episode:', error);
+            alert(`Failed to delete episode: ${error.message || JSON.stringify(error)}`);
+        }
     };
 
     const updateEpisodeLink = (resolution: string, field: string, value: string) => {
