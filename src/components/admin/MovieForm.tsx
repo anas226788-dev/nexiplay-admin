@@ -58,6 +58,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     // Per-Content Notice State
     const [noticeEnabled, setNoticeEnabled] = useState(initialData?.notice_enabled || false);
     const [noticeText, setNoticeText] = useState(initialData?.notice_text || '');
+    const [allowGlobalNotices, setAllowGlobalNotices] = useState(initialData?.allow_global_notices || false);
 
     // Dual Action Click System
     const [adLink, setAdLink] = useState(initialData?.ad_link || '');
@@ -241,6 +242,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         // Per-Content Notice System
                         notice_enabled: noticeEnabled,
                         notice_text: noticeText,
+                        allow_global_notices: allowGlobalNotices,
                         // Dual Action Click System
                         ad_link: adLink || null,
                         // Adult Content
@@ -288,6 +290,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         // Per-Content Notice System
                         notice_enabled: noticeEnabled,
                         notice_text: noticeText,
+                        allow_global_notices: allowGlobalNotices,
                         // Dual Action Click System
                         ad_link: adLink || null,
                         // Adult Content
@@ -565,18 +568,33 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                 <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <span>📢</span> Content Notice Settings
                 </h3>
-                <div className="flex items-start gap-6">
-                    <div className="flex items-center h-10">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={noticeEnabled}
-                                onChange={(e) => setNoticeEnabled(e.target.checked)}
-                                className="sr-only peer"
-                            />
-                            <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
-                            <span className="ml-3 text-sm font-medium text-gray-300">Enable Notice</span>
-                        </label>
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center h-10">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={noticeEnabled}
+                                    onChange={(e) => setNoticeEnabled(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-yellow-600"></div>
+                                <span className="ml-3 text-sm font-medium text-gray-300">Enable Local Notice</span>
+                            </label>
+                        </div>
+
+                        <div className="flex items-center h-10">
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={allowGlobalNotices}
+                                    onChange={(e) => setAllowGlobalNotices(e.target.checked)}
+                                    className="sr-only peer"
+                                />
+                                <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                <span className="ml-3 text-sm font-medium text-gray-300">Allow Global Notices</span>
+                            </label>
+                        </div>
                     </div>
 
                     {noticeEnabled && (

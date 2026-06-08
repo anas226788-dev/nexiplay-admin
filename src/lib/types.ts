@@ -26,6 +26,7 @@ export interface Movie {
     // Per-Content Notice System
     notice_enabled?: boolean;
     notice_text?: string;
+    allow_global_notices?: boolean;
     // Dual Action Click System
     ad_link?: string;
     // Adult Content
@@ -106,8 +107,10 @@ export interface Notice {
     id: string;
     content: string;
     image_url?: string;
-    type: 'top_bar' | 'popup' | 'inline';
-    pages: 'all' | 'home' | 'movie';
+    video_url?: string;
+    type: 'top_bar' | 'popup' | 'inline' | 'toast' | 'bottom_bar' | 'fullscreen' | 'marquee' | 'marquee_bottom';
+    pages: 'all' | 'home' | 'movie' | 'specific';
+    movie_id?: string;
     is_active: boolean;
     bg_color: string;
     text_color: string;
