@@ -13,6 +13,13 @@ export interface ScrapedResult {
     warnings?: string[];
     totalFound?: number;
     resolvedCount?: number;
+    fallbackCount?: number;
+}
+
+interface ResolvedZipperLink {
+    link: string;
+    resolvedToMega: boolean;
+    warning?: string;
 }
 
 const HEADERS: Record<string, string> = {
@@ -256,12 +263,13 @@ async function fetchHtmlWithProxy(
  * Uses CodeTabs proxy to bypass Cloudflare bot protection on codedew.com.
  * Falls back to the zipper URL itself if resolution fails completely.
  */
-async function resolveZipperToMega(zipperUrl: string): Promise<string> {
+async function resolveZipperToMega(zipperUrl: string): Promise<ResolvedZipperLink> {
     try {
         const step1 = await fetchHtmlWithProxy(zipperUrl);
         if (!step1.ok) {
-            console.warn(`Zipper step1 failed (status ${step1.status}), using zipper URL directly`);
-            return zipperUrl;
+            const warning = `Zipper step1 HTTP ${step1.status}; using zipper fallback`;
+            console.warn(warning);
+            return { link: zipperUrl, resolvedToMega: false, warning };
         }
 
         const cookies: string[] = [];
@@ -276,9 +284,13 @@ async function resolveZipperToMega(zipperUrl: string): Promise<string> {
         const step2Match = step1.html.match(/href="([^"]*ad_step=2[^"]*)"/i);
         if (!step2Match) {
             const directMega = step1.html.match(/href="(https:\/\/mega\.nz\/[^"]+)"/i);
-            if (directMega) return directMega[1];
+            if (directMega) return { link: directMega[1], resolvedToMega: true };
             // No ad_step and no mega link — fall back to zipper URL
-            return zipperUrl;
+            return {
+                link: zipperUrl,
+                resolvedToMega: false,
+                warning: 'No Mega link or ad_step found; using zipper fallback',
+            };
         }
 
         const step2Path = step2Match[1].replace(/&amp;/g, '&');
@@ -287,22 +299,28 @@ async function resolveZipperToMega(zipperUrl: string): Promise<string> {
 
         const step2 = await fetchHtmlWithProxy(step2Url, zipperUrl, cookies);
         if (!step2.ok) {
-            console.warn(`Zipper step2 failed (status ${step2.status}), using zipper URL directly`);
-            return zipperUrl;
+            const warning = `Zipper step2 HTTP ${step2.status}; using zipper fallback`;
+            console.warn(warning);
+            return { link: zipperUrl, resolvedToMega: false, warning };
         }
 
         const megaMatch = step2.html.match(/href="(https:\/\/mega\.nz\/[^"]+)"/i);
         if (!megaMatch) {
             const anyExternal = step2.html.match(/href="(https?:\/\/(?!codedew\.com)[^"]+)"/i);
-            if (anyExternal) return anyExternal[1];
+            if (anyExternal) return { link: anyExternal[1], resolvedToMega: false };
             // No external link found — fall back to zipper URL
-            return zipperUrl;
+            return {
+                link: zipperUrl,
+                resolvedToMega: false,
+                warning: 'No external link found after ad step; using zipper fallback',
+            };
         }
 
-        return megaMatch[1];
+        return { link: megaMatch[1], resolvedToMega: true };
     } catch (e: any) {
-        console.warn(`Failed to resolve zipper URL (${e.message}), falling back to zipper URL`);
-        return zipperUrl;
+        const warning = `Failed to resolve zipper URL (${e.message}); using zipper fallback`;
+        console.warn(warning);
+        return { link: zipperUrl, resolvedToMega: false, warning };
     }
 }
 
@@ -445,19 +463,31 @@ export async function scrapeSource(
         const episodes: ScrapedEpisode[] = [];
         const pendingSubEpisodes: ScrapedEpisode[] = [];
         const warnings: string[] = [];
+        let resolvedCount = 0;
 
         // Resolve DUB episodes (auto-import)
         for (const ep of rawDubEpisodes) {
             try {
-                const megaLink = await resolveZipperToMega(ep.zipperUrl);
+                const resolved = await resolveZipperToMega(ep.zipperUrl);
                 const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
                 episodes.push({
                     number: epNum,
                     title: ep.title,
-                    link: megaLink,
+                    link: resolved.link,
                 });
+                if (resolved.resolvedToMega) {
+                    resolvedCount++;
+                } else if (resolved.warning) {
+                    warnings.push(`DUB ${ep.title}: ${resolved.warning}`);
+                }
             } catch (err: any) {
                 warnings.push(`DUB ${ep.title}: ${err.message}`);
+                const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
+                episodes.push({
+                    number: epNum,
+                    title: ep.title,
+                    link: ep.zipperUrl,
+                });
             }
             await new Promise(r => setTimeout(r, 400));
         }
@@ -481,7 +511,7 @@ export async function scrapeSource(
         */
 
         if (episodes.length === 0) {
-            throw new Error(`Failed to resolve any Mega links. Errors: ${warnings.join('; ')}`);
+            throw new Error(`No importable episode links found. Errors: ${warnings.join('; ')}`);
         }
 
         return {
@@ -492,7 +522,8 @@ export async function scrapeSource(
             pendingSubEpisodes: undefined,
             warnings,
             totalFound: rawDubEpisodes.length,
-            resolvedCount: episodes.length,
+            resolvedCount,
+            fallbackCount: episodes.length - resolvedCount,
         };
     } else if (source === 'movielink') {
         const cookies: string[] = [];

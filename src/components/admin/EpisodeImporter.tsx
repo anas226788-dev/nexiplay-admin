@@ -279,9 +279,13 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
             if (data.resolvedCount !== undefined) {
                 const icon = sourceType === 'rareanimes' ? '🐉' : sourceType === 'movielink' ? '🎬' : '✅';
                 const labelName = sourceType === 'rareanimes' ? 'RareAnimes' : sourceType === 'movielink' ? 'MovieLinkBD' : 'Generic';
-                const resolveMsg = `${icon} ${labelName} Scraped: Resolved ${data.resolvedCount}/${data.totalFound} links`;
+                const fallbackCount = data.fallbackCount || 0;
+                const importedCount = data.episodes?.length || data.resolvedCount || 0;
+                const resolveMsg = fallbackCount > 0
+                    ? `${icon} ${labelName} Scraped: ${importedCount} episodes found; Mega resolved ${data.resolvedCount}/${data.totalFound}, fallback ${fallbackCount}`
+                    : `${icon} ${labelName} Scraped: Resolved ${data.resolvedCount}/${data.totalFound} links`;
                 if (data.warnings?.length > 0) {
-                    setSuccessMessage(`${resolveMsg} (${data.warnings.length} failed)`);
+                    setSuccessMessage(`${resolveMsg} (${data.warnings.length} warnings)`);
                 } else {
                     setSuccessMessage(resolveMsg);
                 }

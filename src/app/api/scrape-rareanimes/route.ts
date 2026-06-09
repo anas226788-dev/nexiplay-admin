@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { scrapeSource } from '@/lib/scraper-utils';
 
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
@@ -26,8 +28,8 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             ...result,
-            resolvedCount: result.episodes.length,
-            totalFound: result.totalFound || result.episodes.length,
+            resolvedCount: result.resolvedCount ?? result.episodes.length,
+            totalFound: result.totalFound ?? result.episodes.length,
         });
 
     } catch (error: any) {
