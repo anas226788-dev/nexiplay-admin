@@ -78,7 +78,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
     const initEpisodeLinks = (episode?: Episode) => {
         const links: Record<string, EpisodeDownloadLink> = {};
         RESOLUTIONS.forEach(res => {
-            const existing = episode?.download_links?.find(l => l.resolution === res);
+            const existing = episode?.download_links?.find(l => l.resolution === res && (l.language_type === null || l.language_type === 'dub'));
             links[res] = existing || {
                 resolution: res,
                 file_size: '',
@@ -235,8 +235,12 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                 episodeId = data.id;
             }
 
-            // Save download links
-            const { error: deleteError } = await supabase.from('episode_download_links').delete().eq('episode_id', episodeId);
+            // Save download links (only delete generic or DUB links, keeping SUB links safe)
+            const { error: deleteError } = await supabase
+                .from('episode_download_links')
+                .delete()
+                .eq('episode_id', episodeId)
+                .or('language_type.is.null,language_type.eq.dub');
             if (deleteError) throw deleteError;
 
             const linkInserts = Object.values(episodeLinks)

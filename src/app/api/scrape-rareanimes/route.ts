@@ -22,22 +22,16 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const result = await scrapeSource(url, 'fxlinks');
+        const result = await scrapeSource(url, 'rareanimes');
 
-        if (result.episodes.length === 0) {
-            return NextResponse.json(
-                {
-                    error: 'No episodes found on this page. Make sure the page contains links with "Episode" text.',
-                    pageTitle: result.pageTitle,
-                },
-                { status: 404 }
-            );
-        }
-
-        return NextResponse.json(result);
+        return NextResponse.json({
+            ...result,
+            resolvedCount: result.episodes.length,
+            totalFound: result.totalFound || result.episodes.length,
+        });
 
     } catch (error: any) {
-        console.error('Scrape error:', error);
+        console.error('RareAnimes scrape error:', error);
         return NextResponse.json(
             { error: `Scraping failed: ${error.message}` },
             { status: 500 }

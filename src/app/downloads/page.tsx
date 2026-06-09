@@ -187,7 +187,7 @@ export default function DownloadsPage() {
             const episodeRows: EditableRow[] = ((data as Episode[]) || []).map(ep => {
                 const links: Record<Resolution, LinkData> = {} as any;
                 RESOLUTIONS.forEach(res => {
-                    const existing = ep.download_links?.find(l => l.resolution === res);
+                    const existing = ep.download_links?.find(l => l.resolution === res && (l.language_type === null || l.language_type === 'dub'));
                     links[res] = existing ? {
                         id: existing.id,
                         resolution: res,
@@ -347,8 +347,12 @@ export default function DownloadsPage() {
                         }).eq('id', episodeId);
                     }
 
-                    // Delete existing links + re-insert
-                    await supabase.from('episode_download_links').delete().eq('episode_id', episodeId);
+                    // Delete existing links (only generic/DUB) + re-insert
+                    await supabase
+                        .from('episode_download_links')
+                        .delete()
+                        .eq('episode_id', episodeId)
+                        .or('language_type.is.null,language_type.eq.dub');
 
                     const linkInserts = Object.values(row.links)
                         .filter(link => PROVIDER_FIELDS.some(p => link[p.key as keyof LinkData]))

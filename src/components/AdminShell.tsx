@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 export default function AdminShell({ children }: { children: React.ReactNode }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [runningAlerts, setRunningAlerts] = useState(0);
+    const [pendingRequests, setPendingRequests] = useState(0);
     const pathname = usePathname();
 
     useEffect(() => {
@@ -27,6 +28,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             }
         };
         fetchAlerts();
+
+        const fetchPendingRequests = async () => {
+            const { count } = await supabase
+                .from('content_requests')
+                .select('id', { count: 'exact', head: true })
+                .in('status', ['pending', 'review']);
+            if (count !== null) setPendingRequests(count);
+        };
+        fetchPendingRequests();
     }, [pathname]); // Refresh when navigating
 
     const menuItems = [
@@ -79,6 +89,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                 {item.name === 'Running Tasks' && runningAlerts > 0 && (
                                     <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
                                         {runningAlerts}
+                                    </span>
+                                )}
+                                {item.name === 'Requests' && pendingRequests > 0 && (
+                                    <span className="bg-yellow-500 text-black text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                        {pendingRequests}
                                     </span>
                                 )}
                             </Link>
@@ -149,6 +164,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                     </svg>
                                     {item.name === 'Running Tasks' && runningAlerts > 0 && (
                                         <span className="absolute -top-1 -right-1 bg-red-500 w-3.5 h-3.5 rounded-full animate-pulse border-2 border-dark-900"></span>
+                                    )}
+                                    {item.name === 'Requests' && pendingRequests > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-yellow-500 w-3.5 h-3.5 rounded-full animate-pulse border-2 border-dark-900"></span>
                                     )}
                                 </div>
                                 <span className="text-xs text-gray-400 font-medium">{item.name}</span>

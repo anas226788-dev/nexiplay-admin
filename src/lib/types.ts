@@ -31,6 +31,11 @@ export interface Movie {
     ad_link?: string;
     // Adult Content
     is_adult?: boolean;
+    // Auto Scraper Configuration
+    scraper_url?: string;
+    scraper_source?: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix';
+    scraper_resolution?: '360p' | '480p' | '720p' | '1080p';
+    scraper_season?: number;
 }
 
 export interface Download {
@@ -47,16 +52,6 @@ export interface Category {
     name: string;
     slug: string;
     created_at?: string;
-}
-
-export interface AppSettings {
-    id: number;
-    is_ads_enabled: boolean;
-    popunder_url: string;
-    direct_link_url: string;
-    gplink_url?: string;
-    smartlink_url?: string;
-    updated_at: string;
 }
 
 export interface MovieWithDownloads extends Movie {
@@ -135,6 +130,10 @@ export interface AppSettings {
     ad_enabled_devices?: 'all' | 'desktop' | 'mobile';
     native_ad_code?: string;
     social_bar_code?: string;
+    // Social Links
+    rareanimes_url?: string;
+    bollyflix_url?: string;
+    movielink_url?: string;
     // Social Links
     social_pinterest?: string;
     social_twitter?: string;
@@ -215,6 +214,9 @@ export interface EpisodeDownloadLink {
     terabox_link?: string;
     pcloud_link?: string;
     youtube_link?: string;
+    // Language & Approval (for RareAnimes Hindi DUB/SUB)
+    language_type?: 'dub' | 'sub' | null;
+    approval_status?: 'approved' | 'pending' | 'rejected';
     created_at?: string;
 }
 
@@ -231,7 +233,10 @@ export interface Comment {
 export interface ContentRequest {
     id: string;
     content_name: string;
-    status: 'pending' | 'added' | 'rejected';
+    status: 'pending' | 'added' | 'rejected' | 'review';
+    scraped_data?: any;
+    scraper_source?: 'rareanimes' | 'bollyflix' | 'movielink' | null;
+    source_url?: string | null;
     created_at: string;
 }
 

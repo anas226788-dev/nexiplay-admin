@@ -33,13 +33,87 @@ interface SeasonInfo {
 
 const RESOLUTIONS = ['360p', '480p', '720p', '1080p'] as const;
 
+type SourceType = 'fxlinks' | 'rareanimes' | 'movielink';
+
+const SOURCE_OPTIONS: { value: SourceType; label: string; icon: string; placeholder: string; description: string }[] = [
+    {
+        value: 'fxlinks',
+        label: 'FXLinks / Generic',
+        icon: '🔗',
+        placeholder: 'https://fxlinks.rest/elinks/...',
+        description: 'Standard episode link pages (FXLinks, etc.)',
+    },
+    {
+        value: 'rareanimes',
+        label: 'RareAnimes',
+        icon: '🐉',
+        placeholder: 'https://www.rareanimes.buzz/hindi/...',
+        description: 'RareAnimes.buzz → Mega.nz (auto-resolves zipper)',
+    },
+    {
+        value: 'movielink',
+        label: 'MovieLinkBD',
+        icon: '🎬',
+        placeholder: 'https://247q3t.movielinkbd.li/movie/...',
+        description: 'MovieLinkBD (resolves fast cloud / direct links)',
+    },
+];
+
 export default function EpisodeImporter({ movieId, movieType, onImportComplete }: EpisodeImporterProps) {
     const [sourceUrl, setSourceUrl] = useState('');
+    const [sourceType, setSourceType] = useState<SourceType>('fxlinks');
     const [scraping, setScraping] = useState(false);
     const [importing, setImporting] = useState(false);
     const [result, setResult] = useState<ScrapeResult | null>(null);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+
+    // Scraper premium progress animation states
+    const [currentStepIndex, setCurrentStepIndex] = useState(0);
+
+    useEffect(() => {
+        if (scraping) {
+            setCurrentStepIndex(0);
+            const interval = setInterval(() => {
+                setCurrentStepIndex(prev => {
+                    if (prev < 4) return prev + 1;
+                    return prev;
+                });
+            }, 2500); // advance step every 2.5 seconds
+            return () => clearInterval(interval);
+        }
+    }, [scraping]);
+
+    const getScraperSteps = () => {
+        if (sourceType === 'rareanimes') {
+            return [
+                'Initializing secure connection to RareAnimes...',
+                'Fetching main page contents and structure...',
+                'Extracting encrypted Mega download links...',
+                'Verifying and resolving cloud link paths...',
+                'Compiling final list of episodes...'
+            ];
+        }
+        if (sourceType === 'movielink') {
+            return [
+                'Connecting to MovieLinkBD secure servers...',
+                'Resolving intermediate redirect sheets...',
+                'Decrypting page token key sequences...',
+                'Extracting direct Fast-Cloud download URLs...',
+                'Validating endpoints and compiling results...'
+            ];
+        }
+        return [
+            'Targeting request URL and establishing handshakes...',
+            'Parsing raw HTML page layout and DOM elements...',
+            'Identifying episode selectors and patterns...',
+            'Filtering out external redirects & tracking links...',
+            'Formatting validated links and importing structure...'
+        ];
+    };
+
+    const scraperSteps = getScraperSteps();
+    const currentStepText = scraperSteps[currentStepIndex] || 'Processing...';
 
     // Import settings
     const [seasonNumber, setSeasonNumber] = useState(1);
@@ -165,7 +239,14 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
         setSuccessMessage('');
 
         try {
-            const res = await fetch('/api/scrape-episodes', {
+            // Pick the right API endpoint based on source type
+            const endpoint = sourceType === 'rareanimes'
+                ? '/api/scrape-rareanimes'
+                : sourceType === 'movielink'
+                ? '/api/scrape-movielink'
+                : '/api/scrape-episodes';
+
+            const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: sourceUrl.trim() }),
@@ -192,6 +273,19 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
             // Auto-set resolution from detected
             if (data.resolution) {
                 setResolution(data.resolution);
+            }
+
+            // Show resolved count for RareAnimes and MovieLinkBD
+            if (data.resolvedCount !== undefined) {
+                const icon = sourceType === 'rareanimes' ? '🐉' : sourceType === 'movielink' ? '🎬' : '✅';
+                const labelName = sourceType === 'rareanimes' ? 'RareAnimes' : sourceType === 'movielink' ? 'MovieLinkBD' : 'Generic';
+                const resolveMsg = `${icon} ${labelName} Scraped: Resolved ${data.resolvedCount}/${data.totalFound} links`;
+                if (data.warnings?.length > 0) {
+                    setSuccessMessage(`${resolveMsg} (${data.warnings.length} failed)`);
+                } else {
+                    setSuccessMessage(resolveMsg);
+                }
+                setTimeout(() => setSuccessMessage(''), 6000);
             }
 
         } catch (err: any) {
@@ -305,6 +399,7 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                         .select('id')
                         .eq('episode_id', episodeId)
                         .eq('resolution', resolution)
+                        .is('language_type', null)
                         .maybeSingle();
 
                     if (existingLink) {
@@ -319,6 +414,7 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                                 episode_id: episodeId,
                                 resolution: resolution,
                                 gdrive_link: ep.link,
+                                language_type: null
                             });
                     }
 
@@ -355,46 +451,91 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
     const selectedCount = result?.episodes.filter(ep => ep.selected).length || 0;
 
     return (
-        <div className="glass p-6 rounded-xl border border-white/5 space-y-5">
+        <div className="glass p-4 sm:p-6 rounded-xl border border-white/5 space-y-5">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <h2 className="text-lg sm:text-xl font-bold flex items-center gap-2">
                     <span className="bg-gradient-to-r from-cyan-500 to-blue-500 bg-clip-text text-transparent">🔗</span>
                     Auto Import Episodes
                 </h2>
-                <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full">
+                <span className="text-xs text-gray-500 bg-white/5 px-3 py-1 rounded-full self-start sm:self-auto">
                     Agent System
                 </span>
             </div>
 
-            <p className="text-sm text-gray-400">
-                Paste a source URL (FXLinks, or any site with episode download links) and the system will scrape all episode links automatically.
+            <p className="text-xs sm:text-sm text-gray-400">
+                Select a source type, paste the URL, and the system will scrape all episode links automatically.
             </p>
 
+            {/* Source Type Selector */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {SOURCE_OPTIONS.map((opt) => (
+                    <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                            setSourceType(opt.value);
+                            setResult(null);
+                            setError('');
+                            setSuccessMessage('');
+                        }}
+                        disabled={scraping || importing}
+                        className={`relative p-3 rounded-xl border text-left transition-all duration-200 ${
+                            sourceType === opt.value
+                                ? 'bg-gradient-to-br from-cyan-900/40 to-blue-900/30 border-cyan-500/40 shadow-lg shadow-cyan-900/20 ring-1 ring-cyan-500/20'
+                                : 'bg-dark-700/50 border-white/5 hover:border-white/15 hover:bg-dark-700'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                        <div className="flex items-center gap-2.5">
+                            <span className="text-xl">{opt.icon}</span>
+                            <div>
+                                <p className={`text-sm font-bold ${
+                                    sourceType === opt.value ? 'text-cyan-300' : 'text-white'
+                                }`}>
+                                    {opt.label}
+                                </p>
+                                <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                                    {opt.description}
+                                </p>
+                            </div>
+                        </div>
+                        {sourceType === opt.value && (
+                            <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-cyan-400 shadow-lg shadow-cyan-400/50 animate-pulse" />
+                        )}
+                    </button>
+                ))}
+            </div>
+
             {/* URL Input */}
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">🌐</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                        {SOURCE_OPTIONS.find(o => o.value === sourceType)?.icon || '🌐'}
+                    </span>
                     <input
                         type="url"
-                        placeholder="https://fxlinks.rest/elinks/..."
+                        placeholder={SOURCE_OPTIONS.find(o => o.value === sourceType)?.placeholder || 'Paste URL here...'}
                         value={sourceUrl}
                         onChange={(e) => setSourceUrl(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleScrape()}
                         disabled={scraping || importing}
-                        className="w-full pl-10 bg-dark-700 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all"
+                        className="w-full pl-10 bg-dark-700 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all text-sm sm:text-base"
                     />
                 </div>
                 <button
                     type="button"
                     onClick={handleScrape}
                     disabled={scraping || importing || !sourceUrl.trim()}
-                    className="px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-xl hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-cyan-900/30"
+                    className={`px-6 py-3 text-white font-bold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg justify-center w-full sm:w-auto ${
+                        sourceType === 'rareanimes'
+                            ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-purple-900/30'
+                            : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-cyan-900/30'
+                    }`}
                 >
                     {scraping ? (
                         <>
                             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            Scraping...
+                            {sourceType === 'rareanimes' ? 'Resolving Mega...' : 'Scraping...'}
                         </>
                     ) : (
                         <>
@@ -406,6 +547,183 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                     )}
                 </button>
             </div>
+
+            {/* Premium Scraping Animation Overlay */}
+            {scraping && (
+                <div className="relative p-0.5 rounded-2xl overflow-hidden shadow-[0_0_50px_-12px_rgba(6,182,212,0.3)] animate-fadeIn">
+                    {/* Animated gradient border wrapper */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 animate-border-spin" />
+                    
+                    <div className="relative p-4 sm:p-6 md:p-8 bg-dark-900/95 backdrop-blur-2xl rounded-[15px] space-y-6 md:space-y-8">
+                        <style>{`
+                            @keyframes border-spin {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                            @keyframes pulse-glow {
+                                0%, 100% { opacity: 0.2; transform: scale(1); }
+                                50% { opacity: 0.4; transform: scale(1.05); }
+                            }
+                            @keyframes radar-sweep {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                            .animate-border-spin {
+                                width: 200%;
+                                height: 200%;
+                                top: -50%;
+                                left: -50%;
+                                animation: border-spin 8s linear infinite;
+                            }
+                            .animate-pulse-glow {
+                                animation: pulse-glow 3s ease-in-out infinite;
+                            }
+                            .animate-radar-sweep {
+                                animation: radar-sweep 2s linear infinite;
+                            }
+                            .glass-panel {
+                                background: rgba(255, 255, 255, 0.02);
+                                border: 1px solid rgba(255, 255, 255, 0.05);
+                                backdrop-filter: blur(10px);
+                            }
+                        `}</style>
+
+                        {/* Top Accent Light Orbs */}
+                        <div className="absolute -top-10 -left-10 w-32 h-32 bg-cyan-500/15 rounded-full blur-2xl animate-pulse-glow" />
+                        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl animate-pulse-glow" />
+
+                        {/* Main Grid: Responsive split */}
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center relative z-10">
+                            
+                            {/* Left/Top Column: Radar Core & Text Status */}
+                            <div className="md:col-span-5 flex flex-col items-center justify-center text-center space-y-4 md:border-r md:border-white/5 md:pr-6">
+                                {/* Radar Core */}
+                                <div className="relative w-28 h-28 flex items-center justify-center bg-dark-950/80 rounded-full border border-white/5 shadow-inner">
+                                    {/* Sweeping radar effect */}
+                                    <div className="absolute inset-2 rounded-full border border-cyan-500/20 overflow-hidden">
+                                        <div className="absolute top-1/2 left-1/2 w-[150%] h-[150%] origin-top-left -translate-x-[50%] -translate-y-[50%] bg-gradient-to-tr from-cyan-500/20 to-transparent animate-radar-sweep" />
+                                    </div>
+                                    
+                                    {/* Pulsing ring */}
+                                    <div className="absolute inset-6 rounded-full border border-blue-500/40 animate-ping opacity-75 duration-1000" />
+                                    
+                                    {/* Center core orb */}
+                                    <div className="absolute inset-8 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 p-[1.5px] shadow-[0_0_20px_rgba(6,182,212,0.4)]">
+                                        <div className="w-full h-full rounded-full bg-dark-900 flex items-center justify-center">
+                                            <span className="text-3xl animate-bounce">{sourceType === 'rareanimes' ? '🐉' : sourceType === 'movielink' ? '🎬' : '🔗'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Active Task Header */}
+                                <div className="space-y-1.5 w-full">
+                                    <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400 bg-cyan-950/40 border border-cyan-500/20 px-2.5 py-0.5 rounded-full">
+                                        Agent Active
+                                    </span>
+                                    <h3 className="text-base md:text-lg font-extrabold text-white tracking-wide">
+                                        {sourceType === 'rareanimes' 
+                                            ? 'RareAnimes Link Resolver' 
+                                            : sourceType === 'movielink' 
+                                            ? 'MovieLinkBD Cloud Extractor' 
+                                            : 'Page Link Parser'}
+                                    </h3>
+                                </div>
+                            </div>
+
+                            {/* Right/Bottom Column: Steps & Progress Timeline */}
+                            <div className="md:col-span-7 flex flex-col justify-center space-y-4 md:pl-6 w-full">
+                                
+                                {/* Active Step Detail Bubble */}
+                                <div className="glass-panel p-3.5 rounded-xl border border-cyan-500/10 flex items-center gap-3">
+                                    <span className="flex h-3 w-3 relative flex-shrink-0">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-cyan-500"></span>
+                                    </span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Current Operation</p>
+                                        <p className="text-xs md:text-sm font-semibold text-cyan-300 truncate">{currentStepText}</p>
+                                    </div>
+                                </div>
+
+                                {/* Desktop Timeline View: Show full list only on medium and larger screens */}
+                                <div className="hidden md:flex flex-col space-y-3 relative before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-[2px] before:bg-white/5">
+                                    {scraperSteps.map((step, idx) => {
+                                        const isCompleted = idx < currentStepIndex;
+                                        const isActive = idx === currentStepIndex;
+                                        return (
+                                            <div 
+                                                key={idx} 
+                                                className={`flex items-center gap-3 pl-1.5 transition-all duration-300 ${
+                                                    isActive ? 'opacity-100 translate-x-1' : isCompleted ? 'opacity-60' : 'opacity-25'
+                                                }`}
+                                            >
+                                                {/* Timeline Node */}
+                                                <div className="relative z-10 flex-shrink-0">
+                                                    {isCompleted ? (
+                                                        <div className="w-5 h-5 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-[10px] text-cyan-300 font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                                                            ✓
+                                                        </div>
+                                                    ) : isActive ? (
+                                                        <div className="w-5 h-5 rounded-full bg-dark-900 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_12px_rgba(6,182,212,0.5)]">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-5 h-5 rounded-full bg-dark-900 border border-white/10 flex items-center justify-center text-[10px] text-gray-500">
+                                                            {idx + 1}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <span className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-gray-400'}`}>
+                                                    {step}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Mobile Stepper (Dots & Steps) View: Show on small screens only */}
+                                <div className="md:hidden flex flex-col space-y-4">
+                                    {/* Progress dots row */}
+                                    <div className="flex items-center justify-between px-2 relative before:absolute before:left-6 before:right-6 before:top-1/2 before:-translate-y-1/2 before:h-[2px] before:bg-white/5">
+                                        {scraperSteps.map((_, idx) => {
+                                            const isCompleted = idx < currentStepIndex;
+                                            const isActive = idx === currentStepIndex;
+                                            return (
+                                                <div key={idx} className="relative z-10">
+                                                    {isCompleted ? (
+                                                        <div className="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-[10px] text-cyan-300 font-bold shadow-[0_0_10px_rgba(6,182,212,0.3)]">
+                                                            ✓
+                                                        </div>
+                                                    ) : isActive ? (
+                                                        <div className="w-6 h-6 rounded-full bg-dark-900 border-2 border-cyan-400 flex items-center justify-center shadow-[0_0_12px_rgba(6,182,212,0.5)]">
+                                                            <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-6 h-6 rounded-full bg-dark-900 border border-white/15 flex items-center justify-center text-[10px] text-gray-500">
+                                                            {idx + 1}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    {/* Step text summary list */}
+                                    <div className="text-center">
+                                        <p className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">
+                                            Step {currentStepIndex + 1} of {scraperSteps.length}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Infinite horizontal progress bar */}
+                        <div className="w-full bg-dark-950/80 rounded-full h-[5px] overflow-hidden relative border border-white/5 shadow-inner">
+                            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 w-[200%] h-full animate-gradient-flow" />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Error */}
             {error && (
@@ -557,7 +875,7 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
                         <button
                             type="button"
                             onClick={() => {
@@ -565,7 +883,7 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                                 setError('');
                                 setSuccessMessage('');
                             }}
-                            className="px-5 py-2.5 bg-dark-600 text-gray-300 font-medium rounded-xl hover:bg-dark-500 transition-colors"
+                            className="w-full sm:w-auto px-5 py-2.5 bg-dark-600 text-gray-300 font-medium rounded-xl hover:bg-dark-500 transition-colors justify-center flex"
                         >
                             Cancel
                         </button>
@@ -573,7 +891,7 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                             type="button"
                             onClick={handleImport}
                             disabled={importing || selectedCount === 0}
-                            className="px-8 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/30 transition-all flex items-center gap-2"
+                            className="w-full sm:w-auto px-8 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold rounded-xl hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/30 transition-all flex items-center gap-2 justify-center"
                         >
                             {importing ? (
                                 <>

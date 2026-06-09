@@ -47,6 +47,11 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const [adminNote, setAdminNote] = useState(initialData?.admin_note || '');
     const [notifyAdmin, setNotifyAdmin] = useState(initialData?.notify_admin || false);
 
+    // Auto Scraper State
+    const [scraperSource, setScraperSource] = useState<'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix' | ''>(initialData?.scraper_source || '');
+    const [scraperUrl, setScraperUrl] = useState(initialData?.scraper_url || '');
+    const [scraperResolution, setScraperResolution] = useState<'360p' | '480p' | '720p' | '1080p'>(initialData?.scraper_resolution || '720p');
+    const [scraperSeason, setScraperSeason] = useState<number>(initialData?.scraper_season || 1);
 
     // Trending State
     const [isTrending, setIsTrending] = useState(initialData?.is_trending || false);
@@ -252,7 +257,12 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         trending_badge: trendingBadge,
                         trending_rank: trendingRank,
                         banner_url_desktop: bannerDesktop,
-                        banner_url_mobile: bannerMobile
+                        banner_url_mobile: bannerMobile,
+                        // Auto Scraper Configuration
+                        scraper_url: scraperSource ? scraperUrl : null,
+                        scraper_source: scraperSource || null,
+                        scraper_resolution: scraperSource ? scraperResolution : null,
+                        scraper_season: scraperSource ? scraperSeason : 1
                     })
                     .eq('id', movieId);
 
@@ -300,7 +310,12 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         trending_badge: trendingBadge,
                         trending_rank: trendingRank,
                         banner_url_desktop: bannerDesktop,
-                        banner_url_mobile: bannerMobile
+                        banner_url_mobile: bannerMobile,
+                        // Auto Scraper Configuration
+                        scraper_url: scraperSource ? scraperUrl : null,
+                        scraper_source: scraperSource || null,
+                        scraper_resolution: scraperSource ? scraperResolution : null,
+                        scraper_season: scraperSource ? scraperSeason : 1
                     })
                     .select()
                     .single();
@@ -555,6 +570,70 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                                             {(lastEpisode || 0) + 1}
                                         </div>
                                     </div>
+                                </div>
+
+                                <div className="pt-4 border-t border-white/5 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-bold text-gray-400 flex items-center gap-2">
+                                            <span>🤖</span> Auto Scraper Settings
+                                        </h4>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Scraper Source</label>
+                                            <select
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-red-600 font-medium text-sm"
+                                                value={scraperSource}
+                                                onChange={(e) => setScraperSource(e.target.value as any)}
+                                            >
+                                                <option value="">None (Manual Updates Only)</option>
+                                                <option value="fxlinks">FXLinks (Generic)</option>
+                                                <option value="rareanimes">RareAnimes (Mega/Codedew)</option>
+                                                <option value="movielink">MovieLinkBD</option>
+                                                <option value="bollyflix">BollyFlix</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Scraper Resolution</label>
+                                            <select
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-red-600 font-medium text-sm"
+                                                value={scraperResolution}
+                                                onChange={(e) => setScraperResolution(e.target.value as any)}
+                                            >
+                                                <option value="360p">360p</option>
+                                                <option value="480p">480p</option>
+                                                <option value="720p">720p</option>
+                                                <option value="1080p">1080p</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {scraperSource && (
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in">
+                                            <div className="md:col-span-2">
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Scraper URL</label>
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://..."
+                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-red-600 text-sm"
+                                                    value={scraperUrl}
+                                                    onChange={(e) => setScraperUrl(e.target.value)}
+                                                    required={!!scraperSource}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Import Season</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white focus:outline-none focus:border-red-600 text-sm text-center"
+                                                    value={scraperSeason}
+                                                    onChange={(e) => setScraperSeason(Number(e.target.value))}
+                                                    required={!!scraperSource}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

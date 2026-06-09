@@ -1,0 +1,788 @@
+export interface ScrapedEpisode {
+    number: number;
+    title: string;
+    link: string;
+}
+
+export interface ScrapedResult {
+    pageTitle: string;
+    resolution: string;
+    seasonZipLink: string | null;
+    episodes: ScrapedEpisode[];
+    pendingSubEpisodes?: ScrapedEpisode[];
+    warnings?: string[];
+    totalFound?: number;
+    resolvedCount?: number;
+}
+
+const HEADERS: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+};
+
+/**
+ * Detect resolution from text.
+ */
+function detectResolution(text: string): string {
+    const match = text.match(/\b(360p|480p|720p|1080p|2160p|4K)\b/i);
+    if (match) {
+        const res = match[1].toLowerCase();
+        if (res === '4k') return '2160p';
+        return res;
+    }
+    return '720p';
+}
+
+/**
+ * Extract episode number from text.
+ */
+function extractEpisodeNumber(text: string): number | null {
+    const match = text.match(/(?:Episode|Ep\.?|E)\s*[-.]?\s*(\d+)/i);
+    if (match) return parseInt(match[1], 10);
+
+    const numMatch = text.match(/^\s*(\d+)\s*$/);
+    if (numMatch) return parseInt(numMatch[1], 10);
+
+    return null;
+}
+
+/**
+ * Generic HTML scraper (FXLinks/standard).
+ */
+function parseFxlinksEpisodes(html: string): ScrapedResult {
+    let pageTitle = '';
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (titleMatch) {
+        pageTitle = titleMatch[1].replace(/&#8211;/g, '-').replace(/&amp;/g, '&').trim();
+    }
+
+    const schemaMatch = html.match(/"headline"\s*:\s*"([^"]+)"/);
+    if (schemaMatch) {
+        pageTitle = schemaMatch[1].replace(/\\"/g, '"').replace(/\\\//g, '/').trim();
+    }
+
+    const resolution = detectResolution(html);
+    let seasonZipLink: string | null = null;
+    const episodes: ScrapedEpisode[] = [];
+
+    const linkPattern = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    let match;
+
+    while ((match = linkPattern.exec(html)) !== null) {
+        const href = match[1].trim();
+        const rawText = match[2].replace(/<[^>]*>/g, '').trim();
+
+        if (!rawText || !href) continue;
+        if (href.startsWith('#') || href.startsWith('javascript:')) continue;
+
+        if (/season\s*zip|full\s*season|complete\s*season|batch\s*download/i.test(rawText)) {
+            seasonZipLink = href;
+            continue;
+        }
+
+        const epNum = extractEpisodeNumber(rawText);
+        if (epNum !== null) {
+            if (!episodes.find(e => e.number === epNum)) {
+                episodes.push({
+                    number: epNum,
+                    title: rawText,
+                    link: href,
+                });
+            }
+        }
+    }
+
+    episodes.sort((a, b) => a.number - b.number);
+
+    return {
+        pageTitle,
+        resolution,
+        seasonZipLink,
+        episodes,
+    };
+}
+
+/**
+ * Extract episodes from RareAnimes HTML with language awareness (Hindi DUB / Hindi Sub).
+ * Returns separate arrays for DUB and SUB episodes.
+ */
+function extractRareAnimesEpisodes(html: string): {
+    dub: { title: string; zipperUrl: string }[];
+    sub: { title: string; zipperUrl: string }[];
+} {
+    const dub: { title: string; zipperUrl: string }[] = [];
+    const sub: { title: string; zipperUrl: string }[] = [];
+    const seenDub = new Set<string>();
+    const seenSub = new Set<string>();
+
+    // Find all episode positions
+    const epPattern = /Episode\s*(\d+)([^<]*)/gi;
+    let epMatch;
+    const epPositions: { num: string; title: string; index: number }[] = [];
+
+    while ((epMatch = epPattern.exec(html)) !== null) {
+        epPositions.push({
+            num: epMatch[1],
+            title: epMatch[2].replace(/<[^>]*>/g, '').trim(),
+            index: epMatch.index,
+        });
+    }
+
+    for (let i = 0; i < epPositions.length; i++) {
+        const ep = epPositions[i];
+        if (seenDub.has(ep.num) && seenSub.has(ep.num)) continue;
+
+        // Get slice from this episode to the next (or 5000 chars max)
+        const endIndex = i + 1 < epPositions.length
+            ? epPositions[i + 1].index
+            : Math.min(ep.index + 5000, html.length);
+        const searchSlice = html.substring(ep.index, endIndex);
+
+        const epTitle = ep.title
+            ? `Episode ${ep.num} ${ep.title}`
+            : `Episode ${ep.num}`;
+        const cleanTitle = epTitle.replace(/\s+/g, ' ').trim();
+
+        const megaLinkRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*Mega(?:<\/[^>]+>)*<\/a>/i;
+
+        // Find Hindi DUB section and its Mega link
+        const dubIndex = searchSlice.search(/Hindi\s*DUB/i);
+        if (dubIndex !== -1 && !seenDub.has(ep.num)) {
+            const dubSlice = searchSlice.substring(dubIndex, dubIndex + 1500);
+            // Stop at next language section to avoid grabbing wrong Mega link
+            const nextLangCut = dubSlice.search(/Hindi\s*Sub|Tamil|Telugu|Malayalam/i);
+            const dubSearchArea = nextLangCut > 0 ? dubSlice.substring(0, nextLangCut) : dubSlice;
+            const megaMatch = megaLinkRegex.exec(dubSearchArea);
+            if (megaMatch) {
+                dub.push({ title: cleanTitle, zipperUrl: megaMatch[1] });
+                seenDub.add(ep.num);
+            }
+        }
+
+        // Find Hindi Sub section and its Mega link (Disabled - DUB only as per user request)
+        /*
+        const subIndex = searchSlice.search(/Hindi\s*Sub/i);
+        if (subIndex !== -1 && !seenSub.has(ep.num)) {
+            const subSlice = searchSlice.substring(subIndex, subIndex + 1500);
+            const nextLangCut = subSlice.search(/Tamil|Telugu|Malayalam/i);
+            const subSearchArea = nextLangCut > 0 ? subSlice.substring(0, nextLangCut) : subSlice;
+            const megaMatch = megaLinkRegex.exec(subSearchArea);
+            if (megaMatch) {
+                sub.push({ title: cleanTitle, zipperUrl: megaMatch[1] });
+                seenSub.add(ep.num);
+            }
+        }
+        */
+
+        // Fallback: if no DUB markers found (and no SUB section present), treat first Mega as DUB (backward compat)
+        if (!seenDub.has(ep.num) && dubIndex === -1) {
+            const megaMatch = megaLinkRegex.exec(searchSlice);
+            if (megaMatch) {
+                dub.push({ title: cleanTitle, zipperUrl: megaMatch[1] });
+                seenDub.add(ep.num);
+            }
+        }
+    }
+
+    const sortFn = (a: { title: string }, b: { title: string }) => {
+        const numA = parseInt(a.title.match(/\d+/)?.[0] || '0', 10);
+        const numB = parseInt(b.title.match(/\d+/)?.[0] || '0', 10);
+        return numA - numB;
+    };
+    dub.sort(sortFn);
+    sub.sort(sortFn);
+
+    return { dub, sub };
+}
+
+/**
+ * Resolve RareAnimes zipper URL to final Mega URL.
+ */
+async function resolveZipperToMega(zipperUrl: string): Promise<string> {
+    const step1Res = await fetch(zipperUrl, {
+        headers: HEADERS,
+        signal: AbortSignal.timeout(15000),
+    });
+    if (!step1Res.ok) {
+        throw new Error(`Zipper step1 HTTP ${step1Res.status}`);
+    }
+    const step1Html = await step1Res.text();
+
+    const cookies: string[] = [];
+    const rawSetCookie = step1Res.headers.get('set-cookie');
+    if (rawSetCookie) {
+        const parts = rawSetCookie.split(/,\s*(?=\w+=)/);
+        for (const part of parts) {
+            const name = part.split(';')[0]?.trim();
+            if (name) cookies.push(name);
+        }
+    }
+
+    const step2Match = step1Html.match(/href="([^"]*ad_step=2[^"]*)"/i);
+    if (!step2Match) {
+        const directMega = step1Html.match(/href="(https:\/\/mega\.nz\/[^"]+)"/i);
+        if (directMega) return directMega[1];
+        throw new Error('Could not find ad_step=2 link in zipper page');
+    }
+
+    const step2Path = step2Match[1].replace(/&amp;/g, '&');
+    const zipperOrigin = new URL(zipperUrl).origin;
+    const step2Url = step2Path.startsWith('http') ? step2Path : `${zipperOrigin}${step2Path}`;
+
+    const step2Res = await fetch(step2Url, {
+        headers: {
+            ...HEADERS,
+            'Referer': zipperUrl,
+            ...(cookies.length > 0 ? { 'Cookie': cookies.join('; ') } : {}),
+        },
+        signal: AbortSignal.timeout(15000),
+    });
+
+    if (!step2Res.ok) {
+        throw new Error(`Zipper step2 HTTP ${step2Res.status}`);
+    }
+    const step2Html = await step2Res.text();
+
+    const megaMatch = step2Html.match(/href="(https:\/\/mega\.nz\/[^"]+)"/i);
+    if (!megaMatch) {
+        const anyExternal = step2Html.match(/href="(https?:\/\/(?!codedew\.com)[^"]+)"/i);
+        if (anyExternal) return anyExternal[1];
+        throw new Error('Could not find Mega.nz link in step2 page');
+    }
+
+    return megaMatch[1];
+}
+
+/**
+ * Resolve MovieLinkBD chain.
+ */
+async function resolveMovieLinkChain(
+    origin: string,
+    getLinkPath: string,
+    initialCookies: string[]
+): Promise<string | null> {
+    const getLinkUrl = getLinkPath.startsWith('http') ? getLinkPath : `${origin}${getLinkPath}`;
+    const cookies = [...initialCookies];
+    let cookieHeader = cookies.join('; ');
+
+    const res1 = await fetch(getLinkUrl, {
+        headers: {
+            ...HEADERS,
+            ...(cookieHeader ? { 'Cookie': cookieHeader } : {}),
+        },
+        signal: AbortSignal.timeout(10000),
+    });
+    if (!res1.ok) return null;
+    const html1 = await res1.text();
+
+    const setCookie1 = res1.headers.get('set-cookie');
+    if (setCookie1) {
+        const parts = setCookie1.split(/,\s*(?=\w+=)/);
+        for (const part of parts) {
+            const name = part.split(';')[0]?.trim();
+            if (name && !cookies.includes(name)) cookies.push(name);
+        }
+        cookieHeader = cookies.join('; ');
+    }
+
+    const fileMatch = html1.match(/href="([^"]*\/file\/[^"]*)"/i);
+    if (!fileMatch) return null;
+    const fileUrl = fileMatch[1].startsWith('http') ? fileMatch[1] : `${origin}${fileMatch[1]}`;
+
+    const res2 = await fetch(fileUrl, {
+        headers: {
+            ...HEADERS,
+            ...(cookieHeader ? { 'Cookie': cookieHeader } : {}),
+        },
+        signal: AbortSignal.timeout(10000),
+    });
+    if (!res2.ok) return null;
+    const html2 = await res2.text();
+
+    const setCookie2 = res2.headers.get('set-cookie');
+    if (setCookie2) {
+        const parts = setCookie2.split(/,\s*(?=\w+=)/);
+        for (const part of parts) {
+            const name = part.split(';')[0]?.trim();
+            if (name && !cookies.includes(name)) cookies.push(name);
+        }
+        cookieHeader = cookies.join('; ');
+    }
+
+    const tokenMatch = html2.match(/href="([^"]*\/file\/[^"]*\?token=[^"]*)"/i);
+    if (!tokenMatch) return null;
+    const tokenUrl = tokenMatch[1].startsWith('http') ? tokenMatch[1] : `${origin}${tokenMatch[1]}`;
+
+    const res3 = await fetch(tokenUrl, {
+        headers: {
+            ...HEADERS,
+            ...(cookieHeader ? { 'Cookie': cookieHeader } : {}),
+        },
+        signal: AbortSignal.timeout(10000),
+    });
+    if (!res3.ok) return null;
+    const html3 = await res3.text();
+
+    const originHostname = new URL(origin).hostname;
+    const finalLinks: { text: string; href: string }[] = [];
+    const finalLinkPattern = /href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let finalMatch;
+    while ((finalMatch = finalLinkPattern.exec(html3)) !== null) {
+        const href = finalMatch[1];
+        const text = finalMatch[2].replace(/<[^>]*>/g, '').trim();
+        if (href.startsWith('http') && !href.includes(originHostname) && !href.includes('otieu.com')) {
+            finalLinks.push({ text, href });
+        }
+    }
+
+    if (finalLinks.length === 0) return null;
+
+    const r2Link = finalLinks.find(l => l.href.includes('r2.dev') || l.text.toLowerCase().includes('fast cloud'));
+    const alwaysWorkLink = finalLinks.find(l => l.href.includes('movielinkbd.mom') || l.text.toLowerCase().includes('always work'));
+    const instantLink = finalLinks.find(l => l.href.includes('instantcloud.org') || l.text.toLowerCase().includes('instant'));
+
+    return r2Link?.href || alwaysWorkLink?.href || instantLink?.href || finalLinks[0]?.href;
+}
+
+/**
+ * Main scrape entrypoint.
+ */
+export async function scrapeSource(
+    url: string,
+    source: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix'
+): Promise<ScrapedResult> {
+    const response = await fetch(url, {
+        headers: HEADERS,
+        signal: AbortSignal.timeout(25000), // 25 seconds for slow redirects
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch source page: HTTP ${response.status}`);
+    }
+
+    const html = await response.text();
+
+    let pageTitle = '';
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (titleMatch) {
+        pageTitle = titleMatch[1]
+            .replace(/&#8211;/g, '-')
+            .replace(/&amp;/g, '&')
+            .replace(/&#038;/g, '&')
+            .trim();
+    }
+    const schemaMatch = html.match(/"headline"\s*:\s*"([^"]+)"/);
+    if (schemaMatch) {
+        pageTitle = schemaMatch[1].replace(/\\"/g, '"').replace(/\\\//g, '/').trim();
+    }
+
+    const resolution = detectResolution(html);
+
+    if (source === 'fxlinks') {
+        const result = parseFxlinksEpisodes(html);
+        result.pageTitle = pageTitle || result.pageTitle;
+        return result;
+    } else if (source === 'rareanimes') {
+        const { dub: rawDubEpisodes, sub: rawSubEpisodes } = extractRareAnimesEpisodes(html);
+
+        if (rawDubEpisodes.length === 0 && rawSubEpisodes.length === 0) {
+            throw new Error('No episodes with Mega links found on this page.');
+        }
+
+        const episodes: ScrapedEpisode[] = [];
+        const pendingSubEpisodes: ScrapedEpisode[] = [];
+        const warnings: string[] = [];
+
+        // Resolve DUB episodes (auto-import)
+        for (const ep of rawDubEpisodes) {
+            try {
+                const megaLink = await resolveZipperToMega(ep.zipperUrl);
+                const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
+                episodes.push({
+                    number: epNum,
+                    title: ep.title,
+                    link: megaLink,
+                });
+            } catch (err: any) {
+                warnings.push(`DUB ${ep.title}: ${err.message}`);
+            }
+            await new Promise(r => setTimeout(r, 400));
+        }
+
+        // Resolve SUB episodes (Disabled - DUB only as per user request)
+        /*
+        for (const ep of rawSubEpisodes) {
+            try {
+                const megaLink = await resolveZipperToMega(ep.zipperUrl);
+                const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
+                pendingSubEpisodes.push({
+                    number: epNum,
+                    title: ep.title,
+                    link: megaLink,
+                });
+            } catch (err: any) {
+                warnings.push(`SUB ${ep.title}: ${err.message}`);
+            }
+            await new Promise(r => setTimeout(r, 400));
+        }
+        */
+
+        if (episodes.length === 0) {
+            throw new Error(`Failed to resolve any Mega links. Errors: ${warnings.join('; ')}`);
+        }
+
+        return {
+            pageTitle,
+            resolution,
+            seasonZipLink: null,
+            episodes,
+            pendingSubEpisodes: undefined,
+            warnings,
+            totalFound: rawDubEpisodes.length,
+            resolvedCount: episodes.length,
+        };
+    } else if (source === 'movielink') {
+        const cookies: string[] = [];
+        const rawSetCookie = response.headers.get('set-cookie');
+        if (rawSetCookie) {
+            const parts = rawSetCookie.split(/,\s*(?=\w+=)/);
+            for (const part of parts) {
+                const name = part.split(';')[0]?.trim();
+                if (name) cookies.push(name);
+            }
+        }
+
+        const btnPattern = /href="([^"]*getLink[^"]*)"[^>]*>[\s\S]*?<b[^>]*>([\s\S]*?)<\/b>/gi;
+        const buttons: { path: string; label: string }[] = [];
+        let match;
+        while ((match = btnPattern.exec(html)) !== null) {
+            buttons.push({
+                path: match[1],
+                label: match[2].replace(/<[^>]*>/g, '').trim(),
+            });
+        }
+
+        if (buttons.length === 0) {
+            throw new Error('No download buttons found on this page.');
+        }
+
+        const origin = new URL(url).origin;
+        const episodes: ScrapedEpisode[] = [];
+        const warnings: string[] = [];
+        let idx = 1;
+
+        for (const btn of buttons) {
+            try {
+                const resolvedUrl = await resolveMovieLinkChain(origin, btn.path, cookies);
+                if (resolvedUrl) {
+                    const epNum = extractEpisodeNumber(btn.label) || idx++;
+                    episodes.push({
+                        number: epNum,
+                        title: btn.label,
+                        link: resolvedUrl,
+                    });
+                } else {
+                    warnings.push(`Failed to resolve download links for "${btn.label}"`);
+                }
+                await new Promise(r => setTimeout(r, 400));
+            } catch (err: any) {
+                warnings.push(`${btn.label}: ${err.message}`);
+            }
+        }
+
+        if (episodes.length === 0) {
+            throw new Error(`Failed to resolve any direct download links. Errors: ${warnings.join('; ')}`);
+        }
+
+        let detectedRes = resolution;
+        const combinedText = (pageTitle + ' ' + (episodes[0]?.title || '')).toLowerCase();
+        const resMatch = combinedText.match(/\b(360p|480p|720p|1080p|2160p|4K)\b/i);
+        if (resMatch) {
+            const res = resMatch[1].toLowerCase();
+            detectedRes = res === '4k' ? '2160p' : res;
+        }
+
+        episodes.sort((a, b) => a.number - b.number);
+
+        return {
+            pageTitle,
+            resolution: detectedRes,
+            seasonZipLink: null,
+            episodes,
+            warnings,
+            totalFound: buttons.length,
+            resolvedCount: episodes.length,
+        };
+    } else if (source === 'bollyflix') {
+        return scrapeBollyflix(url);
+    } else {
+        throw new Error(`Unsupported scraper source: ${source}`);
+    }
+}
+
+/**
+ * Search a WordPress-based site using standard query params.
+ */
+export async function searchWordPressSite(
+    baseUrl: string,
+    query: string
+): Promise<{ title: string; url: string }[]> {
+    const searchUrl = `${baseUrl.replace(/\/+$/, '')}/?s=${encodeURIComponent(query)}`;
+    const res = await fetch(searchUrl, {
+        headers: HEADERS,
+        signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) {
+        throw new Error(`Failed to search WordPress site: HTTP ${res.status}`);
+    }
+    const html = await res.text();
+
+    const results: { title: string; url: string }[] = [];
+    const articleRegex = /<article[^>]*>([\s\S]*?)<\/article>/gi;
+    let articleMatch;
+    
+    while ((articleMatch = articleRegex.exec(html)) !== null) {
+        const articleHtml = articleMatch[1];
+        
+        const linkMatch = /<h[123][^>]*class="[^"]*(?:entry-title|post-title|title)[^"]*"[^>]*><a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(articleHtml)
+            || /<h[123][^>]*><a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(articleHtml)
+            || /<a[^>]+class="[^"]*(?:post-link|entry-title-link)[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(articleHtml)
+            || /<a[^>]+href="([^"]+)"[^>]*rel="bookmark"[^>]*>([\s\S]*?)<\/a>/i.exec(articleHtml);
+            
+        if (linkMatch) {
+            const url = linkMatch[1];
+            const title = linkMatch[2].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&#8211;/g, '-').trim();
+            if (url && title && !results.some(r => r.url === url)) {
+                results.push({ title, url });
+            }
+        }
+    }
+
+    if (results.length === 0) {
+        const backupRegex = /<h[23][^>]*class="[^"]*(?:entry-title|post-title|title)[^"]*"[^>]*><a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+        let match;
+        while ((match = backupRegex.exec(html)) !== null) {
+            const url = match[1];
+            const title = match[2].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&#8211;/g, '-').trim();
+            if (url && title && !results.some(r => r.url === url)) {
+                results.push({ title, url });
+            }
+        }
+    }
+    
+    if (results.length === 0) {
+        const fallbackRegex = /<a[^>]+href="([^"]+)"[^>]*bookmark[^>]*>([\s\S]*?)<\/a>/gi;
+        let match;
+        while ((match = fallbackRegex.exec(html)) !== null) {
+            const url = match[1];
+            const title = match[2].replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&#8211;/g, '-').trim();
+            if (url && title && !results.some(r => r.url === url)) {
+                results.push({ title, url });
+            }
+        }
+    }
+
+    return results.slice(0, 15);
+}
+
+/**
+ * Scrape BollyFlix movie/series page.
+ * Strategy: Find quality headings (e.g. "480p [550MB]"), then extract only the
+ * Google Drive link immediately following each heading. All redirect/ad links
+ * (fastdlserver.site, linksmd.top, etc.) are filtered based on anchor text,
+ * capturing only those that are Google Drive buttons (or direct drive.google.com / gdflix / etc links).
+ */
+export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
+    const response = await fetch(url, {
+        headers: HEADERS,
+        signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) {
+        throw new Error(`Failed to fetch BollyFlix page: HTTP ${response.status}`);
+    }
+    const html = await response.text();
+
+    // Extract page title
+    let pageTitle = '';
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (titleMatch) {
+        pageTitle = titleMatch[1]
+            .replace(/&#8211;/g, '-')
+            .replace(/&amp;/g, '&')
+            .replace(/&#038;/g, '&')
+            .trim();
+    }
+    const schemaMatch = html.match(/"headline"\s*:\s*"([^"]+)"/);
+    if (schemaMatch) {
+        pageTitle = schemaMatch[1].replace(/\\"/g, '"').replace(/\\\//g, '/').trim();
+    }
+
+    // Narrow to post content area only
+    let contentHtml = html;
+    const contentMatch =
+        html.match(/<div[^>]*class="[^"]*(?:entry-content|post-content|single-content)[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<!--/i) ||
+        html.match(/<div[^>]*class="[^"]*(?:entry-content|post-content|single-content)[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
+        html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
+    if (contentMatch) {
+        contentHtml = contentMatch[1];
+    }
+
+    const resolution = detectResolution(html);
+    const episodes: ScrapedEpisode[] = [];
+    const warnings: string[] = [];
+    let idx = 1;
+
+    interface QualitySection {
+        resolution: string;
+        size: string;
+        headingEnd: number;
+    }
+
+    const sections: QualitySection[] = [];
+
+    // Match headings, paragraphs, strong tags that contain resolution info
+    const headingPattern = /<(?:p|h[2-6]|strong|span)[^>]*>([\s\S]*?)<\/(?:p|h[2-6]|strong|span)>/gi;
+    let hMatch: RegExpExecArray | null;
+
+    while ((hMatch = headingPattern.exec(contentHtml)) !== null) {
+        const rawText = hMatch[1].replace(/<[^>]*>/g, '').trim();
+        // Must contain a resolution keyword
+        const resMatch = rawText.match(/\b(480p|720p|1080p|2160p|4[Kk])\b/i);
+        if (!resMatch) continue;
+
+        // Skip headers that are just intro descriptions of the page, e.g. "available in 1080p, 720p & 480p Qualities"
+        if (rawText.toLowerCase().includes('qualities') || rawText.toLowerCase().includes('super quality') || rawText.toLowerCase().includes('available in')) {
+            continue;
+        }
+
+        const res = resMatch[1].toLowerCase() === '4k' ? '2160p' : resMatch[1].toLowerCase();
+        const sizeMatch = rawText.match(/\[?\s*(\d+(?:\.\d+)?\s*(?:MB|GB))\s*\]?/i);
+        const size = sizeMatch ? sizeMatch[1].trim() : '';
+
+        sections.push({
+            resolution: res,
+            size,
+            headingEnd: hMatch.index + hMatch[0].length,
+        });
+    }
+
+    // Anchor pattern: href and link text/html
+    const anchorPattern = /<a\s+[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+
+    for (let i = 0; i < sections.length; i++) {
+        const section = sections[i];
+        const endIndex =
+            i + 1 < sections.length
+                ? sections[i + 1].headingEnd
+                : Math.min(section.headingEnd + 3000, contentHtml.length);
+
+        const slice = contentHtml.substring(section.headingEnd, endIndex);
+        
+        anchorPattern.lastIndex = 0; // reset
+        let aMatch: RegExpExecArray | null;
+        const foundForSection: { href: string; text: string }[] = [];
+
+        while ((aMatch = anchorPattern.exec(slice)) !== null) {
+            const href = aMatch[1];
+            const text = aMatch[2].replace(/<[^>]*>/g, '').trim();
+            const textLower = text.toLowerCase();
+            const hrefLower = href.toLowerCase();
+
+            // Criteria to determine if it is a Google Drive link:
+            // 1. Text contains "google drive", "g-drive", "gdrive", or "drive"
+            // 2. OR href contains google drive / proxy domains
+            const isGoogleDriveLink = 
+                textLower.includes('google drive') || 
+                textLower.includes('g-drive') || 
+                textLower.includes('gdrive') ||
+                textLower.includes('drive') ||
+                hrefLower.includes('drive.google.com') ||
+                hrefLower.includes('gdflix') ||
+                hrefLower.includes('gdtot') ||
+                hrefLower.includes('gdbot') ||
+                hrefLower.includes('driveseed') ||
+                hrefLower.includes('drivebot');
+
+            const isExcluded = 
+                textLower.includes('download links') || 
+                textLower.includes('direct links') ||
+                textLower.includes('how to download') ||
+                textLower.includes('join us') ||
+                textLower.includes('telegram');
+
+            if (isGoogleDriveLink && !isExcluded) {
+                foundForSection.push({ href, text });
+            }
+        }
+
+        if (foundForSection.length > 0) {
+            foundForSection.forEach((item, fIdx) => {
+                const label = section.size
+                    ? `${section.resolution} [${section.size}]` + (foundForSection.length > 1 ? ` - Link ${fIdx + 1}` : '')
+                    : section.resolution + (foundForSection.length > 1 ? ` - Link ${fIdx + 1}` : '');
+                
+                episodes.push({
+                    number: idx++,
+                    title: label,
+                    link: item.href,
+                });
+            });
+        } else {
+            warnings.push(`No Google Drive link found for ${section.resolution}${section.size ? ' [' + section.size + ']' : ''}`);
+        }
+    }
+
+    // Fallback directly from content HTML if no sections matched
+    if (episodes.length === 0) {
+        anchorPattern.lastIndex = 0;
+        let aMatch: RegExpExecArray | null;
+        while ((aMatch = anchorPattern.exec(contentHtml)) !== null) {
+            const href = aMatch[1];
+            const text = aMatch[2].replace(/<[^>]*>/g, '').trim();
+            const textLower = text.toLowerCase();
+            const hrefLower = href.toLowerCase();
+
+            const isGoogleDriveLink = 
+                textLower.includes('google drive') || 
+                textLower.includes('g-drive') || 
+                textLower.includes('gdrive') ||
+                textLower.includes('drive') ||
+                hrefLower.includes('drive.google.com') ||
+                hrefLower.includes('gdflix') ||
+                hrefLower.includes('gdtot') ||
+                hrefLower.includes('gdbot') ||
+                hrefLower.includes('driveseed') ||
+                hrefLower.includes('drivebot');
+
+            const isExcluded = 
+                textLower.includes('download links') || 
+                textLower.includes('direct links') ||
+                textLower.includes('how to download') ||
+                textLower.includes('join us') ||
+                textLower.includes('telegram');
+
+            if (isGoogleDriveLink && !isExcluded) {
+                episodes.push({
+                    number: idx++,
+                    title: `Google Drive Link ${idx - 1} (${resolution})`,
+                    link: href,
+                });
+            }
+        }
+
+        if (episodes.length === 0) {
+            throw new Error('No Google Drive download links found on this BollyFlix page.');
+        }
+    }
+
+    return {
+        pageTitle,
+        resolution,
+        seasonZipLink: null,
+        episodes,
+        warnings,
+        totalFound: episodes.length,
+        resolvedCount: episodes.length,
+    };
+}
