@@ -197,61 +197,113 @@ function extractRareAnimesEpisodes(html: string): {
 }
 
 /**
+ * Fetch HTML page with a free proxy (CodeTabs) as primary, falling back to direct fetch.
+ * This is used to bypass Cloudflare bot protection on codedew.com when running
+ * in serverless environments like Vercel.
+ */
+async function fetchHtmlWithProxy(
+    url: string,
+    referer?: string,
+    cookies?: string[]
+): Promise<{ html: string; status: number; ok: boolean; setCookieHeader: string | null }> {
+    const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+    
+    // 1. Try fetching via CodeTabs proxy first
+    try {
+        const headers: Record<string, string> = { ...HEADERS };
+        if (referer) headers['Referer'] = referer;
+        if (cookies && cookies.length > 0) headers['Cookie'] = cookies.join('; ');
+        
+        const res = await fetch(proxyUrl, {
+            headers,
+            signal: AbortSignal.timeout(12000),
+        });
+        
+        if (res.ok) {
+            const html = await res.text();
+            return {
+                html,
+                status: res.status,
+                ok: true,
+                setCookieHeader: res.headers.get('set-cookie')
+            };
+        }
+    } catch (err: any) {
+        console.warn(`CodeTabs proxy fetch failed: ${err.message}`);
+    }
+    
+    // 2. Fallback to direct fetch
+    const headers: Record<string, string> = { ...HEADERS };
+    if (referer) headers['Referer'] = referer;
+    if (cookies && cookies.length > 0) headers['Cookie'] = cookies.join('; ');
+    
+    const res = await fetch(url, {
+        headers,
+        signal: AbortSignal.timeout(12000),
+    });
+    
+    const html = await res.text();
+    return {
+        html,
+        status: res.status,
+        ok: res.ok,
+        setCookieHeader: res.headers.get('set-cookie')
+    };
+}
+
+/**
  * Resolve RareAnimes zipper URL to final Mega URL.
+ * Uses CodeTabs proxy to bypass Cloudflare bot protection on codedew.com.
+ * Falls back to the zipper URL itself if resolution fails completely.
  */
 async function resolveZipperToMega(zipperUrl: string): Promise<string> {
-    const step1Res = await fetch(zipperUrl, {
-        headers: HEADERS,
-        signal: AbortSignal.timeout(15000),
-    });
-    if (!step1Res.ok) {
-        throw new Error(`Zipper step1 HTTP ${step1Res.status}`);
-    }
-    const step1Html = await step1Res.text();
-
-    const cookies: string[] = [];
-    const rawSetCookie = step1Res.headers.get('set-cookie');
-    if (rawSetCookie) {
-        const parts = rawSetCookie.split(/,\s*(?=\w+=)/);
-        for (const part of parts) {
-            const name = part.split(';')[0]?.trim();
-            if (name) cookies.push(name);
+    try {
+        const step1 = await fetchHtmlWithProxy(zipperUrl);
+        if (!step1.ok) {
+            console.warn(`Zipper step1 failed (status ${step1.status}), using zipper URL directly`);
+            return zipperUrl;
         }
+
+        const cookies: string[] = [];
+        if (step1.setCookieHeader) {
+            const parts = step1.setCookieHeader.split(/,\s*(?=\w+=)/);
+            for (const part of parts) {
+                const name = part.split(';')[0]?.trim();
+                if (name) cookies.push(name);
+            }
+        }
+
+        const step2Match = step1.html.match(/href="([^"]*ad_step=2[^"]*)"/i);
+        if (!step2Match) {
+            const directMega = step1.html.match(/href="(https:\/\/mega\.nz\/[^"]+)"/i);
+            if (directMega) return directMega[1];
+            // No ad_step and no mega link — fall back to zipper URL
+            return zipperUrl;
+        }
+
+        const step2Path = step2Match[1].replace(/&amp;/g, '&');
+        const zipperOrigin = new URL(zipperUrl).origin;
+        const step2Url = step2Path.startsWith('http') ? step2Path : `${zipperOrigin}${step2Path}`;
+
+        const step2 = await fetchHtmlWithProxy(step2Url, zipperUrl, cookies);
+        if (!step2.ok) {
+            console.warn(`Zipper step2 failed (status ${step2.status}), using zipper URL directly`);
+            return zipperUrl;
+        }
+
+        const megaMatch = step2.html.match(/href="(https:\/\/mega\.nz\/[^"]+)"/i);
+        if (!megaMatch) {
+            const anyExternal = step2.html.match(/href="(https?:\/\/(?!codedew\.com)[^"]+)"/i);
+            if (anyExternal) return anyExternal[1];
+            // No external link found — fall back to zipper URL
+            return zipperUrl;
+        }
+
+        return megaMatch[1];
+    } catch (e: any) {
+        console.warn(`Failed to resolve zipper URL (${e.message}), falling back to zipper URL`);
+        return zipperUrl;
     }
-
-    const step2Match = step1Html.match(/href="([^"]*ad_step=2[^"]*)"/i);
-    if (!step2Match) {
-        const directMega = step1Html.match(/href="(https:\/\/mega\.nz\/[^"]+)"/i);
-        if (directMega) return directMega[1];
-        throw new Error('Could not find ad_step=2 link in zipper page');
-    }
-
-    const step2Path = step2Match[1].replace(/&amp;/g, '&');
-    const zipperOrigin = new URL(zipperUrl).origin;
-    const step2Url = step2Path.startsWith('http') ? step2Path : `${zipperOrigin}${step2Path}`;
-
-    const step2Res = await fetch(step2Url, {
-        headers: {
-            ...HEADERS,
-            'Referer': zipperUrl,
-            ...(cookies.length > 0 ? { 'Cookie': cookies.join('; ') } : {}),
-        },
-        signal: AbortSignal.timeout(15000),
-    });
-
-    if (!step2Res.ok) {
-        throw new Error(`Zipper step2 HTTP ${step2Res.status}`);
-    }
-    const step2Html = await step2Res.text();
-
-    const megaMatch = step2Html.match(/href="(https:\/\/mega\.nz\/[^"]+)"/i);
-    if (!megaMatch) {
-        const anyExternal = step2Html.match(/href="(https?:\/\/(?!codedew\.com)[^"]+)"/i);
-        if (anyExternal) return anyExternal[1];
-        throw new Error('Could not find Mega.nz link in step2 page');
-    }
-
-    return megaMatch[1];
 }
 
 /**
