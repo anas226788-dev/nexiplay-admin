@@ -38,6 +38,12 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const [subtitle, setSubtitle] = useState(initialData?.subtitle || 'English');
     const [trailerUrl, setTrailerUrl] = useState(initialData?.trailer_url || '');
 
+    // Streaming integration State
+    const [tmdbId, setTmdbId] = useState(initialData?.tmdb_id || '');
+    const [imdbId, setImdbId] = useState(initialData?.imdb_id || '');
+    const [malId, setMalId] = useState(initialData?.mal_id || '');
+    const [streamingUrl, setStreamingUrl] = useState(initialData?.streaming_url || '');
+
     // Tracking State
     const [isRunning, setIsRunning] = useState(initialData?.is_running || false);
     const [lastEpisode, setLastEpisode] = useState(initialData?.last_episode || 0);
@@ -262,7 +268,12 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         scraper_url: scraperSource ? scraperUrl : null,
                         scraper_source: scraperSource || null,
                         scraper_resolution: scraperSource ? scraperResolution : null,
-                        scraper_season: scraperSource ? scraperSeason : 1
+                        scraper_season: scraperSource ? scraperSeason : 1,
+                        // Streaming service integration
+                        tmdb_id: tmdbId || null,
+                        imdb_id: imdbId || null,
+                        mal_id: malId || null,
+                        streaming_url: type === 'movie' ? (streamingUrl || null) : null
                     })
                     .eq('id', movieId);
 
@@ -315,7 +326,12 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         scraper_url: scraperSource ? scraperUrl : null,
                         scraper_source: scraperSource || null,
                         scraper_resolution: scraperSource ? scraperResolution : null,
-                        scraper_season: scraperSource ? scraperSeason : 1
+                        scraper_season: scraperSource ? scraperSeason : 1,
+                        // Streaming service integration
+                        tmdb_id: tmdbId || null,
+                        imdb_id: imdbId || null,
+                        mal_id: malId || null,
+                        streaming_url: type === 'movie' ? (streamingUrl || null) : null
                     })
                     .select()
                     .single();
@@ -482,6 +498,62 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
                     />
                 </div>
+            </div>
+
+            {/* Streaming & Metadata Integration */}
+            <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
+                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <span>📺</span> Streaming & Embeds
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-1">TMDB ID</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. 299534"
+                            value={tmdbId}
+                            onChange={(e) => setTmdbId(e.target.value)}
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Used to auto-resolve movies and TV series streams.</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-1">IMDb ID</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. tt4154796"
+                            value={imdbId}
+                            onChange={(e) => setImdbId(e.target.value)}
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Alternative identifier (fallback).</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-1">MyAnimeList (MAL) ID</label>
+                        <input
+                            type="text"
+                            placeholder="e.g. 38000"
+                            value={malId}
+                            onChange={(e) => setMalId(e.target.value)}
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Used to auto-resolve anime streams.</p>
+                    </div>
+                </div>
+
+                {type === 'movie' && (
+                    <div>
+                        <label className="block text-sm text-gray-400 mb-1">Custom Stream Link (Override)</label>
+                        <input
+                            type="url"
+                            placeholder="https://..."
+                            value={streamingUrl}
+                            onChange={(e) => setStreamingUrl(e.target.value)}
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">If provided, this movie will load this exact URL instead of the auto-resolvers.</p>
+                    </div>
+                )}
             </div>
 
             {/* Internal Tracking (Series Only) */}

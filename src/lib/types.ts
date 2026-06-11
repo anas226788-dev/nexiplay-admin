@@ -36,6 +36,11 @@ export interface Movie {
     scraper_source?: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix';
     scraper_resolution?: '360p' | '480p' | '720p' | '1080p';
     scraper_season?: number;
+    // Streaming service integration
+    tmdb_id?: string;
+    imdb_id?: string;
+    mal_id?: string;
+    streaming_url?: string;
 }
 
 export interface Download {
@@ -200,6 +205,7 @@ export interface Episode {
     episode_number: number;
     episode_title?: string;
     download_links?: EpisodeDownloadLink[];
+    streaming_url?: string;
     created_at?: string;
 }
 

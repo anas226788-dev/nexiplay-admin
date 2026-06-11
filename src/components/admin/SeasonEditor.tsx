@@ -38,6 +38,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
     const [seasonZipLink, setSeasonZipLink] = useState('');
     const [episodeNumber, setEpisodeNumber] = useState(1);
     const [episodeTitle, setEpisodeTitle] = useState('');
+    const [episodeStreamingUrl, setEpisodeStreamingUrl] = useState('');
     const [episodeLinks, setEpisodeLinks] = useState<Record<string, EpisodeDownloadLink>>({});
     const [activeResolution, setActiveResolution] = useState('720p');
     const [markLatestUpdate, setMarkLatestUpdate] = useState(false);
@@ -192,6 +193,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
         setEditingEpisode(null);
         setEpisodeNumber((season.episodes?.length || 0) + 1);
         setEpisodeTitle('');
+        setEpisodeStreamingUrl('');
         setEpisodeLinks(initEpisodeLinks());
         setActiveResolution('720p');
         setMarkLatestUpdate(false);
@@ -203,6 +205,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
         setEditingEpisode(episode);
         setEpisodeNumber(episode.episode_number);
         setEpisodeTitle(episode.episode_title || '');
+        setEpisodeStreamingUrl(episode.streaming_url || '');
         setEpisodeLinks(initEpisodeLinks(episode));
         setActiveResolution('720p');
         setMarkLatestUpdate(false);
@@ -221,6 +224,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                 const { error: updateError } = await supabase.from('episodes').update({
                     episode_number: episodeNumber,
                     episode_title: episodeTitle || null,
+                    streaming_url: episodeStreamingUrl || null,
                 }).eq('id', episodeId);
                 if (updateError) throw updateError;
             } else {
@@ -229,6 +233,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                     season_id: selectedSeason.id,
                     episode_number: episodeNumber,
                     episode_title: episodeTitle || null,
+                    streaming_url: episodeStreamingUrl || null,
                 }).select().single();
 
                 if (error) throw error;
@@ -571,6 +576,19 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                                         className="w-full bg-dark-700 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
                                     />
                                 </div>
+                            </div>
+
+                            {/* Episode Custom Streaming URL Override */}
+                            <div className="bg-dark-700/30 rounded-2xl p-6 border border-white/5 space-y-2">
+                                <label className="block text-sm font-medium text-gray-300">Custom Stream Link (Override)</label>
+                                <input
+                                    type="url"
+                                    placeholder="https://..."
+                                    value={episodeStreamingUrl}
+                                    onChange={(e) => setEpisodeStreamingUrl(e.target.value)}
+                                    className="w-full bg-dark-700 border border-white/10 rounded-xl p-3 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all"
+                                />
+                                <p className="text-xs text-gray-500">If provided, this episode will load this exact URL instead of the auto-resolvers on the player page.</p>
                             </div>
 
                             {/* Download Links Section */}
