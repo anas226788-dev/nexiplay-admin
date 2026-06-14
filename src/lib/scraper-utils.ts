@@ -1,7 +1,10 @@
+import { ProxyAgent, fetch as undiciFetch } from 'undici';
+
 export interface ScrapedEpisode {
     number: number;
     title: string;
     link: string;
+    streamingUrl?: string;
 }
 
 export interface ScrapedResult {
@@ -18,14 +21,18 @@ export interface ScrapedResult {
 
 interface ResolvedZipperLink {
     link: string;
-    resolvedToMega: boolean;
+    resolvedToMega?: boolean;
     warning?: string;
+    embedUrl?: string;
 }
 
 const HEADERS: Record<string, string> = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.5',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Cache-Control': 'no-cache',
+    'Pragma': 'no-cache',
+    'Upgrade-Insecure-Requests': '1',
 };
 
 /**
@@ -115,11 +122,11 @@ function parseFxlinksEpisodes(html: string): ScrapedResult {
  * Returns separate arrays for DUB and SUB episodes.
  */
 function extractRareAnimesEpisodes(html: string): {
-    dub: { title: string; zipperUrl: string }[];
-    sub: { title: string; zipperUrl: string }[];
+    dub: { title: string; zipperUrl: string; streamingUrl?: string }[];
+    sub: { title: string; zipperUrl: string; streamingUrl?: string }[];
 } {
-    const dub: { title: string; zipperUrl: string }[] = [];
-    const sub: { title: string; zipperUrl: string }[] = [];
+    const dub: { title: string; zipperUrl: string; streamingUrl?: string }[] = [];
+    const sub: { title: string; zipperUrl: string; streamingUrl?: string }[] = [];
     const seenDub = new Set<string>();
     const seenSub = new Set<string>();
 
@@ -152,17 +159,28 @@ function extractRareAnimesEpisodes(html: string): {
         const cleanTitle = epTitle.replace(/\s+/g, ' ').trim();
 
         const megaLinkRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*Mega(?:<\/[^>]+>)*<\/a>/i;
+        const watchMultiRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*WatchMultQuality(?:<\/[^>]+>)*<\/a>/i;
+        const streamBetaRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*StreamBeta(?:<\/[^>]+>)*<\/a>/i;
 
-        // Find Hindi DUB section and its Mega link
+        // Find Hindi DUB section and its links
         const dubIndex = searchSlice.search(/Hindi\s*DUB/i);
         if (dubIndex !== -1 && !seenDub.has(ep.num)) {
             const dubSlice = searchSlice.substring(dubIndex, dubIndex + 1500);
-            // Stop at next language section to avoid grabbing wrong Mega link
+            // Stop at next language section to avoid grabbing wrong links
             const nextLangCut = dubSlice.search(/Hindi\s*Sub|Tamil|Telugu|Malayalam/i);
             const dubSearchArea = nextLangCut > 0 ? dubSlice.substring(0, nextLangCut) : dubSlice;
+            
             const megaMatch = megaLinkRegex.exec(dubSearchArea);
             if (megaMatch) {
-                dub.push({ title: cleanTitle, zipperUrl: megaMatch[1] });
+                const watchMultiMatch = watchMultiRegex.exec(dubSearchArea);
+                const streamBetaMatch = streamBetaRegex.exec(dubSearchArea);
+                const streamingUrl = watchMultiMatch ? watchMultiMatch[1] : (streamBetaMatch ? streamBetaMatch[1] : undefined);
+                
+                dub.push({ 
+                    title: cleanTitle, 
+                    zipperUrl: megaMatch[1],
+                    streamingUrl
+                });
                 seenDub.add(ep.num);
             }
         }
@@ -186,7 +204,15 @@ function extractRareAnimesEpisodes(html: string): {
         if (!seenDub.has(ep.num) && dubIndex === -1) {
             const megaMatch = megaLinkRegex.exec(searchSlice);
             if (megaMatch) {
-                dub.push({ title: cleanTitle, zipperUrl: megaMatch[1] });
+                const watchMultiMatch = watchMultiRegex.exec(searchSlice);
+                const streamBetaMatch = streamBetaRegex.exec(searchSlice);
+                const streamingUrl = watchMultiMatch ? watchMultiMatch[1] : (streamBetaMatch ? streamBetaMatch[1] : undefined);
+                
+                dub.push({ 
+                    title: cleanTitle, 
+                    zipperUrl: megaMatch[1],
+                    streamingUrl
+                });
                 seenDub.add(ep.num);
             }
         }
@@ -203,48 +229,106 @@ function extractRareAnimesEpisodes(html: string): {
     return { dub, sub };
 }
 
+let cachedProxies: string[] = [];
+let lastProxyFetchTime = 0;
+const PROXY_CACHE_TTL = 15 * 60 * 1000; // Cache proxy list for 15 minutes
+
+async function getProxyList(): Promise<string[]> {
+    const now = Date.now();
+    if (cachedProxies.length > 0 && (now - lastProxyFetchTime) < PROXY_CACHE_TTL) {
+        return cachedProxies;
+    }
+
+    try {
+        const proxyListUrl = 'https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=8000&country=all&ssl=all&anonymity=all';
+        const res = await globalThis.fetch(proxyListUrl);
+        if (res.ok) {
+            const text = await res.text();
+            cachedProxies = text.split('\r\n').filter(p => p.trim() !== '');
+            lastProxyFetchTime = now;
+            console.log(`[Proxy Rotator] Fetched and cached ${cachedProxies.length} proxies.`);
+        }
+    } catch (e: any) {
+        console.warn(`[Proxy Rotator] Failed to fetch proxy list: ${e.message}`);
+    }
+
+    return cachedProxies;
+}
+
+function isCloudflareBlock(status: number, html: string): boolean {
+    if (status === 403 || status === 503 || status === 429 || status === 520 || status === 522) {
+        return true;
+    }
+    const lowerHtml = html.toLowerCase();
+    return (
+        lowerHtml.includes('cloudflare') ||
+        lowerHtml.includes('turnstile') ||
+        lowerHtml.includes('captcha') ||
+        lowerHtml.includes('cf-challenge') ||
+        lowerHtml.includes('attention required')
+    );
+}
+
 /**
- * Fetch HTML page with a free proxy (CodeTabs) as primary, falling back to direct fetch.
- * This is used to bypass Cloudflare bot protection on codedew.com when running
- * in serverless environments like Vercel.
+ * Fetch HTML page with rotated proxies to bypass Cloudflare protection.
+ * Falls back to direct fetch if all proxies fail.
  */
 async function fetchHtmlWithProxy(
     url: string,
     referer?: string,
     cookies?: string[]
 ): Promise<{ html: string; status: number; ok: boolean; setCookieHeader: string | null }> {
-    const proxyUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+    const proxies = await getProxyList();
     
-    // 1. Try fetching via CodeTabs proxy first
-    try {
-        const headers: Record<string, string> = { ...HEADERS };
-        if (referer) headers['Referer'] = referer;
-        if (cookies && cookies.length > 0) headers['Cookie'] = cookies.join('; ');
+    if (proxies.length > 0) {
+        // Shuffle to get a random assortment of proxies
+        const shuffled = [...proxies].sort(() => Math.random() - 0.5);
+        const maxRetries = Math.min(15, shuffled.length);
         
-        const res = await fetch(proxyUrl, {
-            headers,
-            signal: AbortSignal.timeout(12000),
-        });
-        
-        if (res.ok) {
-            const html = await res.text();
-            return {
-                html,
-                status: res.status,
-                ok: true,
-                setCookieHeader: res.headers.get('set-cookie')
-            };
+        for (let i = 0; i < maxRetries; i++) {
+            const proxy = shuffled[i];
+            const proxyUri = `http://${proxy}`;
+            
+            try {
+                const dispatcher = new ProxyAgent({ uri: proxyUri });
+                
+                const headers: Record<string, string> = { ...HEADERS };
+                if (referer) headers['Referer'] = referer;
+                if (cookies && cookies.length > 0) headers['Cookie'] = cookies.join('; ');
+                
+                const res = await undiciFetch(url, {
+                    headers,
+                    dispatcher,
+                    signal: AbortSignal.timeout(6000), // 6 seconds timeout per proxy
+                });
+                
+                const html = await res.text();
+                
+                if (res.ok && !isCloudflareBlock(res.status, html)) {
+                    console.log(`[Proxy Rotator] Successfully fetched ${url} via proxy ${proxyUri}`);
+                    return {
+                        html,
+                        status: res.status,
+                        ok: true,
+                        setCookieHeader: res.headers.get('set-cookie'),
+                    };
+                } else {
+                    console.warn(`[Proxy Rotator] Proxy ${proxyUri} blocked or returned status ${res.status} for ${url}`);
+                }
+            } catch (err: any) {
+                console.warn(`[Proxy Rotator] Proxy ${proxyUri} failed for ${url}: ${err.message}`);
+            }
         }
-    } catch (err: any) {
-        console.warn(`CodeTabs proxy fetch failed: ${err.message}`);
     }
     
-    // 2. Fallback to direct fetch
+    console.warn(`[Proxy Rotator] All proxies failed. Falling back to direct fetch for ${url}`);
+    
+    // Fallback to direct fetch
     const headers: Record<string, string> = { ...HEADERS };
     if (referer) headers['Referer'] = referer;
     if (cookies && cookies.length > 0) headers['Cookie'] = cookies.join('; ');
     
-    const res = await fetch(url, {
+    const res = await undiciFetch(url, {
         headers,
         signal: AbortSignal.timeout(12000),
     });
@@ -256,6 +340,22 @@ async function fetchHtmlWithProxy(
         ok: res.ok,
         setCookieHeader: res.headers.get('set-cookie')
     };
+}
+
+/**
+ * Resolve RareAnimes streaming page URL (WatchMultiQuality/StreamBeta) to the actual embedded video player URL.
+ */
+async function resolveStreamingEmbed(streamingUrl: string): Promise<string> {
+    try {
+        const res = await fetchHtmlWithProxy(streamingUrl);
+        if (res.ok) {
+            const iframeMatch = res.html.match(/<iframe[^>]+src="([^"]+)"/i);
+            if (iframeMatch) return iframeMatch[1];
+        }
+    } catch (e: any) {
+        console.warn(`Failed to resolve streaming embed for ${streamingUrl}: ${e.message}`);
+    }
+    return streamingUrl;
 }
 
 /**
@@ -322,6 +422,100 @@ async function resolveZipperToMega(zipperUrl: string): Promise<ResolvedZipperLin
         console.warn(warning);
         return { link: zipperUrl, resolvedToMega: false, warning };
     }
+}
+
+/**
+ * Resolve a Codedew zipper URL without first loading its ad-step 1 page.
+ * The ad-step 2 URL contains the final Mega anchor and is much faster.
+ */
+async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZipperLink> {
+    const extractMega = (html: string): string | null => {
+        const megaMatch = html.match(/href=["'](https:\/\/mega\.nz\/[^"']+)["']/i);
+        return megaMatch ? megaMatch[1] : null;
+    };
+
+    const fetchDirectHtml = async (targetUrl: string, referer?: string) => {
+        const headers: Record<string, string> = {
+            ...HEADERS,
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': referer ? 'same-origin' : 'none',
+            'Sec-Fetch-User': '?1',
+        };
+        if (referer) headers['Referer'] = referer;
+
+        const res = await fetch(targetUrl, {
+            headers,
+            signal: AbortSignal.timeout(12000),
+        });
+        const html = await res.text();
+        return { html, ok: res.ok, status: res.status };
+    };
+
+    const buildStep2Url = (targetUrl: string) => {
+        const url = new URL(targetUrl);
+        url.searchParams.set('ad_step', '2');
+        return url.href;
+    };
+
+    const step2Url = buildStep2Url(zipperUrl);
+    const errors: string[] = [];
+
+    try {
+        const directStep2 = await fetchDirectHtml(step2Url, zipperUrl);
+        if (directStep2.ok) {
+            const mega = extractMega(directStep2.html);
+            if (mega) return { link: mega };
+            errors.push('direct step2: no Mega link found');
+        } else {
+            errors.push(`direct step2 HTTP ${directStep2.status}`);
+        }
+    } catch (e: any) {
+        errors.push(`direct step2: ${e.message}`);
+    }
+
+    try {
+        const step1 = await fetchDirectHtml(zipperUrl);
+        if (!step1.ok) {
+            errors.push(`direct step1 HTTP ${step1.status}`);
+        } else {
+            const directMega = extractMega(step1.html);
+            if (directMega) return { link: directMega };
+
+            const step2Match = step1.html.match(/href=["']([^"']*ad_step=2[^"']*)["']/i);
+            if (step2Match) {
+                const step2Path = step2Match[1].replace(/&amp;/g, '&');
+                const resolvedStep2Url = new URL(step2Path, zipperUrl).href;
+                const resolvedStep2 = await fetchDirectHtml(resolvedStep2Url, zipperUrl);
+                if (resolvedStep2.ok) {
+                    const mega = extractMega(resolvedStep2.html);
+                    if (mega) return { link: mega };
+                    errors.push('direct step1-derived step2: no Mega link found');
+                } else {
+                    errors.push(`direct step1-derived step2 HTTP ${resolvedStep2.status}`);
+                }
+            } else {
+                errors.push('direct step1: no ad_step link found');
+            }
+        }
+    } catch (e: any) {
+        errors.push(`direct step1 flow: ${e.message}`);
+    }
+
+    try {
+        const proxiedStep2 = await fetchHtmlWithProxy(step2Url, zipperUrl);
+        if (proxiedStep2.ok) {
+            const mega = extractMega(proxiedStep2.html);
+            if (mega) return { link: mega };
+            errors.push('proxied step2: no Mega link found');
+        } else {
+            errors.push(`proxied step2 HTTP ${proxiedStep2.status}`);
+        }
+    } catch (e: any) {
+        errors.push(`proxied step2: ${e.message}`);
+    }
+
+    throw new Error(errors.join('; '));
 }
 
 /**
@@ -422,16 +616,45 @@ export async function scrapeSource(
     url: string,
     source: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix'
 ): Promise<ScrapedResult> {
-    const response = await fetch(url, {
-        headers: HEADERS,
-        signal: AbortSignal.timeout(25000), // 25 seconds for slow redirects
-    });
+    let html = '';
+    let status = 200;
+    let ok = true;
+    let setCookieHeader: string | null = null;
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch source page: HTTP ${response.status}`);
+    if (source === 'rareanimes') {
+        console.log(`[Scraper] Using proxy rotator for initial fetch of ${url}`);
+        const fetchRes = await fetchHtmlWithProxy(url);
+        html = fetchRes.html;
+        status = fetchRes.status;
+        ok = fetchRes.ok;
+        setCookieHeader = fetchRes.setCookieHeader;
+    } else {
+        const response = await fetch(url, {
+            headers: HEADERS,
+            signal: AbortSignal.timeout(25000), // 25 seconds for slow redirects
+        });
+        status = response.status;
+        ok = response.ok;
+        setCookieHeader = response.headers.get('set-cookie');
+        if (ok) {
+            html = await response.text();
+        }
     }
 
-    const html = await response.text();
+    if (!ok || isCloudflareBlock(status, html)) {
+        if (source !== 'rareanimes') {
+            console.warn(`[Scraper] Direct fetch failed or Cloudflare block detected (HTTP ${status}). Retrying with proxy rotator...`);
+            const fetchRes = await fetchHtmlWithProxy(url);
+            html = fetchRes.html;
+            status = fetchRes.status;
+            ok = fetchRes.ok;
+            setCookieHeader = fetchRes.setCookieHeader;
+        }
+        
+        if (!ok || isCloudflareBlock(status, html)) {
+            throw new Error(`Failed to fetch source page: HTTP ${status} (Cloudflare block or connection error)`);
+        }
+    }
 
     let pageTitle = '';
     const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
@@ -470,10 +693,15 @@ export async function scrapeSource(
             try {
                 const resolved = await resolveZipperToMega(ep.zipperUrl);
                 const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
+                let resolvedStreamingUrl = ep.streamingUrl;
+                if (ep.streamingUrl) {
+                    resolvedStreamingUrl = await resolveStreamingEmbed(ep.streamingUrl);
+                }
                 episodes.push({
                     number: epNum,
                     title: ep.title,
                     link: resolved.link,
+                    streamingUrl: resolvedStreamingUrl,
                 });
                 if (resolved.resolvedToMega) {
                     resolvedCount++;
@@ -487,6 +715,7 @@ export async function scrapeSource(
                     number: epNum,
                     title: ep.title,
                     link: ep.zipperUrl,
+                    streamingUrl: ep.streamingUrl,
                 });
             }
             await new Promise(r => setTimeout(r, 400));
@@ -527,7 +756,7 @@ export async function scrapeSource(
         };
     } else if (source === 'movielink') {
         const cookies: string[] = [];
-        const rawSetCookie = response.headers.get('set-cookie');
+        const rawSetCookie = setCookieHeader;
         if (rawSetCookie) {
             const parts = rawSetCookie.split(/,\s*(?=\w+=)/);
             for (const part of parts) {

@@ -8,6 +8,7 @@ interface ScrapedEpisode {
     title: string;
     link: string;
     selected: boolean;
+    streamingUrl?: string;
 }
 
 interface ScrapeResult {
@@ -32,6 +33,17 @@ interface SeasonInfo {
 }
 
 const RESOLUTIONS = ['360p', '480p', '720p', '1080p'] as const;
+
+function getLinkField(url: string): 'mega_link' | 'gdrive_link' | 'mediafire_link' | 'terabox_link' | 'pcloud_link' | 'youtube_link' {
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('mega.nz') || lowerUrl.includes('mega.co.nz')) return 'mega_link';
+    if (lowerUrl.includes('drive.google.com') || lowerUrl.includes('google.com/drive')) return 'gdrive_link';
+    if (lowerUrl.includes('mediafire.com')) return 'mediafire_link';
+    if (lowerUrl.includes('terabox') || lowerUrl.includes('nephobox')) return 'terabox_link';
+    if (lowerUrl.includes('pcloud.com')) return 'pcloud_link';
+    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) return 'youtube_link';
+    return 'gdrive_link';
+}
 
 type SourceType = 'fxlinks' | 'rareanimes' | 'movielink';
 
@@ -397,19 +409,29 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                         episodeId = newEp.id;
                     }
 
+                    const isRareanimes = sourceType === 'rareanimes';
+                    const langType = isRareanimes ? 'dub' : null;
+                    const linkField = getLinkField(ep.link);
+
                     // Insert/update download link for this resolution
-                    const { data: existingLink } = await supabase
+                    let query = supabase
                         .from('episode_download_links')
                         .select('id')
                         .eq('episode_id', episodeId)
-                        .eq('resolution', resolution)
-                        .is('language_type', null)
-                        .maybeSingle();
+                        .eq('resolution', resolution);
+
+                    if (langType) {
+                        query = query.eq('language_type', langType);
+                    } else {
+                        query = query.is('language_type', null);
+                    }
+
+                    const { data: existingLink } = await query.maybeSingle();
 
                     if (existingLink) {
                         await supabase
                             .from('episode_download_links')
-                            .update({ gdrive_link: ep.link })
+                            .update({ [linkField]: ep.link })
                             .eq('id', existingLink.id);
                     } else {
                         await supabase
@@ -417,9 +439,20 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                             .insert({
                                 episode_id: episodeId,
                                 resolution: resolution,
-                                gdrive_link: ep.link,
-                                language_type: null
+                                [linkField]: ep.link,
+                                language_type: langType
                             });
+                    }
+
+                    // Save custom streaming URL override if scraped (e.g. WatchMultiQuality/StreamBeta)
+                    if (ep.streamingUrl) {
+                        const { error: updateEpError } = await supabase
+                            .from('episodes')
+                            .update({ streaming_url: ep.streamingUrl })
+                            .eq('id', episodeId);
+                        if (updateEpError) {
+                            console.warn(`[Importer] Failed to save streaming_url for episode ${ep.number}:`, updateEpError);
+                        }
                     }
 
                     successCount++;

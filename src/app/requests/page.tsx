@@ -201,12 +201,33 @@ export default function RequestsPage() {
             
             if (!title.trim()) throw new Error('Title is required');
 
-            const slug = title
+            const baseSlug = title
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-')
                 .replace(/(^-|-$)+/g, '');
 
-            const uniqueSlug = `${slug}-${release_year}`;
+            // Generate unique slug by checking existing ones
+            let uniqueSlug = `${baseSlug}-${release_year}`;
+            let counter = 1;
+            
+            while (true) {
+                const { data: existing, error: checkError } = await supabase
+                    .from('movies')
+                    .select('id')
+                    .eq('slug', uniqueSlug)
+                    .maybeSingle();
+                
+                if (checkError) throw checkError;
+                
+                if (!existing) {
+                    // Slug is unique, we can use it
+                    break;
+                }
+                
+                // Slug already exists, try with counter
+                counter++;
+                uniqueSlug = `${baseSlug}-${release_year}-${counter}`;
+            }
 
             // 1. Insert Movie
             const { data: movie, error: movieError } = await supabase
@@ -322,15 +343,20 @@ export default function RequestsPage() {
                             if (epError) throw epError;
 
                             if (ep.download_links && ep.download_links.length > 0) {
-                                const linkInserts = ep.download_links.map((link: any) => ({
-                                    episode_id: insertedEpisode.id,
-                                    resolution: link.resolution,
-                                    file_size: link.file_size || '',
-                                    mega_link: link.mega_link || null,
-                                    gdrive_link: link.gdrive_link || null,
-                                    language_type: link.language_type || 'dub',
-                                    approval_status: 'approved'
-                                }));
+                                const linkInserts = ep.download_links.map((link: any) => {
+                                    // Ensure resolution is valid, fallback to 720p
+                                    let resolution = link.resolution || '720p';
+                                    if (!['360p', '480p', '720p', '1080p'].includes(resolution)) {
+                                        resolution = '720p';
+                                    }
+                                    return {
+                                        episode_id: insertedEpisode.id,
+                                        resolution,
+                                        file_size: link.file_size || '',
+                                        mega_link: link.mega_link || null,
+                                        gdrive_link: link.gdrive_link || null
+                                    };
+                                });
                                 const { error: linkError } = await supabase.from('episode_download_links').insert(linkInserts);
                                 if (linkError) throw linkError;
                             }

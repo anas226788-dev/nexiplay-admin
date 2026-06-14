@@ -119,6 +119,115 @@ async function getOrCreateEpisode(seasonId: string, epNumber: number): Promise<s
     return newEp.id;
 }
 
+// Auto-match function for the cron job
+async function autoMatchStreaming(
+    movieId: string,
+    title: string,
+    type: 'movie' | 'series' | 'anime',
+    releaseYear: number | null,
+    tmdbApiKey?: string
+) {
+    const updates: any = {};
+
+    const isCloseMatch = (t1: string, t2: string) => {
+        const n1 = t1.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const n2 = t2.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return n1 === n2 || n1.includes(n2) || n2.includes(n1);
+    };
+
+    if (type === 'anime') {
+        try {
+            const jikanUrl = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(title)}&limit=5`;
+            const jikanRes = await fetch(jikanUrl);
+            if (jikanRes.ok) {
+                const jikanData = await jikanRes.json();
+                const results = jikanData.data || [];
+                const matched = results.find((r: any) => 
+                    isCloseMatch(title, r.title) || 
+                    (r.title_english && isCloseMatch(title, r.title_english))
+                );
+                if (matched) {
+                    updates.mal_id = String(matched.mal_id);
+                }
+            }
+        } catch (err) {
+            console.error('Cron MAL search error:', err);
+        }
+    }
+
+    if (tmdbApiKey) {
+        try {
+            let searchUrl = '';
+            if (type === 'movie') {
+                searchUrl = `https://api.themoviedb.org/3/search/movie?api_key=${tmdbApiKey}&query=${encodeURIComponent(title)}`;
+            } else if (type === 'series') {
+                searchUrl = `https://api.themoviedb.org/3/search/tv?api_key=${tmdbApiKey}&query=${encodeURIComponent(title)}`;
+            } else {
+                searchUrl = `https://api.themoviedb.org/3/search/multi?api_key=${tmdbApiKey}&query=${encodeURIComponent(title)}`;
+            }
+
+            const tmdbRes = await fetch(searchUrl);
+            if (tmdbRes.ok) {
+                const tmdbData = await tmdbRes.json();
+                let results = tmdbData.results || [];
+                if (type === 'anime') {
+                    results = results.filter((r: any) => r.media_type === 'movie' || r.media_type === 'tv');
+                }
+
+                const matched = results.find((r: any) => {
+                    const itemTitle = r.title || r.name || '';
+                    const origTitle = r.original_title || r.original_name || '';
+                    return isCloseMatch(title, itemTitle) || isCloseMatch(title, origTitle);
+                });
+
+                if (matched) {
+                    updates.tmdb_id = String(matched.id);
+                    
+                    // Fetch IMDb ID
+                    const mediaType = type === 'movie' ? 'movie' : (matched.media_type || 'tv');
+                    const extUrl = `https://api.themoviedb.org/3/${mediaType}/${matched.id}/external_ids?api_key=${tmdbApiKey}`;
+                    const extRes = await fetch(extUrl);
+                    if (extRes.ok) {
+                        const extData = await extRes.json();
+                        if (extData.imdb_id) {
+                            updates.imdb_id = extData.imdb_id;
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('Cron TMDB search error:', err);
+        }
+    }
+
+    if (Object.keys(updates).length > 0) {
+        // Fetch current movie to preserve existing fields
+        const { data: currentMovie } = await supabase
+            .from('movies')
+            .select('tmdb_id, imdb_id, mal_id')
+            .eq('id', movieId)
+            .single();
+
+        const finalUpdates: any = {
+            updated_at: new Date().toISOString()
+        };
+        if (currentMovie) {
+            finalUpdates.tmdb_id = updates.tmdb_id || currentMovie.tmdb_id;
+            finalUpdates.imdb_id = updates.imdb_id || currentMovie.imdb_id;
+            finalUpdates.mal_id = updates.mal_id || currentMovie.mal_id;
+        } else {
+            Object.assign(finalUpdates, updates);
+        }
+
+        await supabase
+            .from('movies')
+            .update(finalUpdates)
+            .eq('id', movieId);
+        
+        console.log(`[Cron Auto-Match] Successfully updated streaming IDs for: ${title}`);
+    }
+}
+
 async function handleCheckEpisodes(movieId?: string) {
     const results: any[] = [];
     
@@ -148,6 +257,25 @@ async function handleCheckEpisodes(movieId?: string) {
     for (const movie of movies) {
         const movieTitle = movie.title;
         const movieId = movie.id;
+        
+        // Auto-match streaming IDs if missing during cron run
+        if (!movie.tmdb_id && (movie.type !== 'anime' || !movie.mal_id)) {
+            try {
+                const tmdbApiKey = process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
+                await autoMatchStreaming(movie.id, movie.title, movie.type as any, movie.release_year, tmdbApiKey);
+                // Refresh local loop variable reference with updated fields if matched
+                const { data: updatedMovie } = await supabase
+                    .from('movies')
+                    .select('*')
+                    .eq('id', movie.id)
+                    .single();
+                if (updatedMovie) {
+                    Object.assign(movie, updatedMovie);
+                }
+            } catch (matchErr) {
+                console.error(`[Cron Auto-Match] Failed for "${movie.title}":`, matchErr);
+            }
+        }
         
         try {
             const scraperUrl = movie.scraper_url;
@@ -285,6 +413,18 @@ async function handleCheckEpisodes(movieId?: string) {
                         isRareanimes ? 'dub' : null,
                         'approved'
                     );
+
+                    // Save custom streaming URL override if scraped (e.g. WatchMultiQuality/StreamBeta)
+                    if (ep.streamingUrl) {
+                        const { error: updateEpError } = await supabase
+                            .from('episodes')
+                            .update({ streaming_url: ep.streamingUrl })
+                            .eq('id', episodeId);
+                        if (updateEpError) {
+                            console.warn(`[Cron Auto-Match] Failed to save streaming_url for episode ${ep.number}:`, updateEpError);
+                        }
+                    }
+
                     importedDubCount++;
                 }
 

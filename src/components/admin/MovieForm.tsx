@@ -17,6 +17,7 @@ interface MovieFormProps {
 export default function MovieForm({ initialData }: MovieFormProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [loadingStage, setLoadingStage] = useState<'saving' | 'matching' | ''>('');
     const [uploading, setUploading] = useState(false);
     const [categories, setCategories] = useState<Category[]>([]);
     const [seasonEditorKey, setSeasonEditorKey] = useState(0);
@@ -220,6 +221,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setLoadingStage('saving');
 
         try {
             let movieId = initialData?.id;
@@ -413,6 +415,28 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                 console.warn('Download links operation failed (table may not exist):', dlError);
             }
 
+            // Trigger auto-match streaming IDs
+            setLoadingStage('matching');
+            try {
+                const localApiKey = typeof window !== 'undefined' ? localStorage.getItem('nexiplay_tmdb_api_key') : null;
+                const matchRes = await fetch('/api/auto-match-streaming', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        movieId,
+                        title,
+                        type,
+                        releaseYear,
+                        tmdbApiKey: localApiKey
+                    })
+                });
+                if (!matchRes.ok) {
+                    console.warn('Auto-match API call failed:', matchRes.statusText);
+                }
+            } catch (matchErr) {
+                console.warn('Failed to trigger auto-match streaming:', matchErr);
+            }
+
             router.push('/');
             router.refresh();
 
@@ -422,6 +446,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
             alert(`Error saving content: ${error.message || JSON.stringify(error)}`);
         } finally {
             setLoading(false);
+            setLoadingStage('');
         }
     };
 
@@ -1156,7 +1181,13 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                     disabled={loading || uploading}
                     className="px-8 py-3 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-900/40"
                 >
-                    {loading ? 'Saving...' : (initialData ? 'Update Content' : 'Create Content')}
+                    {loadingStage === 'saving' 
+                        ? 'Saving Content...' 
+                        : loadingStage === 'matching' 
+                        ? '🔄 Auto-matching Streaming IDs...' 
+                        : loading 
+                        ? 'Saving...' 
+                        : (initialData ? 'Update Content' : 'Create Content')}
                 </button>
             </div>
         </form >

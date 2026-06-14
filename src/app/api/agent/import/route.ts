@@ -128,9 +128,7 @@ export async function POST(request: NextRequest) {
                                     resolution,
                                     file_size: ep.title.match(/\b\d+(?:\.\d+)?\s*(?:MB|GB)\b/i)?.[0] || '',
                                     mega_link: megaLink || (!gdriveLink ? ep.link : undefined),
-                                    gdrive_link: gdriveLink || undefined,
-                                    language_type: 'dub', // Default to dub
-                                    approval_status: 'approved'
+                                    gdrive_link: gdriveLink || undefined
                                 }
                             ]
                         };
