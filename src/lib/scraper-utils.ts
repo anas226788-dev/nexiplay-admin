@@ -260,12 +260,20 @@ function isCloudflareBlock(status: number, html: string): boolean {
         return true;
     }
     const lowerHtml = html.toLowerCase();
+    
+    // Check page title for wait screen or access denied
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim().toLowerCase() : '';
+    if (title.includes('just a moment') || title.includes('attention required') || title.includes('access denied')) {
+        return true;
+    }
+    
+    // Specific Cloudflare challenge markers
     return (
-        lowerHtml.includes('cloudflare') ||
-        lowerHtml.includes('turnstile') ||
-        lowerHtml.includes('captcha') ||
         lowerHtml.includes('cf-challenge') ||
-        lowerHtml.includes('attention required')
+        lowerHtml.includes('cf_challenge') ||
+        lowerHtml.includes('window._cf_chl_opt') ||
+        (lowerHtml.includes('turnstile') && lowerHtml.includes('challenge') && !lowerHtml.includes('episode'))
     );
 }
 
