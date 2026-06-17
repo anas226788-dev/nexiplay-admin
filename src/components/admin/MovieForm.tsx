@@ -55,7 +55,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const [notifyAdmin, setNotifyAdmin] = useState(initialData?.notify_admin || false);
 
     // Auto Scraper State
-    const [scraperSource, setScraperSource] = useState<'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix' | ''>(initialData?.scraper_source || '');
+    const [scraperSource, setScraperSource] = useState<'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix' | 'animerulz' | 'toonplay' | 'multi' | ''>(initialData?.scraper_source || '');
     const [scraperUrl, setScraperUrl] = useState(initialData?.scraper_url || '');
     const [scraperResolution, setScraperResolution] = useState<'360p' | '480p' | '720p' | '1080p'>(initialData?.scraper_resolution || '720p');
     const [scraperSeason, setScraperSeason] = useState<number>(initialData?.scraper_season || 1);
@@ -688,6 +688,8 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                                                 <option value="rareanimes">RareAnimes (Mega/Codedew)</option>
                                                 <option value="movielink">MovieLinkBD</option>
                                                 <option value="bollyflix">BollyFlix</option>
+                                                <option value="animerulz">Animerulz (m3u8/m3u8 stream)</option>
+                                                <option value="toonplay">Nexiplay Private Server (m3u8 stream)</option>
                                             </select>
                                         </div>
                                         <div>

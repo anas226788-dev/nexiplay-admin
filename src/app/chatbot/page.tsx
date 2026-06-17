@@ -41,7 +41,8 @@ export default function ChatbotPage() {
                 is_enabled: settings.is_enabled,
                 bot_name: settings.bot_name,
                 welcome_message: settings.welcome_message,
-                placeholder_text: settings.placeholder_text
+                placeholder_text: settings.placeholder_text,
+                openrouter_models: settings.openrouter_models
             })
             .eq('id', settings.id);
 
@@ -127,6 +128,66 @@ export default function ChatbotPage() {
                                     className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white"
                                     rows={2}
                                 />
+                            </div>
+                            {/* OpenRouter Models Section */}
+                            <div className="md:col-span-2 mt-2">
+                                <label className="block text-sm text-gray-400 mb-1">🤖 AI Models (OpenRouter)</label>
+                                <p className="text-xs text-gray-500 mb-2">Comma-separated OpenRouter model IDs. Bot tries each in order; falls back to Groq if all fail.</p>
+                                <textarea
+                                    value={settings.openrouter_models || ''}
+                                    onChange={(e) => setSettings({ ...settings, openrouter_models: e.target.value })}
+                                    className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white font-mono text-sm"
+                                    rows={3}
+                                    placeholder="google/gemini-2.5-flash,meta-llama/llama-3-8b-instruct"
+                                />
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {[
+                                        'google/gemini-2.5-flash',
+                                        'meta-llama/llama-3.3-70b-instruct',
+                                        'mistralai/mistral-small-3.2-24b-instruct',
+                                        'qwen/qwen3-14b',
+                                        'deepseek/deepseek-chat-v3-0324',
+                                        'openrouter/auto'
+                                    ].map(model => {
+                                        const current = (settings.openrouter_models || '').split(',').map(m => m.trim()).filter(Boolean);
+                                        const isActive = current.includes(model);
+                                        return (
+                                            <button
+                                                key={model}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isActive) {
+                                                        setSettings({ ...settings, openrouter_models: current.filter(m => m !== model).join(',') });
+                                                    } else {
+                                                        setSettings({ ...settings, openrouter_models: [...current, model].join(',') });
+                                                    }
+                                                }}
+                                                className={`px-2.5 py-1 text-xs rounded-lg border transition-colors ${
+                                                    isActive
+                                                        ? 'bg-green-600/30 border-green-500/50 text-green-300'
+                                                        : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                                                }`}
+                                            >
+                                                {isActive ? '✓ ' : '+ '}{model.split('/').pop()}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {settings.openrouter_models && (
+                                    <div className="mt-3 p-3 bg-dark-800 rounded-lg border border-white/5">
+                                        <p className="text-xs text-gray-500 mb-2">Fallback Order:</p>
+                                        <div className="flex flex-wrap items-center gap-1.5">
+                                            {settings.openrouter_models.split(',').map((m) => m.trim()).filter(Boolean).map((model, i, arr) => (
+                                                <span key={i} className="flex items-center gap-1.5">
+                                                    <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs rounded font-mono">{i + 1}. {model}</span>
+                                                    {i < arr.length - 1 && <span className="text-gray-600 text-xs">→</span>}
+                                                </span>
+                                            ))}
+                                            <span className="text-gray-600 text-xs">→</span>
+                                            <span className="px-2 py-0.5 bg-orange-500/20 text-orange-300 text-xs rounded font-mono">Groq (fallback)</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <button

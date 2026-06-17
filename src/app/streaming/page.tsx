@@ -41,18 +41,407 @@ export default function StreamingPage() {
     const [seasons, setSeasons] = useState<any[]>([]);
     const [loadingEpisodes, setLoadingEpisodes] = useState(false);
     const [activeSeasonId, setActiveSeasonId] = useState<string | null>(null);
-    const [localEpisodeUrls, setLocalEpisodeUrls] = useState<Record<string, string>>({});
+    const [localEpisodeUrls, setLocalEpisodeUrls] = useState<Record<string, Record<string, string>>>({});
+    const [editingServerKey, setEditingServerKey] = useState<string>('custom');
     const [savingEpisodes, setSavingEpisodes] = useState(false);
 
-    // Message notification toast
+        // Message notification toast
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    
+        // Selection state for bulk matching specific rows
+    const [selectedMovieIds, setSelectedMovieIds] = useState<string[]>([]);
+
+        // Global Settings State
+    const [settings, setSettings] = useState<any>(null);
+    const [savingSettings, setSavingSettings] = useState(false);
+
+        // Edit Scraper Modal State
+    const [editingScraperMovie, setEditingScraperMovie] = useState<Movie | null>(null);
+    const [scrapingLoader, setScrapingLoader] = useState(false);
+
+        // Season Scraper URL States
+    const [scraperSeasons, setScraperSeasons] = useState<any[]>([]);
+    const [toonplayLinkMode, setToonplayLinkMode] = useState<'single' | 'separate'>('single');
+    const [toonplayUrls, setToonplayUrls] = useState<Record<number, string>>({});
+    const [animerulzLinkMode, setAnimerulzLinkMode] = useState<'single' | 'separate'>('single');
+    const [animerulzUrls, setAnimerulzUrls] = useState<Record<number, string>>({});
+
+    // New scrapers states
+    const [animeworldLinkMode, setAnimeworldLinkMode] = useState<'single' | 'separate'>('single');
+    const [animeworldUrl, setAnimeworldUrl] = useState<string>('');
+    const [animeworldUrls, setAnimeworldUrls] = useState<Record<number, string>>({});
+
+    const [animixstreamLinkMode, setAnimixstreamLinkMode] = useState<'single' | 'separate'>('single');
+    const [animixstreamUrl, setAnimixstreamUrl] = useState<string>('');
+    const [animixstreamUrls, setAnimixstreamUrls] = useState<Record<number, string>>({});
+
+    const [toonstreamLinkMode, setToonstreamLinkMode] = useState<'single' | 'separate'>('single');
+    const [toonstreamUrl, setToonstreamUrl] = useState<string>('');
+    const [toonstreamUrls, setToonstreamUrls] = useState<Record<number, string>>({});
+
+    const [museindiaLinkMode, setMuseindiaLinkMode] = useState<'single' | 'separate'>('single');
+    const [museindiaUrl, setMuseindiaUrl] = useState<string>('');
+    const [museindiaUrls, setMuseindiaUrls] = useState<Record<number, string>>({});
+
+    const [anioneindiaLinkMode, setAnioneindiaLinkMode] = useState<'single' | 'separate'>('single');
+    const [anioneindiaUrl, setAnioneindiaUrl] = useState<string>('');
+    const [anioneindiaUrls, setAnioneindiaUrls] = useState<Record<number, string>>({});
+
+    const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (editingScraperMovie) {
+            const tempToonplayUrls: Record<number, string> = {};
+            const tUrl = editingScraperMovie.toonplay_url || '';
+            if (tUrl.trim().startsWith('{')) {
+                setToonplayLinkMode('separate');
+                try {
+                    const parsed = JSON.parse(tUrl);
+                    for (const [k, v] of Object.entries(parsed)) {
+                        tempToonplayUrls[parseInt(k)] = v as string;
+                    }
+                    setToonplayUrls(tempToonplayUrls);
+                } catch (e) {
+                    setToonplayUrls({});
+                }
+            } else {
+                setToonplayLinkMode('single');
+                setToonplayUrls({});
+            }
+
+            const tempAnimerulzUrls: Record<number, string> = {};
+            const aUrl = editingScraperMovie.animerulz_url || '';
+            if (aUrl.trim().startsWith('{')) {
+                setAnimerulzLinkMode('separate');
+                try {
+                    const parsed = JSON.parse(aUrl);
+                    for (const [k, v] of Object.entries(parsed)) {
+                        tempAnimerulzUrls[parseInt(k)] = v as string;
+                    }
+                    setAnimerulzUrls(tempAnimerulzUrls);
+                } catch (e) {
+                    setAnimerulzUrls({});
+                }
+            } else {
+                setAnimerulzLinkMode('single');
+                setAnimerulzUrls({});
+            }
+
+            // Parse other scrapers
+            const sUrl = editingScraperMovie.scraper_url || '';
+            let parsedOther: Record<string, any> = {};
+            if (sUrl.trim().startsWith('{')) {
+                try {
+                    parsedOther = JSON.parse(sUrl);
+                } catch(e) {}
+            }
+
+            // AnimeWorld
+            const aw = parsedOther.animeworld || {};
+            setAnimeworldLinkMode(aw.mode || 'single');
+            setAnimeworldUrl(aw.url || '');
+            const awUrls: Record<number, string> = {};
+            if (aw.urls) {
+                for (const [k, v] of Object.entries(aw.urls)) {
+                    awUrls[parseInt(k)] = v as string;
+                }
+            }
+            setAnimeworldUrls(awUrls);
+
+            // AnimixStream
+            const am = parsedOther.animixstream || {};
+            setAnimixstreamLinkMode(am.mode || 'single');
+            setAnimixstreamUrl(am.url || '');
+            const amUrls: Record<number, string> = {};
+            if (am.urls) {
+                for (const [k, v] of Object.entries(am.urls)) {
+                    amUrls[parseInt(k)] = v as string;
+                }
+            }
+            setAnimixstreamUrls(amUrls);
+
+            // ToonStream
+            const ts = parsedOther.toonstream || {};
+            setToonstreamLinkMode(ts.mode || 'single');
+            setToonstreamUrl(ts.url || '');
+            const tsUrls: Record<number, string> = {};
+            if (ts.urls) {
+                for (const [k, v] of Object.entries(ts.urls)) {
+                    tsUrls[parseInt(k)] = v as string;
+                }
+            }
+            setToonstreamUrls(tsUrls);
+
+            // Muse India
+            const mi = parsedOther.muse_india || {};
+            setMuseindiaLinkMode(mi.mode || 'single');
+            setMuseindiaUrl(mi.url || '');
+            const miUrls: Record<number, string> = {};
+            if (mi.urls) {
+                for (const [k, v] of Object.entries(mi.urls)) {
+                    miUrls[parseInt(k)] = v as string;
+                }
+            }
+            setMuseindiaUrls(miUrls);
+
+            // Ani-One India
+            const ao = parsedOther.anione_india || {};
+            setAnioneindiaLinkMode(ao.mode || 'single');
+            setAnioneindiaUrl(ao.url || '');
+            const aoUrls: Record<number, string> = {};
+            if (ao.urls) {
+                for (const [k, v] of Object.entries(ao.urls)) {
+                    aoUrls[parseInt(k)] = v as string;
+                }
+            }
+            setAnioneindiaUrls(aoUrls);
+
+            if (editingScraperMovie.type === 'anime' || editingScraperMovie.type === 'series') {
+                supabase
+                    .from('seasons')
+                    .select('id, season_number, season_title')
+                    .eq('movie_id', editingScraperMovie.id)
+                    .order('season_number', { ascending: true })
+                    .then(({ data }) => {
+                        const dbSeasons = data || [];
+                        const dbSeasonNums = new Set(dbSeasons.map(s => s.season_number));
+                        
+                        // Parse JSON from urls to find if there are any other seasons configured
+                        const extraSeasonNums = new Set<number>();
+                        Object.keys(tempToonplayUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+                        Object.keys(tempAnimerulzUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+                        Object.keys(awUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+                        Object.keys(amUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+                        Object.keys(tsUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+                        Object.keys(miUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+                        Object.keys(aoUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+
+                        const finalSeasons = [...dbSeasons];
+                        Array.from(extraSeasonNums).sort((a, b) => a - b).forEach(sNum => {
+                            if (!dbSeasonNums.has(sNum)) {
+                                finalSeasons.push({
+                                    id: `virtual_${sNum}`,
+                                    season_number: sNum,
+                                    season_title: `Season ${sNum}`
+                                });
+                            }
+                        });
+                        
+                        // Sort by season_number
+                        finalSeasons.sort((a, b) => a.season_number - b.season_number);
+                        setScraperSeasons(finalSeasons);
+                    });
+            } else {
+                setScraperSeasons([]);
+            }
+        } else {
+            setScraperSeasons([]);
+            setToonplayLinkMode('single');
+            setToonplayUrls({});
+            setAnimerulzLinkMode('single');
+            setAnimerulzUrls({});
+
+            setAnimeworldLinkMode('single');
+            setAnimeworldUrl('');
+            setAnimeworldUrls({});
+            setAnimixstreamLinkMode('single');
+            setAnimixstreamUrl('');
+            setAnimixstreamUrls({});
+            setToonstreamLinkMode('single');
+            setToonstreamUrl('');
+            setToonstreamUrls({});
+            setMuseindiaLinkMode('single');
+            setMuseindiaUrl('');
+            setMuseindiaUrls({});
+            setAnioneindiaLinkMode('single');
+            setAnioneindiaUrl('');
+            setAnioneindiaUrls({});
+            setExpandedSection(null);
+        }
+    }, [editingScraperMovie]);
+
+    const getToonplayUrlToSave = () => {
+        if (toonplayLinkMode === 'single') {
+            return editingScraperMovie?.toonplay_url || null;
+        }
+        const filtered: Record<number, string> = {};
+        for (const [k, v] of Object.entries(toonplayUrls)) {
+            if (v && v.trim()) {
+                filtered[parseInt(k)] = v.trim();
+            }
+        }
+        if (Object.keys(filtered).length === 0) return null;
+        return JSON.stringify(filtered);
+    };
+
+    const getAnimerulzUrlToSave = () => {
+        if (animerulzLinkMode === 'single') {
+            return editingScraperMovie?.animerulz_url || null;
+        }
+        const filtered: Record<number, string> = {};
+        for (const [k, v] of Object.entries(animerulzUrls)) {
+            if (v && v.trim()) {
+                filtered[parseInt(k)] = v.trim();
+            }
+        }
+        if (Object.keys(filtered).length === 0) return null;
+        return JSON.stringify(filtered);
+    };
+
+    const getOtherScrapersJsonToSave = () => {
+        const payload: Record<string, any> = {};
+        
+        // AnimeWorld
+        const awFiltered: Record<number, string> = {};
+        for (const [k, v] of Object.entries(animeworldUrls)) {
+            if (v && v.trim()) awFiltered[parseInt(k)] = v.trim();
+        }
+        if (animeworldUrl.trim() || Object.keys(awFiltered).length > 0) {
+            payload.animeworld = {
+                mode: animeworldLinkMode,
+                url: animeworldLinkMode === 'single' ? animeworldUrl.trim() : '',
+                urls: animeworldLinkMode === 'separate' ? awFiltered : {}
+            };
+        }
+
+        // AnimixStream
+        const amFiltered: Record<number, string> = {};
+        for (const [k, v] of Object.entries(animixstreamUrls)) {
+            if (v && v.trim()) amFiltered[parseInt(k)] = v.trim();
+        }
+        if (animixstreamUrl.trim() || Object.keys(amFiltered).length > 0) {
+            payload.animixstream = {
+                mode: animixstreamLinkMode,
+                url: animixstreamLinkMode === 'single' ? animixstreamUrl.trim() : '',
+                urls: animixstreamLinkMode === 'separate' ? amFiltered : {}
+            };
+        }
+
+        // ToonStream
+        const tsFiltered: Record<number, string> = {};
+        for (const [k, v] of Object.entries(toonstreamUrls)) {
+            if (v && v.trim()) tsFiltered[parseInt(k)] = v.trim();
+        }
+        if (toonstreamUrl.trim() || Object.keys(tsFiltered).length > 0) {
+            payload.toonstream = {
+                mode: toonstreamLinkMode,
+                url: toonstreamLinkMode === 'single' ? toonstreamUrl.trim() : '',
+                urls: toonstreamLinkMode === 'separate' ? tsFiltered : {}
+            };
+        }
+
+        // Muse India
+        const miFiltered: Record<number, string> = {};
+        for (const [k, v] of Object.entries(museindiaUrls)) {
+            if (v && v.trim()) miFiltered[parseInt(k)] = v.trim();
+        }
+        if (museindiaUrl.trim() || Object.keys(miFiltered).length > 0) {
+            payload.muse_india = {
+                mode: museindiaLinkMode,
+                url: museindiaLinkMode === 'single' ? museindiaUrl.trim() : '',
+                urls: museindiaLinkMode === 'separate' ? miFiltered : {}
+            };
+        }
+
+        // Ani-One India
+        const aoFiltered: Record<number, string> = {};
+        for (const [k, v] of Object.entries(anioneindiaUrls)) {
+            if (v && v.trim()) aoFiltered[parseInt(k)] = v.trim();
+        }
+        if (anioneindiaUrl.trim() || Object.keys(aoFiltered).length > 0) {
+            payload.anione_india = {
+                mode: anioneindiaLinkMode,
+                url: anioneindiaLinkMode === 'single' ? anioneindiaUrl.trim() : '',
+                urls: anioneindiaLinkMode === 'separate' ? aoFiltered : {}
+            };
+        }
+
+        return Object.keys(payload).length > 0 ? JSON.stringify(payload) : null;
+    };
 
     useEffect(() => {
         fetchMovies();
-        // Load TMDB API key from local storage on client side
-        const savedKey = localStorage.getItem('nexiplay_tmdb_api_key') || '';
-        setTmdbApiKey(savedKey);
+        fetchSettings();
+        // Load TMDB API key: try database first via settings, then localStorage
+        const loadTmdbKey = async () => {
+            try {
+                const { data } = await supabase
+                    .from('app_settings')
+                    .select('tmdb_api_key')
+                    .eq('id', 1)
+                    .single();
+                if (data?.tmdb_api_key) {
+                    setTmdbApiKey(data.tmdb_api_key);
+                    localStorage.setItem('nexiplay_tmdb_api_key', data.tmdb_api_key);
+                    return;
+                }
+            } catch { /* ignore */ }
+            // Fallback to localStorage
+            const savedKey = localStorage.getItem('nexiplay_tmdb_api_key') || '';
+            setTmdbApiKey(savedKey);
+        };
+        loadTmdbKey();
     }, []);
+
+    const fetchSettings = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('app_settings')
+                .select('*')
+                .eq('id', 1)
+                .single();
+            if (error && error.code !== 'PGRST116') throw error;
+            if (data) setSettings(data);
+        } catch (err) {
+            console.error('Error fetching settings:', err);
+        }
+    };
+
+    const getEnabledServers = (code: string | undefined | null) => {
+        if (code === undefined || code === null) {
+            return ['custom', 'vidsrc_to', 'embed_su', 'vidsrc_me', 'vidsrc_anime', 'toonplay'];
+        }
+        if (code.trim() === '' || code.trim().toLowerCase() === 'none') {
+            return [];
+        }
+        return code.split(',').map(s => s.trim().toLowerCase());
+    };
+
+    const handleServerToggle = async (serverId: string, isChecked: boolean) => {
+        if (!settings) return;
+        setSavingSettings(true);
+        try {
+            let currentEnabled = getEnabledServers(settings.social_bar_code);
+            if (isChecked) {
+                if (!currentEnabled.includes(serverId)) {
+                    currentEnabled.push(serverId);
+                }
+            } else {
+                currentEnabled = currentEnabled.filter(id => id !== serverId);
+            }
+            const valueToSave = currentEnabled.length === 0 ? 'none' : currentEnabled.join(',');
+            
+            const { error } = await supabase
+                .from('app_settings')
+                .update({
+                    social_bar_code: valueToSave,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', 1);
+
+            if (error) throw error;
+            
+            setSettings({
+                ...settings,
+                social_bar_code: valueToSave
+            });
+            showMessage('success', 'Streaming server configuration updated!');
+        } catch (err: any) {
+            showMessage('error', 'Failed to update server configuration: ' + err.message);
+        } finally {
+            setSavingSettings(false);
+        }
+    };
 
     const showMessage = (type: 'success' | 'error', text: string) => {
         setMessage({ type, text });
@@ -76,33 +465,102 @@ export default function StreamingPage() {
         }
     };
 
-    const handleSaveKey = (key: string) => {
-        setTmdbApiKey(key);
-        localStorage.setItem('nexiplay_tmdb_api_key', key.trim());
-        showMessage('success', 'TMDB API Key saved successfully!');
+    const handleSaveKey = async (key: string) => {
+        const trimmedKey = key.trim();
+        setTmdbApiKey(trimmedKey);
+        localStorage.setItem('nexiplay_tmdb_api_key', trimmedKey);
+        
+        // Also save to database for persistence across sessions
+        try {
+            const { error } = await supabase
+                .from('app_settings')
+                .update({ tmdb_api_key: trimmedKey })
+                .eq('id', 1);
+            if (error) throw error;
+            showMessage('success', 'TMDB API Key saved to database!');
+        } catch (e: any) {
+            console.error('Failed to save TMDB key to DB:', e);
+            showMessage('success', 'TMDB API Key saved locally (DB save failed).');
+        }
     };
 
-    // Update single movie record
+            // Update single movie record
     const handleUpdateMovie = async (movieId: string, updates: Partial<Movie>) => {
         setSavingId(movieId);
+        const originalMovie = movies.find(m => m.id === movieId);
+        const title = updates.title !== undefined ? updates.title : (originalMovie?.title || '');
+        const type = updates.type !== undefined ? updates.type : (originalMovie?.type || '');
+        const releaseYear = updates.release_year !== undefined ? updates.release_year : originalMovie?.release_year;
+
+        try {
+            const res = await fetch('/api/auto-match-streaming', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    movieId,
+                    title,
+                    type,
+                    releaseYear,
+                    tmdbApiKey,
+                    tmdbId: updates.tmdb_id !== undefined ? updates.tmdb_id : (originalMovie?.tmdb_id || ''),
+                    malId: updates.mal_id !== undefined ? updates.mal_id : (originalMovie?.mal_id || ''),
+                    imdbId: updates.imdb_id !== undefined ? updates.imdb_id : (originalMovie?.imdb_id || ''),
+                    streamingUrl: updates.streaming_url !== undefined ? updates.streaming_url : (originalMovie?.streaming_url || '')
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.error || 'API call failed');
+            }
+
+            const data = await res.json();
+            if (data.success && data.matched) {
+                setMovies(prev => prev.map(m => m.id === movieId ? {
+                    ...m,
+                    tmdb_id: data.matched.tmdb_id,
+                    imdb_id: data.matched.imdb_id,
+                    mal_id: data.matched.mal_id,
+                    streaming_url: data.matched.streaming_url,
+                    scraper_source: data.matched.scraper_source,
+                    scraper_url: data.matched.scraper_url,
+                    scraper_season: data.matched.scraper_season,
+                    scraper_resolution: data.matched.scraper_resolution,
+                    is_running: data.matched.is_running
+                } : m));
+                showMessage('success', 'Streaming config saved and scraper triggered!');
+            } else {
+                setMovies(prev => prev.map(m => m.id === movieId ? { ...m, ...updates } : m));
+                showMessage('success', 'Streaming config updated successfully!');
+            }
+        } catch (e: any) {
+            showMessage('error', 'Update failed: ' + e.message);
+        } finally {
+            setSavingId(null);
+        }
+    };
+
+        // Toggle streaming status (enabled/disabled) using 'disabled' in streaming_url
+    const handleToggleStreaming = async (movie: Movie) => {
+        const isCurrentlyDisabled = movie.streaming_url === 'disabled';
+        const newStreamingUrl = isCurrentlyDisabled ? '' : 'disabled';
+        
+        setSavingId(movie.id);
         try {
             const { error } = await supabase
                 .from('movies')
                 .update({
-                    tmdb_id: updates.tmdb_id || null,
-                    imdb_id: updates.imdb_id || null,
-                    mal_id: updates.mal_id || null,
-                    streaming_url: updates.streaming_url || null,
+                    streaming_url: newStreamingUrl || null,
                     updated_at: new Date().toISOString()
                 })
-                .eq('id', movieId);
+                .eq('id', movie.id);
 
             if (error) throw error;
-
-            setMovies(prev => prev.map(m => m.id === movieId ? { ...m, ...updates } : m));
-            showMessage('success', 'Streaming IDs updated successfully!');
+            
+            setMovies(prev => prev.map(m => m.id === movie.id ? { ...m, streaming_url: newStreamingUrl } : m));
+            showMessage('success', isCurrentlyDisabled ? 'Streaming turned ON!' : 'Streaming turned OFF!');
         } catch (e: any) {
-            showMessage('error', 'Update failed: ' + e.message);
+            showMessage('error', 'Failed to toggle streaming: ' + e.message);
         } finally {
             setSavingId(null);
         }
@@ -216,26 +674,32 @@ export default function StreamingPage() {
         setMatchingMovie(null);
     };
 
-    const handleBulkAutoMatch = async () => {
-        const missingList = movies.filter(m => !m.tmdb_id && !m.mal_id && !m.streaming_url);
-        if (missingList.length === 0) {
-            showMessage('success', 'All content already has streaming IDs!');
+        const handleBulkAutoMatch = async (onlySelected: boolean = false) => {
+        let targets = [];
+        if (onlySelected) {
+            targets = movies.filter(m => selectedMovieIds.includes(m.id));
+        } else {
+            targets = movies.filter(m => !m.tmdb_id && !m.mal_id && !m.streaming_url);
+        }
+
+        if (targets.length === 0) {
+            showMessage('success', onlySelected ? 'No selected content found!' : 'All content already has streaming IDs!');
             return;
         }
 
-        if (!confirm(`Are you sure you want to auto match all ${missingList.length} missing titles? This may take some time.`)) {
+        if (!confirm(`Are you sure you want to auto match ${onlySelected ? 'the ' + targets.length + ' selected' : 'all ' + targets.length + ' missing'} titles? This may take some time.`)) {
             return;
         }
 
         setIsBulkMatching(true);
-        setBulkMatchProgress({ current: 0, total: missingList.length });
+        setBulkMatchProgress({ current: 0, total: targets.length });
         
         const localApiKey = typeof window !== 'undefined' ? localStorage.getItem('nexiplay_tmdb_api_key') : null;
         let successCount = 0;
         let failedCount = 0;
 
-        for (let i = 0; i < missingList.length; i++) {
-            const movie = missingList[i];
+        for (let i = 0; i < targets.length; i++) {
+            const movie = targets[i];
             try {
                 const res = await fetch('/api/auto-match-streaming', {
                     method: 'POST',
@@ -257,7 +721,12 @@ export default function StreamingPage() {
                             ...m,
                             tmdb_id: data.matched.tmdb_id || m.tmdb_id,
                             imdb_id: data.matched.imdb_id || m.imdb_id,
-                            mal_id: data.matched.mal_id || m.mal_id
+                            mal_id: data.matched.mal_id || m.mal_id,
+                            scraper_source: data.matched.scraper_source || m.scraper_source,
+                            scraper_url: data.matched.scraper_url || m.scraper_url,
+                            scraper_season: data.matched.scraper_season || m.scraper_season,
+                            scraper_resolution: data.matched.scraper_resolution || m.scraper_resolution,
+                            is_running: data.matched.is_running !== undefined ? data.matched.is_running : m.is_running
                         } : m));
                     } else {
                         failedCount++;
@@ -266,14 +735,15 @@ export default function StreamingPage() {
                     failedCount++;
                 }
             } catch (err) {
-                console.error(`Error bulk matching "${movie.title}":`, err);
+                console.error(`Error matching "${movie.title}":`, err);
                 failedCount++;
             }
             setBulkMatchProgress(prev => ({ ...prev, current: i + 1 }));
         }
 
         setIsBulkMatching(false);
-        showMessage('success', `Bulk matching completed! Successfully matched ${successCount} titles. Failed: ${failedCount}.`);
+        setSelectedMovieIds([]);
+        showMessage('success', `Matching completed! Successfully matched ${successCount} titles. Failed: ${failedCount}.`);
     };
 
     // Fetch seasons and episodes for series/anime
@@ -311,9 +781,17 @@ export default function StreamingPage() {
                     setSeasons(mappedSeasons);
                     
                     // Initialize local URLs state
-                    const urls: Record<string, string> = {};
+                    const urls: Record<string, Record<string, string>> = {};
                     (episodesData || []).forEach(e => {
-                        urls[e.id] = e.streaming_url || '';
+                        let parsed: Record<string, string> = {};
+                        if (e.streaming_url && e.streaming_url.trim().startsWith('{')) {
+                            try {
+                                parsed = JSON.parse(e.streaming_url);
+                            } catch {}
+                        } else if (e.streaming_url) {
+                            parsed.custom = e.streaming_url;
+                        }
+                        urls[e.id] = parsed;
                     });
                     setLocalEpisodeUrls(urls);
                     
@@ -331,8 +809,14 @@ export default function StreamingPage() {
         fetchSeasonsAndEpisodes();
     }, [editingEpisodesMovie]);
 
-    const handleEpisodeUrlChange = (episodeId: string, url: string) => {
-        setLocalEpisodeUrls(prev => ({ ...prev, [episodeId]: url }));
+    const handleEpisodeUrlChange = (episodeId: string, serverKey: string, url: string) => {
+        setLocalEpisodeUrls(prev => ({
+            ...prev,
+            [episodeId]: {
+                ...(prev[episodeId] || {}),
+                [serverKey]: url
+            }
+        }));
     };
 
     // Save streaming URLs for the active season's episodes
@@ -344,7 +828,23 @@ export default function StreamingPage() {
             if (!activeSeason) return;
 
             const updatePromises = activeSeason.episodes.map(async (ep: any) => {
-                const newUrl = localEpisodeUrls[ep.id] || '';
+                const urlMap = localEpisodeUrls[ep.id] || {};
+                const cleanedMap: Record<string, string> = {};
+                Object.entries(urlMap).forEach(([k, v]) => {
+                    if (v && typeof v === 'string' && v.trim()) {
+                        cleanedMap[k] = v.trim();
+                    }
+                });
+
+                let newUrl = '';
+                if (Object.keys(cleanedMap).length > 0) {
+                    if (Object.keys(cleanedMap).length === 1 && cleanedMap['custom']) {
+                        newUrl = cleanedMap['custom'];
+                    } else {
+                        newUrl = JSON.stringify(cleanedMap);
+                    }
+                }
+
                 if (newUrl !== (ep.streaming_url || '')) {
                     const { error } = await supabase
                         .from('episodes')
@@ -375,7 +875,7 @@ export default function StreamingPage() {
         
         const matchesTab = activeTab === 'all' || movie.type === activeTab;
         
-        const hasStreaming = movie.tmdb_id || movie.mal_id || movie.streaming_url;
+                                                const hasStreaming = (movie.tmdb_id || movie.mal_id || movie.streaming_url) && movie.streaming_url !== 'disabled';
         const matchesStatus = statusFilter === 'all' || 
                              (statusFilter === 'ready' && hasStreaming) ||
                              (statusFilter === 'missing' && !hasStreaming);
@@ -414,9 +914,28 @@ export default function StreamingPage() {
                             Configure TMDB, MAL, and IMDb IDs or Custom Player URLs to enable automatic video playback on the web portal.
                         </p>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
+                                        <div className="flex items-center gap-3 shrink-0">
+                        {selectedMovieIds.length > 0 && (
+                            <button
+                                onClick={() => handleBulkAutoMatch(true)}
+                                disabled={isBulkMatching}
+                                className="px-5 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-green-900/30 flex items-center gap-2"
+                            >
+                                {isBulkMatching ? (
+                                    <>
+                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>Matching...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>⚡</span>
+                                        <span>Auto Match Selected ({selectedMovieIds.length})</span>
+                                    </>
+                                )}
+                            </button>
+                        )}
                         <button
-                            onClick={handleBulkAutoMatch}
+                            onClick={() => handleBulkAutoMatch(false)}
                             disabled={isBulkMatching || missingCount === 0}
                             className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:from-gray-800 disabled:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-all shadow-lg shadow-purple-900/30 flex items-center gap-2"
                         >
@@ -458,7 +977,63 @@ export default function StreamingPage() {
                         </div>
                         <span className="text-3xl">🔴</span>
                     </div>
-                </div>
+                                </div>
+
+                {/* Streaming Servers Toggle Card */}
+                {settings && (
+                    <div className="glass-panel p-6 rounded-2xl space-y-4">
+                        <div>
+                            <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                📺 Enabled Streaming Servers
+                            </h3>
+                            <p className="text-gray-400 text-xs mt-1">
+                                Toggle which streaming servers are enabled globally. Disabled servers will be hidden from the player.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                                                        {[
+                                { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
+                                { id: 'toonplay', name: 'Nexiplay Private Server', icon: '🔒', desc: 'Hindi/Multi-Audio' },
+                                { id: 'animerulz', name: 'Server Animerulz', icon: '🌀', desc: 'Auto Scraped m3u8' },
+                                { id: 'toonstream', name: 'ToonStream Server', icon: '📺', desc: 'ToonStream.vip' },
+                                { id: 'animeworld', name: 'AnimeWorld Server', icon: '🌐', desc: 'watchanimeworld.net' },
+                                { id: 'animixstream', name: 'AnimixStream Server', icon: '🚀', desc: 'animixstream.com' },
+                                { id: 'muse_india', name: 'Muse India (YT)', icon: '🔴', desc: 'YouTube playlist' },
+                                { id: 'anione_india', name: 'Ani-One India (YT)', icon: '🔵', desc: 'YouTube playlist' },
+                                { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '⚡', desc: 'Auto Embed' },
+                                { id: 'embed_su', name: 'Embed.su', icon: '💿', desc: 'Auto Embed' },
+                                { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
+                                { id: 'vidsrc_anime', name: 'AnimeSrc', icon: '🌸', desc: 'Anime Only' }
+                            ].map((server) => {
+                                const isEnabled = getEnabledServers(settings.social_bar_code).includes(server.id);
+                                return (
+                                    <div 
+                                        key={server.id} 
+                                        className="flex flex-col justify-between p-3.5 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-all"
+                                    >
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xl">{server.icon}</span>
+                                            <label className="relative inline-flex items-center cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    className="sr-only peer"
+                                                    checked={isEnabled}
+                                                    disabled={savingSettings}
+                                                    onChange={(e) => handleServerToggle(server.id, e.target.checked)}
+                                                />
+                                                <div className="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xs font-bold text-white leading-tight">{server.name}</h4>
+                                            <p className="text-[10px] text-gray-500 mt-0.5">{server.desc}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* Search, Filter & Settings Panel */}
                 <div className="glass-panel p-6 rounded-2xl space-y-4">
@@ -527,178 +1102,201 @@ export default function StreamingPage() {
                     </div>
                 </div>
 
-                {/* Movies Streaming Settings List */}
-                <div className="glass-panel rounded-2xl overflow-hidden">
+                                {/* Movies Streaming Settings List - Card Layout */}
+                <div className="space-y-3">
+                    {/* Select All / Bulk Header */}
+                    <div className="flex items-center gap-3 px-2">
+                        <input
+                            type="checkbox"
+                            checked={filteredMovies.length > 0 && filteredMovies.every(m => selectedMovieIds.includes(m.id))}
+                            onChange={(e) => {
+                                if (e.target.checked) {
+                                    const allFilteredIds = filteredMovies.map(m => m.id);
+                                    setSelectedMovieIds(prev => Array.from(new Set([...prev, ...allFilteredIds])));
+                                } else {
+                                    const allFilteredIds = filteredMovies.map(m => m.id);
+                                    setSelectedMovieIds(prev => prev.filter(id => !allFilteredIds.includes(id)));
+                                }
+                            }}
+                            className="rounded border-white/10 bg-black/40 text-red-600 focus:ring-red-500 focus:ring-opacity-25 w-4 h-4 cursor-pointer"
+                        />
+                        <span className="text-xs font-bold text-gray-400 uppercase">Select All ({filteredMovies.length} items)</span>
+                    </div>
+
                     {loading ? (
-                        <div className="p-20 text-center text-gray-400">
+                        <div className="p-20 text-center text-gray-400 glass-panel rounded-2xl">
                             <div className="w-10 h-10 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                             Loading content from database...
                         </div>
                     ) : filteredMovies.length === 0 ? (
-                        <div className="p-20 text-center text-gray-500">
+                        <div className="p-20 text-center text-gray-500 glass-panel rounded-2xl">
                             No content found matching the filters.
                         </div>
                     ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-white/5 text-gray-400 text-xs uppercase tracking-wider">
-                                    <tr>
-                                        <th className="px-6 py-4 font-bold">Content Info</th>
-                                        <th className="px-6 py-4 font-bold">TMDB ID</th>
-                                        <th className="px-6 py-4 font-bold">MAL ID</th>
-                                        <th className="px-6 py-4 font-bold">IMDb ID</th>
-                                        <th className="px-6 py-4 font-bold">Custom URL</th>
-                                        <th className="px-6 py-4 font-bold text-center">Status</th>
-                                        <th className="px-6 py-4 font-bold text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-white/5 text-sm">
-                                    {filteredMovies.map((movie) => {
-                                        const hasStreaming = movie.tmdb_id || movie.mal_id || movie.streaming_url;
-                                        const isSeriesOrAnime = movie.type === 'series' || movie.type === 'anime';
-                                        
-                                        return (
-                                            <tr key={movie.id} className="hover:bg-white/5 transition-colors group">
-                                                
-                                                {/* Content Details */}
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="relative w-10 h-14 bg-dark-800 rounded-lg overflow-hidden shrink-0 shadow-md">
-                                                            {movie.poster_url ? (
-                                                                <img
-                                                                    src={movie.poster_url}
-                                                                    alt=""
-                                                                    className="w-full h-full object-cover"
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">
-                                                                    🎬
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className="font-bold text-white truncate max-w-[200px]" title={movie.title}>
-                                                                {movie.title}
-                                                            </p>
-                                                            <div className="flex items-center gap-2 mt-1">
-                                                                <span className="text-xs text-gray-400">{movie.release_year}</span>
-                                                                <span className={`px-2 py-0.5 text-[10px] font-black uppercase rounded ${
-                                                                    movie.type === 'movie' ? 'bg-red-500/20 text-red-400' :
-                                                                    movie.type === 'series' ? 'bg-blue-500/20 text-blue-400' :
-                                                                    'bg-purple-500/20 text-purple-400'
-                                                                }`}>
-                                                                    {movie.type}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
+                        filteredMovies.map((movie) => {
+                            const hasStreaming = (movie.tmdb_id || movie.mal_id || movie.streaming_url) && movie.streaming_url !== 'disabled';
+                            const isSeriesOrAnime = movie.type === 'series' || movie.type === 'anime';
+                            
+                            return (
+                                <div key={movie.id} className="glass-panel rounded-2xl p-4 hover:border-white/10 transition-all group">
+                                    {/* Top Row: Poster + Title + Status + Checkbox */}
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedMovieIds.includes(movie.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setSelectedMovieIds(prev => [...prev, movie.id]);
+                                                } else {
+                                                    setSelectedMovieIds(prev => prev.filter(id => id !== movie.id));
+                                                }
+                                            }}
+                                            className="rounded border-white/10 bg-black/40 text-red-600 focus:ring-red-500 focus:ring-opacity-25 w-4 h-4 cursor-pointer shrink-0"
+                                        />
+                                        <div className="relative w-10 h-14 bg-dark-800 rounded-lg overflow-hidden shrink-0 shadow-md">
+                                            {movie.poster_url ? (
+                                                <img src={movie.poster_url} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-xs text-gray-600">🎬</div>
+                                            )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-bold text-white truncate" title={movie.title}>{movie.title}</p>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <span className="text-xs text-gray-400">{movie.release_year}</span>
+                                                <span className={`px-2 py-0.5 text-[10px] font-black uppercase rounded ${
+                                                    movie.type === 'movie' ? 'bg-red-500/20 text-red-400' :
+                                                    movie.type === 'series' ? 'bg-blue-500/20 text-blue-400' :
+                                                    'bg-purple-500/20 text-purple-400'
+                                                }`}>{movie.type}</span>
+                                                {movie.scraper_source && (
+                                                    <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-cyan-500/15 text-cyan-400">🤖 {movie.scraper_source}</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        {/* Status Badge */}
+                                        <div className="shrink-0">
+                                            {movie.streaming_url === 'disabled' ? (
+                                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/15">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                                                    Disabled
+                                                </span>
+                                            ) : (
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                    hasStreaming 
+                                                    ? 'bg-green-500/10 text-green-400 border border-green-500/15' 
+                                                    : 'bg-red-500/10 text-red-400 border border-red-500/15'
+                                                }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${hasStreaming ? 'bg-green-500' : 'bg-red-500'}`} />
+                                                    {hasStreaming ? 'Ready' : 'Not Set'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
 
-                                                {/* TMDB ID */}
-                                                <td className="px-6 py-4">
-                                                    <input
-                                                        type="text"
-                                                        value={movie.tmdb_id || ''}
-                                                        onChange={(e) => handleFieldChange(movie.id, 'tmdb_id', e.target.value)}
-                                                        placeholder="e.g. 299534"
-                                                        className="w-24 bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-red-500"
-                                                    />
-                                                </td>
+                                    {/* Middle Row: IDs in compact grid */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">TMDB ID</label>
+                                            <input
+                                                type="text"
+                                                value={movie.tmdb_id || ''}
+                                                onChange={(e) => handleFieldChange(movie.id, 'tmdb_id', e.target.value)}
+                                                placeholder="299534"
+                                                className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-red-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">MAL ID</label>
+                                            <input
+                                                type="text"
+                                                value={movie.mal_id || ''}
+                                                onChange={(e) => handleFieldChange(movie.id, 'mal_id', e.target.value)}
+                                                placeholder="51009"
+                                                className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-red-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">IMDb ID</label>
+                                            <input
+                                                type="text"
+                                                value={movie.imdb_id || ''}
+                                                onChange={(e) => handleFieldChange(movie.id, 'imdb_id', e.target.value)}
+                                                placeholder="tt4154796"
+                                                className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-red-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
+                                                {isSeriesOrAnime ? 'Episodes' : 'Custom URL'}
+                                            </label>
+                                            {isSeriesOrAnime ? (
+                                                <button
+                                                    onClick={() => setEditingEpisodesMovie(movie)}
+                                                    className="w-full px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/25 text-purple-400 hover:text-purple-300 text-xs font-bold rounded-lg border border-purple-500/20 transition-all flex items-center justify-center gap-1"
+                                                >
+                                                    📺 Manage
+                                                </button>
+                                            ) : (
+                                                <input
+                                                    type="text"
+                                                    value={movie.streaming_url || ''}
+                                                    onChange={(e) => handleFieldChange(movie.id, 'streaming_url', e.target.value)}
+                                                    placeholder="Direct link..."
+                                                    className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-red-500"
+                                                />
+                                            )}
+                                        </div>
+                                    </div>
 
-                                                {/* MAL ID */}
-                                                <td className="px-6 py-4">
-                                                    <input
-                                                        type="text"
-                                                        value={movie.mal_id || ''}
-                                                        onChange={(e) => handleFieldChange(movie.id, 'mal_id', e.target.value)}
-                                                        placeholder="e.g. 51009"
-                                                        className="w-24 bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-red-500"
-                                                    />
-                                                </td>
+                                    {/* Bottom Row: Action Buttons */}
+                                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
+                                        <button
+                                            onClick={() => handleToggleStreaming(movie)}
+                                            disabled={savingId === movie.id}
+                                            className={`px-3 py-1.5 rounded-lg border transition-all text-xs font-bold flex items-center gap-1 ${
+                                                movie.streaming_url === 'disabled'
+                                                ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border-green-500/20'
+                                                : 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/20'
+                                            }`}
+                                        >
+                                            {movie.streaming_url === 'disabled' ? '🟢 Enable' : '🚫 Disable'}
+                                        </button>
 
-                                                {/* IMDb ID */}
-                                                <td className="px-6 py-4">
-                                                    <input
-                                                        type="text"
-                                                        value={movie.imdb_id || ''}
-                                                        onChange={(e) => handleFieldChange(movie.id, 'imdb_id', e.target.value)}
-                                                        placeholder="e.g. tt4154796"
-                                                        className="w-28 bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-red-500"
-                                                    />
-                                                </td>
+                                        <button
+                                            onClick={() => handleOpenMatchModal(movie)}
+                                            className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg border border-purple-500/20 transition-all text-xs font-bold flex items-center gap-1"
+                                        >
+                                            🤖 Auto Match
+                                        </button>
 
-                                                {/* Custom URL / Episodes Action */}
-                                                <td className="px-6 py-4">
-                                                    {isSeriesOrAnime ? (
-                                                        <button
-                                                            onClick={() => setEditingEpisodesMovie(movie)}
-                                                            className="px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/25 text-purple-400 hover:text-purple-300 text-xs font-bold rounded-lg border border-purple-500/20 transition-all flex items-center gap-1.5"
-                                                        >
-                                                            <span>📺</span> Manage Episodes
-                                                        </button>
-                                                    ) : (
-                                                        <input
-                                                            type="text"
-                                                            value={movie.streaming_url || ''}
-                                                            onChange={(e) => handleFieldChange(movie.id, 'streaming_url', e.target.value)}
-                                                            placeholder="Direct movie link..."
-                                                            className="w-40 bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-red-500"
-                                                        />
-                                                    )}
-                                                </td>
+                                        <button
+                                            onClick={() => setEditingScraperMovie(movie)}
+                                            className="px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg border border-blue-500/20 transition-all text-xs font-bold flex items-center gap-1"
+                                        >
+                                            ⚙️ Scraper
+                                        </button>
 
-                                                {/* Streaming Status */}
-                                                <td className="px-6 py-4 text-center">
-                                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
-                                                        hasStreaming 
-                                                        ? 'bg-green-500/10 text-green-400 border border-green-500/15' 
-                                                        : 'bg-red-500/10 text-red-400 border border-red-500/15'
-                                                    }`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${hasStreaming ? 'bg-green-500' : 'bg-red-500'}`} />
-                                                        {hasStreaming ? 'Streaming' : 'Not Set'}
-                                                    </span>
-                                                </td>
+                                        <button
+                                            onClick={() => handleUpdateMovie(movie.id, movie)}
+                                            disabled={savingId === movie.id}
+                                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-white disabled:opacity-50 text-xs font-bold rounded-lg border border-green-500/20 transition-all flex items-center gap-1"
+                                        >
+                                            {savingId === movie.id ? '⏳ Saving...' : '💾 Save'}
+                                        </button>
 
-                                                {/* Save / Match / Preview Actions */}
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        
-                                                        {/* Auto Match Button */}
-                                                        <button
-                                                            onClick={() => handleOpenMatchModal(movie)}
-                                                            className="p-1.5 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg border border-purple-500/20 transition-all"
-                                                            title="Auto Match IDs"
-                                                        >
-                                                            🤖 Auto
-                                                        </button>
-
-                                                        {/* Save Button */}
-                                                        <button
-                                                            onClick={() => handleUpdateMovie(movie.id, movie)}
-                                                            disabled={savingId === movie.id}
-                                                            className="px-3 py-1.5 bg-green-500/20 hover:bg-green-500/30 text-green-400 hover:text-white disabled:opacity-50 text-xs font-bold rounded-lg border border-green-500/20 transition-all"
-                                                        >
-                                                            {savingId === movie.id ? '...' : 'Save'}
-                                                        </button>
-
-                                                        {/* Preview button - Live URL nexiplay.vercel.app */}
-                                                        <a
-                                                            href={`https://nexiplay.vercel.app/${movie.type}/${movie.slug}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="p-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg border border-white/5 transition-all text-xs"
-                                                            title="Preview Playback on Live Web"
-                                                        >
-                                                            👁️
-                                                        </a>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+                                        <a
+                                            href={`https://nexiplay.vercel.app/${movie.type}/${movie.slug}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg border border-white/5 transition-all text-xs font-bold flex items-center gap-1"
+                                        >
+                                            👁️ Preview
+                                        </a>
+                                    </div>
+                                </div>
+                            );
+                        })
                     )}
                 </div>
             </div>
@@ -882,6 +1480,34 @@ export default function StreamingPage() {
                                         ))}
                                     </div>
 
+                                    {/* Server selection tabs */}
+                                    <div className="flex flex-wrap items-center gap-2 bg-black/40 p-2.5 rounded-xl border border-white/5 mb-3">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase mr-1">Edit Server URL:</span>
+                                        {[
+                                            { key: 'custom', label: 'Custom / Direct Override', color: 'bg-white/5 border-white/10 text-white' },
+                                            { key: 'toonplay', label: 'Toonplay (Private Server)', color: 'bg-orange-500/10 border-orange-500/25 text-orange-400' },
+                                            { key: 'animerulz', label: 'Animerulz', color: 'bg-red-500/10 border-red-500/25 text-red-400' },
+                                            { key: 'toonstream', label: 'ToonStream', color: 'bg-purple-500/10 border-purple-500/25 text-purple-400' },
+                                            { key: 'animeworld', label: 'AnimeWorld', color: 'bg-green-500/10 border-green-500/25 text-green-400' },
+                                            { key: 'animixstream', label: 'AnimixStream', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
+                                            { key: 'muse_india', label: 'Muse India', color: 'bg-red-600/10 border-red-600/25 text-red-500' },
+                                            { key: 'anione_india', label: 'Ani-One India', color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' }
+                                        ].map((srv) => (
+                                            <button
+                                                key={srv.key}
+                                                type="button"
+                                                onClick={() => setEditingServerKey(srv.key)}
+                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
+                                                    editingServerKey === srv.key
+                                                    ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-900/30'
+                                                    : 'bg-black/30 border-white/5 text-gray-400 hover:text-white hover:border-white/10'
+                                                }`}
+                                            >
+                                                {srv.label}
+                                            </button>
+                                        ))}
+                                    </div>
+
                                     {/* Episodes List under Active Season */}
                                     <div className="max-h-[350px] overflow-y-auto custom-scrollbar pr-2 space-y-3">
                                         {seasons
@@ -889,15 +1515,15 @@ export default function StreamingPage() {
                                             ?.episodes?.map((ep: any) => (
                                                 <div key={ep.id} className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-black/25 rounded-xl border border-white/5">
                                                     <div className="min-w-0">
-                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">EPISODE {ep.episode_number}</span>
-                                                        <span className="text-sm font-semibold text-white truncate block max-w-sm mt-0.5">{ep.episode_title}</span>
+                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">EPISODE ${ep.episode_number}</span>
+                                                        <span className="text-sm font-semibold text-white truncate block max-w-sm mt-0.5">${ep.episode_title}</span>
                                                     </div>
                                                     <div className="flex-1 sm:max-w-xl">
                                                         <input
                                                             type="text"
-                                                            value={localEpisodeUrls[ep.id] || ''}
-                                                            onChange={(e) => handleEpisodeUrlChange(ep.id, e.target.value)}
-                                                            placeholder="Paste custom episode streaming player URL..."
+                                                            value={localEpisodeUrls[ep.id]?.[editingServerKey] || ''}
+                                                            onChange={(e) => handleEpisodeUrlChange(ep.id, editingServerKey, e.target.value)}
+                                                            placeholder={`Paste ${editingServerKey === 'custom' ? 'custom/direct player' : editingServerKey + ' server'} URL for Episode ${ep.episode_number}...`}
                                                             className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
                                                         />
                                                     </div>
@@ -911,7 +1537,7 @@ export default function StreamingPage() {
                                         )}
                                     </div>
 
-                                    {/* Save Button for active season */}
+                                                                        {/* Save Button for active season */}
                                     <div className="flex justify-end pt-4 border-t border-white/5 gap-3">
                                         <button
                                             onClick={() => setEditingEpisodesMovie(null)}
@@ -929,6 +1555,544 @@ export default function StreamingPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+                        {/* Scraper Settings & Run Modal */}
+            {editingScraperMovie && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="w-full max-w-lg bg-dark-800 border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <span>🤖</span> Scraper Configuration
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Configure auto scrapers for: <strong className="text-white">&ldquo;{editingScraperMovie.title}&rdquo;</strong>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setEditingScraperMovie(null)}
+                                className="p-1 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Body / Form */}
+                        <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                                                        {/* Section 1: Animerulz Scraper */}
+                            {editingScraperMovie.type === 'anime' && (
+                                <div className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-4">
+                                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                                        <span className="text-xs font-black text-red-400 uppercase tracking-wider">🌸 Animerulz (Anime Only)</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Link Mode:</span>
+                                            <select
+                                                value={animerulzLinkMode}
+                                                onChange={(e) => setAnimerulzLinkMode(e.target.value as any)}
+                                                className="bg-dark-900 border border-white/10 rounded px-1.5 py-0.5 text-white text-[10px] focus:outline-none"
+                                            >
+                                                <option value="single">One Link All Seasons</option>
+                                                <option value="separate">Separate Season Links</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    {animerulzLinkMode === 'single' ? (
+                                        <div className="grid grid-cols-3 gap-3">
+                                            <div className="col-span-2">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">AniList ID / URL</label>
+                                                <input
+                                                    type="text"
+                                                    value={editingScraperMovie.animerulz_url || ''}
+                                                    onChange={(e) => setEditingScraperMovie({
+                                                        ...editingScraperMovie,
+                                                        animerulz_url: e.target.value
+                                                    })}
+                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                    placeholder="AniList ID (e.g. 154587)"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Season</label>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={editingScraperMovie.animerulz_season || 1}
+                                                    onChange={(e) => setEditingScraperMovie({
+                                                        ...editingScraperMovie,
+                                                        animerulz_season: parseInt(e.target.value) || 1
+                                                    })}
+                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500 text-center font-mono font-bold"
+                                                />
+                                            </div>
+                                        </div>
+                                                                        ) : (
+                                        <div className="space-y-3">
+                                            {scraperSeasons.length === 0 ? (
+                                                <p className="text-[11px] text-gray-400 italic">No seasons configured. Click "+ Add Season Input" below to add a season link field.</p>
+                                            ) : (
+                                                scraperSeasons.map((season) => (
+                                                    <div key={season.id} className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-gray-300 w-20">Season {season.season_number}:</span>
+                                                        <input
+                                                            type="text"
+                                                            value={animerulzUrls[season.season_number] || ''}
+                                                            onChange={(e) => setAnimerulzUrls({
+                                                                ...animerulzUrls,
+                                                                [season.season_number]: e.target.value
+                                                            })}
+                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                            placeholder={`Animerulz URL/ID for Season ${season.season_number}...`}
+                                                        />
+                                                        {season.id.toString().startsWith('virtual_') && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setScraperSeasons(prev => prev.filter(s => s.id !== season.id));
+                                                                    const updated = { ...animerulzUrls };
+                                                                    delete updated[season.season_number];
+                                                                    setAnimerulzUrls(updated);
+                                                                }}
+                                                                className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                                title="Remove season field"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const nextSeasonNum = scraperSeasons.length > 0 
+                                                        ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 
+                                                        : 1;
+                                                    setScraperSeasons(prev => [
+                                                        ...prev,
+                                                        {
+                                                            id: `virtual_${nextSeasonNum}`,
+                                                            season_number: nextSeasonNum,
+                                                            season_title: `Season ${nextSeasonNum}`
+                                                        }
+                                                    ]);
+                                                }}
+                                                className="text-xs font-bold text-red-500 hover:text-red-400 flex items-center gap-1 mt-1 hover:underline"
+                                            >
+                                                ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Resolution</label>
+                                        <select
+                                            value={editingScraperMovie.animerulz_resolution || '720p'}
+                                            onChange={(e) => setEditingScraperMovie({
+                                                ...editingScraperMovie,
+                                                animerulz_resolution: e.target.value as any
+                                            })}
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500 font-semibold"
+                                        >
+                                            <option value="360p">360p</option>
+                                            <option value="480p">480p</option>
+                                            <option value="720p">720p</option>
+                                            <option value="1080p">1080p</option>
+                                        </select>
+                                </div>
+                            </div>
+                            )}
+
+                            {/* Section 2: Toonplay Scraper */}
+                            <div className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-4">
+                                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                                    <span className="text-xs font-black text-orange-405 uppercase tracking-wider">🔒 Nexiplay Private Server (Toonplay)</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Link Mode:</span>
+                                        <select
+                                            value={toonplayLinkMode}
+                                            onChange={(e) => setToonplayLinkMode(e.target.value as any)}
+                                            className="bg-dark-900 border border-white/10 rounded px-1.5 py-0.5 text-white text-[10px] focus:outline-none"
+                                        >
+                                            <option value="single">One Link All Seasons</option>
+                                            <option value="separate">Separate Season Links</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {toonplayLinkMode === 'single' ? (
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="col-span-2">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Toonplay URL / ID</label>
+                                            <input
+                                                type="text"
+                                                value={editingScraperMovie.toonplay_url || ''}
+                                                onChange={(e) => setEditingScraperMovie({
+                                                    ...editingScraperMovie,
+                                                    toonplay_url: e.target.value
+                                                })}
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                placeholder="Toonplay URL/ID..."
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Season</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={editingScraperMovie.toonplay_season || 1}
+                                                onChange={(e) => setEditingScraperMovie({
+                                                    ...editingScraperMovie,
+                                                    toonplay_season: parseInt(e.target.value) || 1
+                                                })}
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500 text-center font-mono font-bold"
+                                            />
+                                        </div>
+                                    </div>
+                                                                 ) : (
+                                     <div className="space-y-3">
+                                         {scraperSeasons.length === 0 ? (
+                                             <p className="text-[11px] text-gray-400 italic">No seasons configured. Click "+ Add Season Input" below to add a season link field.</p>
+                                         ) : (
+                                             scraperSeasons.map((season) => (
+                                                 <div key={season.id} className="flex items-center gap-2">
+                                                     <span className="text-xs font-bold text-gray-300 w-20">Season {season.season_number}:</span>
+                                                     <input
+                                                         type="text"
+                                                         value={toonplayUrls[season.season_number] || ''}
+                                                         onChange={(e) => setToonplayUrls({
+                                                             ...toonplayUrls,
+                                                             [season.season_number]: e.target.value
+                                                         })}
+                                                         className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                         placeholder={`Toonplay URL/ID for Season ${season.season_number}...`}
+                                                     />
+                                                     {season.id.toString().startsWith('virtual_') && (
+                                                         <button
+                                                             type="button"
+                                                             onClick={() => {
+                                                                 setScraperSeasons(prev => prev.filter(s => s.id !== season.id));
+                                                                 const updated = { ...toonplayUrls };
+                                                                 delete updated[season.season_number];
+                                                                 setToonplayUrls(updated);
+                                                             }}
+                                                             className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                             title="Remove season field"
+                                                         >
+                                                             ✕
+                                                         </button>
+                                                     )}
+                                                 </div>
+                                             ))
+                                         )}
+                                         <button
+                                             type="button"
+                                             onClick={() => {
+                                                 const nextSeasonNum = scraperSeasons.length > 0 
+                                                     ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 
+                                                     : 1;
+                                                 setScraperSeasons(prev => [
+                                                     ...prev,
+                                                     {
+                                                         id: `virtual_${nextSeasonNum}`,
+                                                         season_number: nextSeasonNum,
+                                                         season_title: `Season ${nextSeasonNum}`
+                                                     }
+                                                 ]);
+                                             }}
+                                             className="text-xs font-bold text-orange-500 hover:text-orange-400 flex items-center gap-1 mt-1 hover:underline"
+                                         >
+                                             ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
+                                         </button>
+                                     </div>
+                                 )}
+
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Resolution</label>
+                                    <select
+                                        value={editingScraperMovie.toonplay_resolution || '720p'}
+                                        onChange={(e) => setEditingScraperMovie({
+                                            ...editingScraperMovie,
+                                            toonplay_resolution: e.target.value as any
+                                        })}
+                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500 font-semibold"
+                                    >
+                                        <option value="360p">360p</option>
+                                        <option value="480p">480p</option>
+                                        <option value="720p">720p</option>
+                                        <option value="1080p">1080p</option>
+                                    </select>
+                                                            </div>
+
+                            {/* Accordion Sections for New Servers */}
+                            <div className="space-y-3 mt-4 border-t border-white/5 pt-4">
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">⚡ Additional Servers</h4>
+                                
+                                {[
+                                    { id: 'animeworld', name: 'AnimeWorld Server', color: 'text-green-400', mode: animeworldLinkMode, setMode: setAnimeworldLinkMode, val: animeworldUrl, setVal: setAnimeworldUrl, map: animeworldUrls, setMap: setAnimeworldUrls, placeholder: 'https://watchanimeworld.net/anime/...' },
+                                    { id: 'animixstream', name: 'AnimixStream Server', color: 'text-cyan-400', mode: animixstreamLinkMode, setMode: setAnimixstreamLinkMode, val: animixstreamUrl, setVal: setAnimixstreamUrl, map: animixstreamUrls, setMap: setAnimixstreamUrls, placeholder: 'https://animixstream.com/anime/...' },
+                                    { id: 'toonstream', name: 'ToonStream Server', color: 'text-purple-400', mode: toonstreamLinkMode, setMode: setToonstreamLinkMode, val: toonstreamUrl, setVal: setToonstreamUrl, map: toonstreamUrls, setMap: setToonstreamUrls, placeholder: 'https://toonstream.vip/home/...' },
+                                    { id: 'muse_india', name: 'Muse India (YouTube)', color: 'text-red-500', mode: museindiaLinkMode, setMode: setMuseindiaLinkMode, val: museindiaUrl, setVal: setMuseindiaUrl, map: museindiaUrls, setMap: setMuseindiaUrls, placeholder: 'YouTube Channel or Playlist URL...' },
+                                    { id: 'anione_india', name: 'Ani-One India (YouTube)', color: 'text-blue-400', mode: anioneindiaLinkMode, setMode: setAnioneindiaLinkMode, val: anioneindiaUrl, setVal: setAnioneindiaUrl, map: anioneindiaUrls, setMap: setAnioneindiaUrls, placeholder: 'YouTube Channel or Playlist URL...' }
+                                ].map((srv) => {
+                                    const isOpen = expandedSection === srv.id;
+                                    return (
+                                        <div key={srv.id} className="bg-black/30 border border-white/5 rounded-xl overflow-hidden transition-all">
+                                            {/* Accordion Toggle Header */}
+                                            <button
+                                                type="button"
+                                                onClick={() => setExpandedSection(isOpen ? null : srv.id)}
+                                                className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                                            >
+                                                <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${srv.color}`}>
+                                                    <span>{srv.id === 'animeworld' ? '🌐' : srv.id === 'animixstream' ? '🚀' : srv.id === 'toonstream' ? '📺' : '🔴'}</span>
+                                                    {srv.name}
+                                                </span>
+                                                <span className="text-gray-400 text-xs font-mono">{isOpen ? '▼' : '►'}</span>
+                                            </button>
+
+                                            {/* Accordion Body */}
+                                            {isOpen && (
+                                                <div className="p-4 border-t border-white/5 space-y-4 bg-dark-900/40">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Link Mode:</span>
+                                                        <select
+                                                            value={srv.mode}
+                                                            onChange={(e) => srv.setMode(e.target.value as any)}
+                                                            className="bg-dark-900 border border-white/10 rounded px-1.5 py-0.5 text-white text-[10px] focus:outline-none"
+                                                        >
+                                                            <option value="single">One Link All Seasons</option>
+                                                            <option value="separate">Separate Season Links</option>
+                                                        </select>
+                                                    </div>
+
+                                                    {srv.mode === 'single' ? (
+                                                        <div>
+                                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Scraper URL / ID</label>
+                                                            <input
+                                                                type="text"
+                                                                value={srv.val}
+                                                                onChange={(e) => srv.setVal(e.target.value)}
+                                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                                placeholder={srv.placeholder}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {scraperSeasons.length === 0 ? (
+                                                                <p className="text-[11px] text-gray-400 italic">No seasons configured. Click "+ Add Season Input" below to add fields.</p>
+                                                            ) : (
+                                                                scraperSeasons.map((season) => (
+                                                                    <div key={season.id} className="flex items-center gap-2">
+                                                                        <span className="text-xs font-bold text-gray-300 w-20">Season {season.season_number}:</span>
+                                                                        <input
+                                                                            type="text"
+                                                                            value={srv.map[season.season_number] || ''}
+                                                                            onChange={(e) => srv.setMap({
+                                                                                ...srv.map,
+                                                                                [season.season_number]: e.target.value
+                                                                            })}
+                                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                                            placeholder={`URL for Season ${season.season_number}...`}
+                                                                        />
+                                                                        {season.id.toString().startsWith('virtual_') && (
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setScraperSeasons(prev => prev.filter(s => s.id !== season.id));
+                                                                                    const updated = { ...srv.map };
+                                                                                    delete updated[season.season_number];
+                                                                                    srv.setMap(updated);
+                                                                                }}
+                                                                                className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                                                title="Remove season field"
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                ))
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const nextSeasonNum = scraperSeasons.length > 0 
+                                                                        ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 
+                                                                        : 1;
+                                                                    setScraperSeasons(prev => [
+                                                                        ...prev,
+                                                                        {
+                                                                            id: `virtual_${nextSeasonNum}`,
+                                                                            season_number: nextSeasonNum,
+                                                                            season_title: `Season ${nextSeasonNum}`
+                                                                        }
+                                                                    ]);
+                                                                }}
+                                                                className="text-xs font-bold text-orange-500 hover:text-orange-400 flex items-center gap-1 mt-1 hover:underline"
+                                                            >
+                                                                ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Footer Actions */}
+                        <div className="p-6 border-t border-white/5 flex justify-end gap-3 bg-dark-850">
+                            <button
+                                onClick={() => setEditingScraperMovie(null)}
+                                className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-lg text-sm transition-all"
+                            >
+                                Cancel
+                            </button>
+                                                        <button
+                                onClick={async () => {
+                                    if (!editingScraperMovie) return;
+                                    setScrapingLoader(true);
+                                    try {
+                                        const tUrl = getToonplayUrlToSave();
+                                        const aUrl = getAnimerulzUrlToSave();
+                                        const otherUrlsJson = getOtherScrapersJsonToSave();
+
+                                        const { error: updateErr } = await supabase
+                                            .from('movies')
+                                            .update({
+                                                animerulz_url: aUrl,
+                                                animerulz_season: editingScraperMovie.animerulz_season || null,
+                                                animerulz_resolution: editingScraperMovie.animerulz_resolution || null,
+                                                toonplay_url: tUrl,
+                                                toonplay_season: editingScraperMovie.toonplay_season || null,
+                                                toonplay_resolution: editingScraperMovie.toonplay_resolution || null,
+                                                scraper_url: otherUrlsJson,
+                                                scraper_source: otherUrlsJson ? 'multi' : null,
+                                                is_running: !!(aUrl || tUrl || otherUrlsJson),
+                                                updated_at: new Date().toISOString()
+                                            })
+                                            .eq('id', editingScraperMovie.id);
+
+                                        if (updateErr) throw updateErr;
+
+                                        // Update local state
+                                        setMovies(prev => prev.map(m => m.id === editingScraperMovie.id ? {
+                                            ...m,
+                                            animerulz_url: aUrl || undefined,
+                                            animerulz_season: editingScraperMovie.animerulz_season,
+                                            animerulz_resolution: editingScraperMovie.animerulz_resolution,
+                                            toonplay_url: tUrl || undefined,
+                                            toonplay_season: editingScraperMovie.toonplay_season,
+                                            toonplay_resolution: editingScraperMovie.toonplay_resolution,
+                                            scraper_url: otherUrlsJson || undefined,
+                                            scraper_source: otherUrlsJson ? 'multi' : undefined,
+                                            is_running: !!(aUrl || tUrl || otherUrlsJson)
+                                        } : m));
+
+                                        showMessage('success', 'Scraper settings saved successfully!');
+                                        setEditingScraperMovie(null);
+                                    } catch (err: any) {
+                                        showMessage('error', 'Save failed: ' + err.message);
+                                    } finally {
+                                        setScrapingLoader(false);
+                                    }
+                                }}
+                                disabled={scrapingLoader}
+                                className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/10 font-bold rounded-lg text-sm transition-all"
+                            >
+                                Save Only
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (!editingScraperMovie) return;
+                                    setScrapingLoader(true);
+                                    try {
+                                        const tUrl = getToonplayUrlToSave();
+                                        const aUrl = getAnimerulzUrlToSave();
+                                        const otherUrlsJson = getOtherScrapersJsonToSave();
+
+                                        // 1. Save to DB
+                                        const { error: updateErr } = await supabase
+                                            .from('movies')
+                                            .update({
+                                                animerulz_url: aUrl,
+                                                animerulz_season: editingScraperMovie.animerulz_season || null,
+                                                animerulz_resolution: editingScraperMovie.animerulz_resolution || null,
+                                                toonplay_url: tUrl,
+                                                toonplay_season: editingScraperMovie.toonplay_season || null,
+                                                toonplay_resolution: editingScraperMovie.toonplay_resolution || null,
+                                                scraper_url: otherUrlsJson,
+                                                scraper_source: otherUrlsJson ? 'multi' : null,
+                                                is_running: !!(aUrl || tUrl || otherUrlsJson),
+                                                updated_at: new Date().toISOString()
+                                            })
+                                            .eq('id', editingScraperMovie.id);
+
+                                        if (updateErr) throw updateErr;
+
+                                        // Update local state
+                                        setMovies(prev => prev.map(m => m.id === editingScraperMovie.id ? {
+                                            ...m,
+                                            animerulz_url: aUrl || undefined,
+                                            animerulz_season: editingScraperMovie.animerulz_season,
+                                            animerulz_resolution: editingScraperMovie.animerulz_resolution,
+                                            toonplay_url: tUrl || undefined,
+                                            toonplay_season: editingScraperMovie.toonplay_season,
+                                            toonplay_resolution: editingScraperMovie.toonplay_resolution,
+                                            scraper_url: otherUrlsJson || undefined,
+                                            scraper_source: otherUrlsJson ? 'multi' : undefined,
+                                            is_running: !!(aUrl || tUrl || otherUrlsJson)
+                                        } : m));
+
+                                        // 2. Trigger check-episodes scraper
+                                        showMessage('success', 'Settings saved! Triggering scraper now...');
+                                        const checkRes = await fetch('/api/cron/check-episodes', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ movieId: editingScraperMovie.id })
+                                        });
+
+                                        if (!checkRes.ok) throw new Error('Scraper request failed');
+                                        const checkData = await checkRes.json();
+                                        const result = checkData.results?.[0];
+                                        
+                                        if (result && result.status === 'success') {
+                                            showMessage('success', `🎉 Scraper completed successfully!`);
+                                            fetchMovies();
+                                        } else if (result && result.status === 'no_updates_found') {
+                                            showMessage('success', 'No new episodes found. Stream link might already be present.');
+                                        } else if (result && result.status === 'error') {
+                                            showMessage('error', 'Scraper error: ' + result.error);
+                                        } else {
+                                            showMessage('success', 'Scraper ran in background.');
+                                        }
+                                        setEditingScraperMovie(null);
+                                    } catch (err: any) {
+                                        showMessage('error', 'Save & Scrape failed: ' + err.message);
+                                    } finally {
+                                        setScrapingLoader(false);
+                                    }
+                                }}
+                                disabled={scrapingLoader}
+                                className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold rounded-lg text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-red-900/30"
+                            >
+                                {scrapingLoader ? (
+                                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <span>🚀</span>
+                                        <span>Save & Scrape</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                         </div>
                     </div>
                 </div>

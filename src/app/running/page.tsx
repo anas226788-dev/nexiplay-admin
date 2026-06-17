@@ -601,6 +601,9 @@ export default function RunningTasksPage() {
                                             <option value="fxlinks">FXLinks</option>
                                             <option value="rareanimes">RareAnimes</option>
                                             <option value="movielink">MovieLinkBD</option>
+                                            <option value="bollyflix">BollyFlix</option>
+                                            <option value="animerulz">Animerulz</option>
+                                            <option value="toonplay">Nexiplay Private Server</option>
                                         </select>
                                     </div>
                                     <div>

@@ -33,14 +33,23 @@ export interface Movie {
     is_adult?: boolean;
     // Auto Scraper Configuration
     scraper_url?: string;
-    scraper_source?: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix';
+    scraper_source?: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix' | 'animerulz' | 'toonplay' | 'multi';
     scraper_resolution?: '360p' | '480p' | '720p' | '1080p';
     scraper_season?: number;
+    // Multi-scraper concurrent configurations
+    animerulz_url?: string;
+    animerulz_season?: number;
+    animerulz_resolution?: '360p' | '480p' | '720p' | '1080p';
+    toonplay_url?: string;
+    toonplay_season?: number;
+    toonplay_resolution?: '360p' | '480p' | '720p' | '1080p';
     // Streaming service integration
     tmdb_id?: string;
     imdb_id?: string;
     mal_id?: string;
     streaming_url?: string;
+    streaming_url_animerulz?: string;
+    streaming_url_toonplay?: string;
 }
 
 export interface Download {
@@ -152,8 +161,14 @@ export interface AppSettings {
     // Monetization
     gplink_url?: string;
     smartlink_url?: string;
+    is_download_verification_enabled?: boolean;
+    download_ad_url_1?: string;
+    download_ad_url_2?: string;
     // Latest Updates Ads
     latest_update_click_ad_link?: string;
+    is_verification_enabled?: boolean;
+    verification_ad_url_1?: string;
+    verification_ad_url_2?: string;
     updated_at: string;
 }
 
@@ -163,6 +178,7 @@ export interface ChatbotSettings {
     bot_name: string;
     welcome_message: string;
     placeholder_text: string;
+    openrouter_models?: string;
 }
 
 export interface FAQ {
@@ -206,6 +222,8 @@ export interface Episode {
     episode_title?: string;
     download_links?: EpisodeDownloadLink[];
     streaming_url?: string;
+    streaming_url_animerulz?: string;
+    streaming_url_toonplay?: string;
     created_at?: string;
 }
 
@@ -241,7 +259,7 @@ export interface ContentRequest {
     content_name: string;
     status: 'pending' | 'added' | 'rejected' | 'review';
     scraped_data?: any;
-    scraper_source?: 'rareanimes' | 'bollyflix' | 'movielink' | null;
+    scraper_source?: 'rareanimes' | 'bollyflix' | 'movielink' | 'animerulz' | 'toonplay' | null;
     source_url?: string | null;
     created_at: string;
 }

@@ -45,7 +45,7 @@ function getLinkField(url: string): 'mega_link' | 'gdrive_link' | 'mediafire_lin
     return 'gdrive_link';
 }
 
-type SourceType = 'fxlinks' | 'rareanimes' | 'movielink';
+type SourceType = 'fxlinks' | 'rareanimes' | 'movielink' | 'animerulz';
 
 const SOURCE_OPTIONS: { value: SourceType; label: string; icon: string; placeholder: string; description: string }[] = [
     {
@@ -68,6 +68,13 @@ const SOURCE_OPTIONS: { value: SourceType; label: string; icon: string; placehol
         icon: '🎬',
         placeholder: 'https://247q3t.movielinkbd.li/movie/...',
         description: 'MovieLinkBD (resolves fast cloud / direct links)',
+    },
+    {
+        value: 'animerulz',
+        label: 'Animerulz',
+        icon: '⚡',
+        placeholder: 'https://animerulzapp.buzz/watch/1735 or AniList ID',
+        description: 'Animerulz → Streaming m3u8 (auto-resolves via API)',
     },
 ];
 
@@ -113,6 +120,15 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                 'Decrypting page token key sequences...',
                 'Extracting direct Fast-Cloud download URLs...',
                 'Validating endpoints and compiling results...'
+            ];
+        }
+        if (sourceType === 'animerulz') {
+            return [
+                'Connecting to Animerulz streaming API...',
+                'Fetching episode list from AniList database...',
+                'Resolving server clusters and CDN nodes...',
+                'Extracting m3u8 streaming URLs per episode...',
+                'Validating streams and compiling results...'
             ];
         }
         return [
@@ -256,6 +272,8 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                 ? '/api/scrape-rareanimes'
                 : sourceType === 'movielink'
                 ? '/api/scrape-movielink'
+                : sourceType === 'animerulz'
+                ? '/api/scrape-animerulz'
                 : '/api/scrape-episodes';
 
             const res = await fetch(endpoint, {
@@ -289,8 +307,8 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
 
             // Show resolved count for RareAnimes and MovieLinkBD
             if (data.resolvedCount !== undefined) {
-                const icon = sourceType === 'rareanimes' ? '🐉' : sourceType === 'movielink' ? '🎬' : '✅';
-                const labelName = sourceType === 'rareanimes' ? 'RareAnimes' : sourceType === 'movielink' ? 'MovieLinkBD' : 'Generic';
+                const icon = sourceType === 'rareanimes' ? '🐉' : sourceType === 'movielink' ? '🎬' : sourceType === 'animerulz' ? '⚡' : '✅';
+                const labelName = sourceType === 'rareanimes' ? 'RareAnimes' : sourceType === 'movielink' ? 'MovieLinkBD' : sourceType === 'animerulz' ? 'Animerulz' : 'Generic';
                 const fallbackCount = data.fallbackCount || 0;
                 const importedCount = data.episodes?.length || data.resolvedCount || 0;
                 const resolveMsg = fallbackCount > 0
@@ -410,38 +428,41 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                     }
 
                     const isRareanimes = sourceType === 'rareanimes';
-                    const langType = isRareanimes ? 'dub' : null;
+                    const isAnimerulz = sourceType === 'animerulz';
+                    const langType = (isRareanimes || isAnimerulz) ? 'dub' : null;
                     const linkField = getLinkField(ep.link);
 
-                    // Insert/update download link for this resolution
-                    let query = supabase
-                        .from('episode_download_links')
-                        .select('id')
-                        .eq('episode_id', episodeId)
-                        .eq('resolution', resolution);
-
-                    if (langType) {
-                        query = query.eq('language_type', langType);
-                    } else {
-                        query = query.is('language_type', null);
-                    }
-
-                    const { data: existingLink } = await query.maybeSingle();
-
-                    if (existingLink) {
-                        await supabase
+                    if (!isAnimerulz) {
+                        // Insert/update download link for this resolution
+                        let query = supabase
                             .from('episode_download_links')
-                            .update({ [linkField]: ep.link })
-                            .eq('id', existingLink.id);
-                    } else {
-                        await supabase
-                            .from('episode_download_links')
-                            .insert({
-                                episode_id: episodeId,
-                                resolution: resolution,
-                                [linkField]: ep.link,
-                                language_type: langType
-                            });
+                            .select('id')
+                            .eq('episode_id', episodeId)
+                            .eq('resolution', resolution);
+
+                        if (langType) {
+                            query = query.eq('language_type', langType);
+                        } else {
+                            query = query.is('language_type', null);
+                        }
+
+                        const { data: existingLink } = await query.maybeSingle();
+
+                        if (existingLink) {
+                            await supabase
+                                .from('episode_download_links')
+                                .update({ [linkField]: ep.link })
+                                .eq('id', existingLink.id);
+                        } else {
+                            await supabase
+                                .from('episode_download_links')
+                                .insert({
+                                    episode_id: episodeId,
+                                    resolution: resolution,
+                                    [linkField]: ep.link,
+                                    language_type: langType
+                                });
+                        }
                     }
 
                     // Save custom streaming URL override if scraped (e.g. WatchMultiQuality/StreamBeta)

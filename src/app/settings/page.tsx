@@ -61,11 +61,15 @@ export default function SettingsPage() {
                         popunder_url: settings.popunder_url,
                         direct_link_url: settings.direct_link_url,
                         ad_frequency_session: settings.ad_frequency_session || 1,
-                        // Monetization
-                        gplink_url: settings.gplink_url || '',
-                        smartlink_url: settings.smartlink_url || '',
+                        // Download Verification
+                        is_download_verification_enabled: settings.is_download_verification_enabled || false,
+                        download_ad_url_1: settings.download_ad_url_1 || '',
+                        download_ad_url_2: settings.download_ad_url_2 || '',
                         // Latest Updates Ads
                         latest_update_click_ad_link: settings.latest_update_click_ad_link || '',
+                        is_verification_enabled: settings.is_verification_enabled || false,
+                        verification_ad_url_1: settings.verification_ad_url_1 || '',
+                        verification_ad_url_2: settings.verification_ad_url_2 || '',
                         // Socials
                         social_facebook: settings.social_facebook,
                         social_twitter: settings.social_twitter,
@@ -100,9 +104,9 @@ export default function SettingsPage() {
             }
 
             setMessage({ type: 'success', text: 'Settings updated successfully!' });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating settings:', error);
-            setMessage({ type: 'error', text: 'Failed to update settings.' });
+            setMessage({ type: 'error', text: `Failed to update settings: ${error.message || error.details || JSON.stringify(error)}` });
         } finally {
             setSaving(false);
         }
@@ -192,44 +196,96 @@ export default function SettingsPage() {
                                     />
                                     <p className="mt-2 text-xs text-gray-500">How many times the ad popup will appear per user session when clicking content.</p>
                                 </div>
+
+                                {/* 2-Step Stream Verification Section */}
+                                <div className="p-6 bg-dark-700/50 rounded-xl border border-white/5 space-y-4">
+                                    <div className="flex items-center justify-between pb-2">
+                                        <div>
+                                            <h3 className="text-lg font-medium text-white mb-1">🎬 2-Step Stream Verification</h3>
+                                            <p className="text-sm text-gray-400">Lock the stream player until the user completes two 10s ad verifications.</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="sr-only peer"
+                                                checked={settings.is_verification_enabled || false}
+                                                onChange={(e) => setSettings({ ...settings, is_verification_enabled: e.target.checked })}
+                                            />
+                                            <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                                        </label>
+                                    </div>
+
+                                    {settings.is_verification_enabled && (
+                                        <div className="space-y-4 pt-4 border-t border-white/5">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                                    Step 1 Ad URL
+                                                </label>
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://..."
+                                                    value={settings.verification_ad_url_1 || ''}
+                                                    onChange={(e) => setSettings({ ...settings, verification_ad_url_1: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white placeholder-gray-600"
+                                                />
+                                                <p className="mt-1.5 text-xs text-gray-500">Ad link for the first step (Secure Scanning). If empty, defaults to direct link.</p>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-300 mb-2">
+                                                    Step 2 Ad URL
+                                                </label>
+                                                <input
+                                                    type="url"
+                                                    placeholder="https://..."
+                                                    value={settings.verification_ad_url_2 || ''}
+                                                    onChange={(e) => setSettings({ ...settings, verification_ad_url_2: e.target.value })}
+                                                    className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white placeholder-gray-600"
+                                                />
+                                                <p className="mt-1.5 text-xs text-gray-500">Ad link for the second step (Final Verification). If empty, defaults to popunder link.</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* Monetization Section */}
-                            <div className="space-y-4 pt-6 border-t border-white/5">
-                                <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-                                    <span className="text-yellow-500">💰</span> Download Monetization (ShrinkEarn + Adsterra)
-                                </h3>
-                                <p className="text-xs text-gray-500 -mt-2 mb-4">
-                                    Configure the 24-hour monetization loop. First download → ShrinkEarn (same tab).
-                                    Next 24h downloads → Adsterra Smartlink (new tab) + file opens normally.
-                                </p>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                                        ShrinkEarn URL
-                                    </label>
-                                    <input
-                                        type="url"
-                                        placeholder="https://shrinkearn.com/XXXXX"
-                                        value={settings.gplink_url || ''}
-                                        onChange={(e) => setSettings({ ...settings, gplink_url: e.target.value })}
-                                        className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white placeholder-gray-600"
-                                    />
-                                    <p className="mt-2 text-xs text-gray-500">User&apos;s first download click redirects here (same tab). Leave empty to disable ShrinkEarn.</p>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                                        Adsterra Smartlink URL
-                                    </label>
-                                    <input
-                                        type="url"
-                                        placeholder="https://www.profitablecpmrate.com/XXXXX"
-                                        value={settings.smartlink_url || ''}
-                                        onChange={(e) => setSettings({ ...settings, smartlink_url: e.target.value })}
-                                        className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white placeholder-gray-600"
-                                    />
-                                    <p className="mt-2 text-xs text-gray-500">Opens in a new tab on every download click during the 24h verified window. Leave empty to skip.</p>
-                                </div>
-                            </div>
+                            {/* Download Verification Ads */}
+                    <div className="p-6 bg-dark-800/50 rounded-xl border border-white/5">
+                        <h3 className="text-lg font-bold mb-1 flex items-center gap-2">🔒 Download Verification Ads</h3>
+                        <p className="text-xs text-gray-400 mb-4">
+                            Users must complete a 2-step ad verification before downloading. Same system as Watch Online verification.
+                        </p>
+                        <div className="flex items-center gap-3 mb-4">
+                            <label className="text-sm font-bold text-gray-300">Enable Download Verification</label>
+                            <button
+                                type="button"
+                                onClick={() => setSettings({...settings, is_download_verification_enabled: !settings.is_download_verification_enabled})}
+                                className={`relative w-12 h-6 rounded-full transition-colors ${
+                                    settings.is_download_verification_enabled ? 'bg-emerald-500' : 'bg-gray-600'
+                                }`}
+                            >
+                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                                    settings.is_download_verification_enabled ? 'translate-x-6' : ''
+                                }`} />
+                            </button>
+                        </div>
+                        <label className="text-xs font-bold text-red-400 block mb-1">Step 1 Ad URL</label>
+                        <input
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg px-3 py-2 text-sm mb-1"
+                            placeholder="https://example.com/ad-link-1"
+                            value={settings.download_ad_url_1 || ''}
+                            onChange={(e) => setSettings({...settings, download_ad_url_1: e.target.value})}
+                        />
+                        <p className="text-[10px] text-gray-500 mb-3">Ad link for the first step (Secure Scanning). If empty, defaults to direct link.</p>
+                        <label className="text-xs font-bold text-red-400 block mb-1">Step 2 Ad URL</label>
+                        <input
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg px-3 py-2 text-sm mb-1"
+                            placeholder="https://example.com/ad-link-2"
+                            value={settings.download_ad_url_2 || ''}
+                            onChange={(e) => setSettings({...settings, download_ad_url_2: e.target.value})}
+                        />
+                        <p className="text-[10px] text-gray-500">Ad link for the second step (Final Verification). If empty, defaults to popunder link.</p>
+                    </div>
 
                             {/* Latest Updates Ads */}
                             <div className="space-y-4 pt-6 border-t border-white/5">

@@ -1,10 +1,12 @@
 import { ProxyAgent, fetch as undiciFetch } from 'undici';
+import * as cheerio from 'cheerio';
 
 export interface ScrapedEpisode {
     number: number;
     title: string;
     link: string;
     streamingUrl?: string;
+    season?: number;  // Source season number (for multi-season scrapers)
 }
 
 export interface ScrapedResult {
@@ -618,12 +620,43 @@ async function resolveMovieLinkChain(
 }
 
 /**
+ * Helper to check if a scraped episode should be skipped based on skipEpisodes list.
+ * Supports raw episode numbers (backward compatibility) and "season_episode" strings.
+ */
+export function shouldSkipEpisode(
+    skipEpisodes: (string | number)[],
+    epNum: number,
+    seasonNum?: number
+): boolean {
+    if (skipEpisodes.includes(epNum)) return true;
+    if (seasonNum !== undefined && skipEpisodes.includes(`${seasonNum}_${epNum}`)) return true;
+    return false;
+}
+
+/**
  * Main scrape entrypoint.
  */
 export async function scrapeSource(
     url: string,
-    source: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix'
+    source: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix' | 'animerulz' | 'toonplay' | 'animeworld' | 'animixstream' | 'toonstream' | 'muse_india' | 'anione_india',
+    skipEpisodes: (string | number)[] = [],
+    options: { disableSequels?: boolean; targetSeason?: number; movieTitle?: string } = {}
 ): Promise<ScrapedResult> {
+    if (source === 'animeworld') {
+        return scrapeAnimeWorld(url, skipEpisodes, options.targetSeason);
+    }
+    if (source === 'animixstream') {
+        return scrapeAnimixStream(url, skipEpisodes, options.targetSeason);
+    }
+    if (source === 'toonstream') {
+        return scrapeToonStream(url, skipEpisodes, options.targetSeason, options.movieTitle);
+    }
+    if (source === 'muse_india') {
+        return scrapeYouTubeSource(url, 'Muse India', skipEpisodes, options.targetSeason);
+    }
+    if (source === 'anione_india') {
+        return scrapeYouTubeSource(url, 'Ani-One India', skipEpisodes, options.targetSeason);
+    }
     let html = '';
     let status = 200;
     let ok = true;
@@ -836,9 +869,342 @@ export async function scrapeSource(
         };
     } else if (source === 'bollyflix') {
         return scrapeBollyflix(url);
+    } else if (source === 'animerulz') {
+        return scrapeAnimerulz(url, skipEpisodes, options.disableSequels, options.targetSeason);
+    } else if (source === 'toonplay') {
+        return scrapeToonplay(url, skipEpisodes, options.targetSeason);
     } else {
         throw new Error(`Unsupported scraper source: ${source}`);
     }
+}
+
+/**
+ * Animerulz API configuration.
+ * Uses streamindia.co.in backend APIs to fetch episode lists and streaming sources.
+ */
+const ANIMERULZ_HEADERS: Record<string, string> = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    'Referer': 'https://animerulzapp.buzz/',
+    'Origin': 'https://animerulzapp.buzz',
+};
+
+const ANIMERULZ_PRIMARY_API = 'https://hianime.streamindia.co.in/api/v2/hianime/anilist';
+const ANIMERULZ_FALLBACK_API = 'https://fallback.streamindia.co.in';
+
+/**
+ * Fetch JSON from Animerulz API endpoints with proper headers.
+ */
+async function fetchAnimerulzJson(url: string): Promise<any> {
+    const res = await undiciFetch(url, {
+        headers: ANIMERULZ_HEADERS,
+        signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+}
+
+/**
+ * Extract the AniList numeric ID from an Animerulz URL.
+ * Supports formats like:
+ *   - https://animerulzapp.buzz/watch/1735 (direct ID)
+ *   - https://animerulzapp.buzz/anime/naruto-shippuden-1735 (slug with ID)
+ *   - Plain numeric string "1735"
+ */
+function extractAnimerulzId(url: string): string | null {
+    // If it's just a number, return it
+    if (/^\d+$/.test(url.trim())) return url.trim();
+
+    try {
+        const urlObj = new URL(url);
+        const path = urlObj.pathname;
+
+        // Match /watch/1735 or /anime/slug-1735 or /1735
+        const idMatch = path.match(/\/(\d+)(?:\/.*)?$/) || path.match(/[-/](\d+)(?:\/.*)?$/);
+        if (idMatch) return idMatch[1];
+
+        // Check query params (e.g., ?id=1735)
+        const idParam = urlObj.searchParams.get('id');
+        if (idParam && /^\d+$/.test(idParam)) return idParam;
+    } catch {
+        // Not a valid URL, try extracting number from string
+        const numMatch = url.match(/(\d+)/);
+        if (numMatch) return numMatch[1];
+    }
+
+    return null;
+}
+
+/**
+ * Fetch sequel AniList IDs by following SEQUEL relations recursively.
+ * Returns an array of { id, seasonNum } starting from season 2.
+ * Best-effort: if the AniList API fails, returns an empty array.
+ */
+async function fetchAnilistSequels(anilistId: string): Promise<{ id: number; seasonNum: number }[]> {
+    const sequels: { id: number; seasonNum: number }[] = [];
+    let currentId = parseInt(anilistId);
+    let seasonNum = 1;
+    const visited = new Set<number>();
+
+    const query = `
+        query ($id: Int) {
+            Media(id: $id, type: ANIME) {
+                relations {
+                    edges {
+                        relationType
+                        node {
+                            id
+                            title { romaji english }
+                            format
+                        }
+                    }
+                }
+            }
+        }
+    `;
+
+    try {
+        while (true) {
+            if (visited.has(currentId)) break;
+            visited.add(currentId);
+
+            const res = await undiciFetch('https://graphql.anilist.co', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ query, variables: { id: currentId } }),
+                signal: AbortSignal.timeout(10000),
+            });
+
+            if (!res.ok) {
+                console.warn(`[Animerulz] AniList API returned ${res.status} for ID ${currentId}, stopping sequel search.`);
+                break;
+            }
+
+            const json = await res.json() as any;
+            const edges = json?.data?.Media?.relations?.edges || [];
+
+            // Find the SEQUEL relation (TV format preferred)
+            const sequelEdge = edges.find((e: any) =>
+                e.relationType === 'SEQUEL' &&
+                (e.node?.format === 'TV' || e.node?.format === 'TV_SHORT' || !e.node?.format)
+            ) || edges.find((e: any) => e.relationType === 'SEQUEL');
+
+            if (!sequelEdge) break;
+
+            seasonNum++;
+            const sequelId = sequelEdge.node.id;
+            const sequelTitle = sequelEdge.node.title?.english || sequelEdge.node.title?.romaji || `Sequel #${sequelId}`;
+            console.log(`[Animerulz] Found sequel: "${sequelTitle}" (AniList ID: ${sequelId}) as Season ${seasonNum}`);
+            sequels.push({ id: sequelId, seasonNum });
+            currentId = sequelId;
+
+            // Rate limit AniList API calls
+            await new Promise(r => setTimeout(r, 500));
+        }
+    } catch (err: any) {
+        console.warn(`[Animerulz] Failed to fetch AniList sequels: ${err.message}. Continuing with primary season only.`);
+    }
+
+    return sequels;
+}
+
+/**
+ * Scrape episodes for a single AniList ID and return them with the given season number.
+ * This is a helper extracted from the main scrapeAnimerulz function.
+ */
+async function scrapeAnimerulzSeason(
+    anilistId: string,
+    seasonNum: number,
+    skipEpisodes: (string | number)[]
+): Promise<{ episodes: ScrapedEpisode[]; warnings: string[]; resolvedCount: number; totalFound: number; animeName: string }> {
+    let epData: any;
+    try {
+        epData = await fetchAnimerulzJson(`${ANIMERULZ_PRIMARY_API}/episodes/${anilistId}`);
+        if (epData.status !== 200 || !epData.data || epData.data.length === 0) {
+            throw new Error('Primary returned no data');
+        }
+        console.log(`[Animerulz] Season ${seasonNum} (ID ${anilistId}): Primary API found ${epData.data.length} episodes`);
+    } catch (primaryErr: any) {
+        console.warn(`[Animerulz] Season ${seasonNum} Primary API failed (${primaryErr.message}), trying fallback...`);
+        try {
+            epData = await fetchAnimerulzJson(`${ANIMERULZ_FALLBACK_API}/episodes/${anilistId}`);
+        } catch (fallbackErr: any) {
+            console.warn(`[Animerulz] Season ${seasonNum} (ID ${anilistId}): Both APIs failed: ${fallbackErr.message}`);
+            return { episodes: [], warnings: [`Season ${seasonNum}: Failed to fetch episodes`], resolvedCount: 0, totalFound: 0, animeName: `Anime #${anilistId}` };
+        }
+    }
+
+    if (!epData.data || epData.data.length === 0) {
+        return { episodes: [], warnings: [`Season ${seasonNum}: No episodes found`], resolvedCount: 0, totalFound: 0, animeName: `Anime #${anilistId}` };
+    }
+
+    const episodes: ScrapedEpisode[] = [];
+    const warnings: string[] = [];
+    let resolvedCount = 0;
+
+    const firstEp = epData.data[0];
+    const animeName = firstEp?.titles?.en || firstEp?.titles?.x_jat || `Anime #${anilistId}`;
+
+    for (const ep of epData.data) {
+        const epNum = ep.number;
+        const epTitle = ep.titles?.en || ep.titles?.x_jat || ep.title || `Episode ${epNum}`;
+
+        if (shouldSkipEpisode(skipEpisodes, epNum, seasonNum)) {
+            episodes.push({
+                number: epNum,
+                title: epTitle,
+                link: `https://animerulzapp.buzz/watch/${anilistId}?ep=${epNum}`,
+                season: seasonNum,
+            });
+            continue;
+        }
+
+        try {
+            const serverRes = await fetchAnimerulzJson(
+                `${ANIMERULZ_FALLBACK_API}/servers?id=${anilistId}&ep=${epNum}`
+            );
+
+            const cats = serverRes.data?.categories || {};
+            const dubServers: string[] = cats.dub || [];
+            const subServers: string[] = cats.sub || [];
+            const ids: Record<string, string> = cats.ids || {};
+
+            const preferredLang = dubServers.length > 0 ? 'dub' : 'sub';
+            const servers = preferredLang === 'dub' ? dubServers : subServers;
+
+            const serverName = servers.find(s => ids[s]);
+            if (!serverName) {
+                warnings.push(`S${seasonNum} Ep ${epNum}: No valid server found`);
+                episodes.push({
+                    number: epNum,
+                    title: epTitle,
+                    link: `https://animerulzapp.buzz/watch/${anilistId}?ep=${epNum}`,
+                    season: seasonNum,
+                });
+                continue;
+            }
+
+            const providerId = ids[serverName];
+
+            const sourceUrl = `${ANIMERULZ_FALLBACK_API}/sources?anilistid=${anilistId}&providerid=${encodeURIComponent(providerId)}&ep=${epNum}&provider=${serverName}&category=${preferredLang}`;
+            const sourceRes = await fetchAnimerulzJson(sourceUrl);
+
+            const m3u8Url = sourceRes.data?.sources?.[0]?.url;
+            if (m3u8Url) {
+                episodes.push({
+                    number: epNum,
+                    title: epTitle,
+                    link: m3u8Url,
+                    streamingUrl: m3u8Url,
+                    season: seasonNum,
+                });
+                resolvedCount++;
+            } else {
+                warnings.push(`S${seasonNum} Ep ${epNum}: No streaming URL in source response`);
+                episodes.push({
+                    number: epNum,
+                    title: epTitle,
+                    link: `https://animerulzapp.buzz/watch/${anilistId}?ep=${epNum}`,
+                    season: seasonNum,
+                });
+            }
+        } catch (err: any) {
+            warnings.push(`S${seasonNum} Ep ${epNum}: ${err.message}`);
+            episodes.push({
+                number: epNum,
+                title: epTitle,
+                link: `https://animerulzapp.buzz/watch/${anilistId}?ep=${epNum}`,
+                season: seasonNum,
+            });
+        }
+
+        // Rate limit: 300ms between episodes to avoid hammering the API
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    return { episodes, warnings, resolvedCount, totalFound: epData.data.length, animeName };
+}
+
+/**
+ * Scrape Animerulz streaming data via the streamindia.co.in API.
+ *
+ * Flow:
+ * 1. Extract AniList ID from URL
+ * 2. Fetch episode list from primary API (fallback if fails)
+ * 3. For each episode, resolve server list and get streaming m3u8 URL
+ * 4. Follow AniList SEQUEL relations to scrape multi-season content
+ *
+ * Returns episodes with streaming URLs (m3u8 links) and season numbers.
+ */
+export async function scrapeAnimerulz(
+    url: string,
+    skipEpisodes: (string | number)[] = [],
+    disableSequels: boolean = false,
+    targetSeasonNum?: number
+): Promise<ScrapedResult> {
+    const anilistId = extractAnimerulzId(url);
+    if (!anilistId) {
+        throw new Error('Could not extract AniList ID from URL. Provide a URL like https://animerulzapp.buzz/watch/1735 or a numeric ID.');
+    }
+
+    console.log(`[Animerulz] Starting scrape for AniList ID: ${anilistId}${targetSeasonNum ? `, target season: ${targetSeasonNum}` : ''}`);
+
+    // Step 1: Scrape primary season (either targetSeasonNum, or 1 by default)
+    const primarySeason = targetSeasonNum || 1;
+    const primaryResult = await scrapeAnimerulzSeason(anilistId, primarySeason, skipEpisodes);
+
+    if (primaryResult.episodes.length === 0) {
+        throw new Error(`No episodes found for this anime (ID: ${anilistId}).`);
+    }
+
+    const episodes: ScrapedEpisode[] = [...primaryResult.episodes];
+    const warnings: string[] = [...primaryResult.warnings];
+    let resolvedCount = primaryResult.resolvedCount;
+    let totalEpisodes = primaryResult.totalFound;
+    const animeName = primaryResult.animeName;
+
+    let seasonCount = 1;
+
+    // Step 2: Discover and scrape sequel seasons via AniList API (only if sequels are NOT disabled)
+    if (!disableSequels) {
+        const sequels = await fetchAnilistSequels(anilistId);
+        seasonCount = sequels.length + 1;
+        for (const sequel of sequels) {
+            console.log(`[Animerulz] Scraping Season ${sequel.seasonNum} (AniList ID: ${sequel.id})...`);
+            const seasonResult = await scrapeAnimerulzSeason(String(sequel.id), sequel.seasonNum, skipEpisodes);
+            episodes.push(...seasonResult.episodes);
+            warnings.push(...seasonResult.warnings);
+            resolvedCount += seasonResult.resolvedCount;
+            totalEpisodes += seasonResult.totalFound;
+        }
+    }
+
+    episodes.sort((a, b) => {
+        // Sort by season first, then by episode number
+        const seasonDiff = (a.season || 1) - (b.season || 1);
+        if (seasonDiff !== 0) return seasonDiff;
+        return a.number - b.number;
+    });
+
+    if (episodes.length === 0) {
+        throw new Error('Failed to resolve any episode streaming links.');
+    }
+
+    // Build a descriptive page title
+    const pageTitle = `${animeName} (Animerulz${seasonCount > 1 ? `, ${seasonCount} seasons` : ''})`;
+
+    return {
+        pageTitle,
+        resolution: '720p', // Streaming is adaptive, default to 720p
+        seasonZipLink: null,
+        episodes,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        totalFound: totalEpisodes,
+        resolvedCount,
+        fallbackCount: episodes.length - resolvedCount,
+    };
 }
 
 /**
@@ -1104,5 +1470,1005 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
         warnings,
         totalFound: episodes.length,
         resolvedCount: episodes.length,
+    };
+}
+
+/**
+ * Scrape ToonPlay streaming data.
+ */
+export async function scrapeToonplay(
+    url: string,
+    skipEpisodes: (string | number)[] = [],
+    targetSeasonNum?: number
+): Promise<ScrapedResult> {
+    let toonplayId = '';
+    let searchQuery = url.trim();
+    const trimmed = url.trim();
+    
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        try {
+            const urlObj = new URL(trimmed);
+            if (urlObj.hostname.includes('toonplay.in')) {
+                toonplayId = urlObj.searchParams.get('id') || '';
+                if (!toonplayId) {
+                    const parts = urlObj.pathname.split('/').filter(Boolean);
+                    const lastPart = parts[parts.length - 1] || '';
+                    if (lastPart.startsWith('series-') || lastPart.startsWith('anime-')) {
+                        toonplayId = lastPart;
+                        console.log(`[ToonPlay] Extracted series ID from URL path: ${toonplayId}`);
+                    } else {
+                        // Extract query for search fallback (e.g. series-daemons-of-the-shadow-realm -> daemons of the shadow realm)
+                        searchQuery = lastPart.replace(/^series-/, '').replace(/^watch-/, '').replace(/-/g, ' ');
+                        console.log(`[ToonPlay] Extracted search query from URL path: "${searchQuery}"`);
+                    }
+                }
+            } else if (urlObj.hostname.includes('animesalt.ac') && urlObj.pathname.includes('/episode/')) {
+                const episodeUrl = trimmed;
+                console.log(`[ToonPlay] Directly scraping single AnimeSalt episode: ${episodeUrl}`);
+                const extractRes = await undiciFetch(
+                    `https://anime.streamindia.co.in/api/extract?url=${encodeURIComponent(episodeUrl)}`,
+                    {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                            'Referer': 'https://toonplay.in/',
+                            'Origin': 'https://toonplay.in'
+                        },
+                        signal: AbortSignal.timeout(15000),
+                    }
+                );
+                if (!extractRes.ok) throw new Error(`Extract API returned status ${extractRes.status}`);
+                const extractData = await extractRes.json() as any;
+                const playerUrl = extractData.data?.videoPlayerUrl;
+                if (!playerUrl) throw new Error("Could not extract playerUrl from AnimeSalt episode link");
+
+                const streamRes = await undiciFetch(
+                    `https://extract.streamindia.co.in/api?url=${encodeURIComponent(playerUrl)}`,
+                    {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                            'Referer': 'https://toonplay.in/',
+                            'Origin': 'https://toonplay.in'
+                        },
+                        signal: AbortSignal.timeout(15000),
+                    }
+                );
+                if (!streamRes.ok) throw new Error(`Stream extraction returned status ${streamRes.status}`);
+                const streamData = await streamRes.json() as any;
+                
+                const files = streamData.files || {};
+                const m3u8Url = files.hin || files.eng || Object.values(files)[0];
+                if (!m3u8Url) throw new Error("No m3u8 stream found in extraction results");
+
+                const epMatch = episodeUrl.match(/(\d+)x(\d+)/) || episodeUrl.match(/episode-\d+/);
+                const epNum = epMatch ? parseInt(epMatch[2] || epMatch[0].replace('episode-', '')) : 1;
+
+                return {
+                    pageTitle: `Episode ${epNum} (ToonPlay Direct)`,
+                    resolution: '720p',
+                    seasonZipLink: null,
+                    episodes: [{
+                        number: epNum,
+                        title: `Episode ${epNum}`,
+                        link: m3u8Url,
+                        streamingUrl: m3u8Url
+                    }],
+                    totalFound: 1,
+                    resolvedCount: 1,
+                };
+            }
+        } catch (err: any) {
+            console.warn(`[ToonPlay] Failed to parse URL: ${err.message}`);
+        }
+    } else {
+        toonplayId = trimmed;
+    }
+
+    if (!toonplayId) {
+        console.log(`[ToonPlay] Searching for query: ${searchQuery}`);
+        const searchRes = await undiciFetch(
+            `https://animesalt.streamindia.co.in/api/search?q=${encodeURIComponent(searchQuery)}`,
+            {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                    'Referer': 'https://toonplay.in/',
+                    'Origin': 'https://toonplay.in'
+                },
+                signal: AbortSignal.timeout(15000),
+            }
+        );
+        if (searchRes.ok) {
+            const searchData = await searchRes.json() as any;
+            const firstItem = searchData.data?.[0] || searchData.results?.[0];
+            if (firstItem && firstItem.id) {
+                toonplayId = firstItem.id;
+                console.log(`[ToonPlay] Search matched ID: ${toonplayId}`);
+            }
+        }
+    }
+
+    if (!toonplayId) {
+        throw new Error(`Could not resolve ToonPlay ID for: ${url}`);
+    }
+
+    console.log(`[ToonPlay] Fetching series info for ID: ${toonplayId}`);
+    const infoRes = await undiciFetch(
+        `https://animesalt.streamindia.co.in/api/info?id=${encodeURIComponent(toonplayId)}`,
+        {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Referer': 'https://toonplay.in/',
+                'Origin': 'https://toonplay.in'
+            },
+            signal: AbortSignal.timeout(15000),
+        }
+    );
+    if (!infoRes.ok) {
+        throw new Error(`ToonPlay Info API returned status ${infoRes.status}`);
+    }
+    const infoData = await infoRes.json() as any;
+    const anime = infoData.anime;
+    if (!anime) {
+        throw new Error("No anime data found in Info API response");
+    }
+
+    const title = anime.title || `Anime #${toonplayId}`;
+    const seasonsList = anime.seasonsList || [];
+    
+    // Parse season from URL if present
+    let targetSeason: number | null = null;
+    try {
+        const urlObj = new URL(url);
+        const seasonParam = urlObj.searchParams.get('season');
+        if (seasonParam) targetSeason = parseInt(seasonParam);
+    } catch {
+        // Not a URL or no season param
+    }
+
+    const episodes: ScrapedEpisode[] = [];
+    const warnings: string[] = [];
+    let totalEpisodes = 0;
+    let resolvedCount = 0;
+
+    for (const seasonObj of seasonsList) {
+        const seasonNum = parseInt(seasonObj.season || '1');
+        // If targetSeasonNum is specified, only scrape that season!
+        if (targetSeasonNum !== undefined && seasonNum !== targetSeasonNum) {
+            continue;
+        }
+
+        const seasonEps = seasonObj.episodes || [];
+        totalEpisodes += seasonEps.length;
+
+        for (const ep of seasonEps) {
+            const epNum = ep.number;
+            const epTitle = ep.title || `Episode ${epNum}`;
+            const epId = ep.id;
+            const episodeUrl = epId.startsWith('http') ? epId : `https://animesalt.ac/${epId}`;
+            
+            if (shouldSkipEpisode(skipEpisodes, epNum, seasonNum)) {
+                episodes.push({
+                    number: epNum,
+                    title: epTitle,
+                    link: episodeUrl,
+                    season: seasonNum,
+                });
+                continue;
+            }
+            
+            try {
+                const extractRes = await undiciFetch(
+                    `https://anime.streamindia.co.in/api/extract?url=${encodeURIComponent(episodeUrl)}`,
+                    {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                            'Referer': 'https://toonplay.in/',
+                            'Origin': 'https://toonplay.in'
+                        },
+                        signal: AbortSignal.timeout(15000),
+                    }
+                );
+                
+                if (extractRes.ok) {
+                    const extractData = await extractRes.json() as any;
+                    const playerUrl = extractData.data?.videoPlayerUrl;
+                    if (playerUrl) {
+                        const streamRes = await undiciFetch(
+                            `https://extract.streamindia.co.in/api?url=${encodeURIComponent(playerUrl)}`,
+                            {
+                                headers: {
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                                    'Referer': 'https://toonplay.in/',
+                                    'Origin': 'https://toonplay.in'
+                                },
+                                signal: AbortSignal.timeout(15000),
+                            }
+                        );
+                        
+                        if (streamRes.ok) {
+                            const streamData = await streamRes.json() as any;
+                            const files = streamData.files || {};
+                            const m3u8Url = files.hin || files.eng || files.jpn || Object.values(files)[0];
+                            
+                            if (m3u8Url) {
+                                episodes.push({
+                                    number: epNum,
+                                    title: epTitle,
+                                    link: m3u8Url,
+                                    streamingUrl: m3u8Url,
+                                    season: seasonNum,
+                                });
+                                resolvedCount++;
+                            } else {
+                                warnings.push(`S${seasonNum} Ep ${epNum}: No streaming URL in files`);
+                                episodes.push({
+                                    number: epNum,
+                                    title: epTitle,
+                                    link: episodeUrl,
+                                    season: seasonNum,
+                                });
+                            }
+                        } else {
+                            warnings.push(`S${seasonNum} Ep ${epNum}: Failed to extract files (Status ${streamRes.status})`);
+                            episodes.push({
+                                number: epNum,
+                                title: epTitle,
+                                link: episodeUrl,
+                                season: seasonNum,
+                            });
+                        }
+                    } else {
+                        warnings.push(`S${seasonNum} Ep ${epNum}: No videoPlayerUrl extracted`);
+                        episodes.push({
+                            number: epNum,
+                            title: epTitle,
+                            link: episodeUrl,
+                            season: seasonNum,
+                        });
+                    }
+                } else {
+                    warnings.push(`S${seasonNum} Ep ${epNum}: Extract API failed (Status ${extractRes.status})`);
+                    episodes.push({
+                        number: epNum,
+                        title: epTitle,
+                        link: episodeUrl,
+                        season: seasonNum,
+                    });
+                }
+            } catch (err: any) {
+                warnings.push(`S${seasonNum} Ep ${epNum}: ${err.message}`);
+                episodes.push({
+                    number: epNum,
+                    title: epTitle,
+                    link: episodeUrl,
+                    season: seasonNum,
+                });
+            }
+
+            await new Promise(r => setTimeout(r, 200));
+        }
+    }
+
+    episodes.sort((a, b) => {
+        // Sort by season first, then by episode number
+        const seasonDiff = (a.season || 1) - (b.season || 1);
+        if (seasonDiff !== 0) return seasonDiff;
+        return a.number - b.number;
+    });
+
+    return {
+        pageTitle: `${title} (ToonPlay)`,
+        resolution: '720p',
+        seasonZipLink: null,
+        episodes,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        totalFound: totalEpisodes,
+        resolvedCount,
+        fallbackCount: episodes.length - resolvedCount,
+    };
+}
+
+/**
+ * Scrape AnimeWorld India (watchanimeworld.net)
+ */
+export async function scrapeAnimeWorld(
+    url: string,
+    skipEpisodes: (string | number)[] = [],
+    targetSeasonNum?: number
+): Promise<ScrapedResult> {
+    console.log(`[AnimeWorld] Scraping URL: ${url}`);
+    
+    let slug = '';
+    let isMovie = false;
+    try {
+        const parsedUrl = new URL(url);
+        const parts = parsedUrl.pathname.split('/').filter(Boolean);
+        if (parts.includes('movies')) {
+            isMovie = true;
+            slug = parts[parts.indexOf('movies') + 1] || parts[parts.length - 1];
+        } else if (parts.includes('series')) {
+            slug = parts[parts.indexOf('series') + 1] || parts[parts.length - 1];
+        } else {
+            slug = parts[parts.length - 1] || '';
+        }
+    } catch {
+        slug = url.split('/').filter(Boolean).pop() || '';
+    }
+
+    if (!slug) {
+        throw new Error(`Invalid URL: ${url}`);
+    }
+
+    const domain = 'https://watchanimeworld.net';
+    const detailUrl = isMovie ? `${domain}/movies/${slug}/` : `${domain}/series/${slug}/`;
+    
+    let html = '';
+    try {
+        const fetchRes = await fetchHtmlWithProxy(detailUrl);
+        html = fetchRes.html;
+    } catch (err: any) {
+        console.warn(`[AnimeWorld] Direct fetch/proxy failed: ${err.message}. Trying direct fetch...`);
+        const resp = await fetch(detailUrl, { headers: HEADERS });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        html = await resp.text();
+    }
+
+    const $ = cheerio.load(html);
+    const title = $('.entry-title, h1.entry-title').text().trim() || slug;
+    const episodes: ScrapedEpisode[] = [];
+    const warnings: string[] = [];
+    let resolvedCount = 0;
+
+    if (isMovie) {
+        const iframeSources: string[] = [];
+        $('iframe').each((i, elem) => {
+            const src = $(elem).attr('src') || $(elem).attr('data-src');
+            if (src && !src.includes('facebook') && !src.includes('google') && !src.includes('twitter')) {
+                iframeSources.push(src.startsWith('//') ? 'https:' + src : src);
+            }
+        });
+
+        const movieStream = iframeSources[0];
+        if (movieStream) {
+            episodes.push({
+                number: 1,
+                title: 'Movie',
+                link: movieStream,
+                streamingUrl: movieStream,
+                season: 1
+            });
+            resolvedCount = 1;
+        } else {
+            throw new Error(`No video iframe found on movie page: ${detailUrl}`);
+        }
+    } else {
+        let postId = '';
+        const seasonLinks = $('.choose-season .sel-temp a, ul.aa-cnt.sub-menu li a');
+        if (seasonLinks.length > 0) {
+            postId = seasonLinks.first().attr('data-post') || '';
+        }
+
+        if (!postId) {
+            const bodyClass = $('body').attr('class') || '';
+            const postMatch = bodyClass.match(/postid-(\d+)/);
+            if (postMatch) postId = postMatch[1];
+        }
+
+        const targetSeason = targetSeasonNum || 1;
+        console.log(`[AnimeWorld] Found postId: ${postId}, targetSeason: ${targetSeason}`);
+
+        let rawEpisodes: { number: number; title: string; link: string }[] = [];
+        const currentSeasonElem = $('.n_s');
+        const currentSeason = currentSeasonElem.length > 0 ? parseInt(currentSeasonElem.text().trim(), 10) : 1;
+
+        if (currentSeason === targetSeason) {
+            $('#episode_by_temp li, ul.allEpData li, .allEpData li').each((i, elem) => {
+                const link = $(elem).find('a.lnk-blk').attr('href');
+                const numEpiText = $(elem).find('span.num-epi').text().trim();
+                const epTitle = $(elem).find('h2.entry-title').text().trim();
+                
+                if (link && numEpiText) {
+                    const match = numEpiText.match(/(\d+)x(\d+)/);
+                    if (match) {
+                        const epNum = parseInt(match[2], 10);
+                        rawEpisodes.push({
+                            number: epNum,
+                            title: epTitle || `Episode ${epNum}`,
+                            link: link
+                        });
+                    }
+                }
+            });
+        }
+
+        if (rawEpisodes.length === 0 && postId) {
+            try {
+                const ajaxUrl = `${domain}/wp-admin/admin-ajax.php`;
+                const bodyParams = new URLSearchParams();
+                bodyParams.append('action', 'action_select_season');
+                bodyParams.append('season', String(targetSeason));
+                bodyParams.append('post', postId);
+
+                const response = await fetch(ajaxUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'User-Agent': HEADERS['User-Agent'],
+                        'Referer': detailUrl
+                    },
+                    body: bodyParams
+                });
+
+                if (response.ok) {
+                    const ajaxHtml = await response.text();
+                    const ajax$ = cheerio.load('<ul class="allEpData">' + ajaxHtml + '</ul>');
+                    ajax$('li').each((i, elem) => {
+                        const link = ajax$(elem).find('a.lnk-blk').attr('href');
+                        const numEpiText = ajax$(elem).find('span.num-epi').text().trim();
+                        const epTitle = ajax$(elem).find('h2.entry-title').text().trim();
+
+                        if (link && numEpiText) {
+                            const match = numEpiText.match(/(\d+)x(\d+)/);
+                            if (match) {
+                                const epNum = parseInt(match[2], 10);
+                                rawEpisodes.push({
+                                    number: epNum,
+                                    title: epTitle || `Episode ${epNum}`,
+                                    link: link
+                                });
+                            }
+                        }
+                    });
+                }
+            } catch (err: any) {
+                console.error(`[AnimeWorld] AJAX season fetch failed: ${err.message}`);
+                warnings.push(`AJAX season fetch failed: ${err.message}`);
+            }
+        }
+
+        if (rawEpisodes.length === 0) {
+            throw new Error(`No episodes found for Season ${targetSeason} on AnimeWorld`);
+        }
+
+        for (const ep of rawEpisodes) {
+            if (shouldSkipEpisode(skipEpisodes, ep.number, targetSeason)) {
+                episodes.push({
+                    number: ep.number,
+                    title: ep.title,
+                    link: ep.link,
+                    season: targetSeason
+                });
+                continue;
+            }
+
+            try {
+                let epHtml = '';
+                try {
+                    const epFetch = await fetchHtmlWithProxy(ep.link);
+                    epHtml = epFetch.html;
+                } catch {
+                    const epResp = await fetch(ep.link, { headers: HEADERS });
+                    epHtml = await epResp.text();
+                }
+
+                const ep$ = cheerio.load(epHtml);
+                const iframeSources: string[] = [];
+                ep$('iframe').each((i, elem) => {
+                    const src = ep$(elem).attr('src') || ep$(elem).attr('data-src');
+                    if (src && !src.includes('facebook') && !src.includes('google') && !src.includes('twitter')) {
+                        iframeSources.push(src.startsWith('//') ? 'https:' + src : src);
+                    }
+                });
+
+                const streamUrl = iframeSources[0];
+                if (streamUrl) {
+                    episodes.push({
+                        number: ep.number,
+                        title: ep.title,
+                        link: ep.link,
+                        streamingUrl: streamUrl,
+                        season: targetSeason
+                    });
+                    resolvedCount++;
+                } else {
+                    warnings.push(`S${targetSeason} Ep ${ep.number}: No video iframe found`);
+                    episodes.push({
+                        number: ep.number,
+                        title: ep.title,
+                        link: ep.link,
+                        season: targetSeason
+                    });
+                }
+            } catch (err: any) {
+                warnings.push(`S${targetSeason} Ep ${ep.number}: ${err.message}`);
+                episodes.push({
+                    number: ep.number,
+                    title: ep.title,
+                    link: ep.link,
+                    season: targetSeason
+                });
+            }
+
+            await new Promise(r => setTimeout(r, 300));
+        }
+    }
+
+    return {
+        pageTitle: `${title} (AnimeWorld)`,
+        resolution: '720p',
+        seasonZipLink: null,
+        episodes,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        totalFound: episodes.length,
+        resolvedCount
+    };
+}
+
+/**
+ * Scrape AnimixStream (animixstream.com)
+ */
+export async function scrapeAnimixStream(
+    url: string,
+    skipEpisodes: (string | number)[] = [],
+    targetSeasonNum?: number
+): Promise<ScrapedResult> {
+    console.log(`[AnimixStream] Scraping URL: ${url}`);
+
+    let slug = '';
+    try {
+        const parsedUrl = new URL(url);
+        const parts = parsedUrl.pathname.split('/').filter(Boolean);
+        slug = parts[parts.indexOf('anime') + 1] || parts[parts.length - 1];
+    } catch {
+        slug = url.split('/').filter(Boolean).pop() || '';
+    }
+
+    if (!slug) {
+        throw new Error(`Invalid AnimixStream URL: ${url}`);
+    }
+
+    const domain = 'https://animixstream.com';
+    const detailUrl = `${domain}/anime/${slug}/`;
+
+    let html = '';
+    try {
+        const fetchRes = await fetchHtmlWithProxy(detailUrl);
+        html = fetchRes.html;
+    } catch (err: any) {
+        console.warn(`[AnimixStream] Fetch failed: ${err.message}. Trying direct...`);
+        const resp = await fetch(detailUrl, { headers: HEADERS });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        html = await resp.text();
+    }
+
+    const $ = cheerio.load(html);
+    const title = $('.entry-title, h1.entry-title').text().trim() || slug;
+    const episodes: ScrapedEpisode[] = [];
+    const warnings: string[] = [];
+    let resolvedCount = 0;
+
+    const rawEpisodes: { number: number; title: string; link: string }[] = [];
+    
+    $('div.episodelist a, ul.episodes a, div.episodes a, a[href*="/episode/"]').each((i, elem) => {
+        const link = $(elem).attr('href');
+        const text = $(elem).text().trim();
+        if (link) {
+            const epNum = extractEpisodeNumber(text) || extractEpisodeNumber(link);
+            if (epNum !== null && !rawEpisodes.find(e => e.number === epNum)) {
+                rawEpisodes.push({
+                    number: epNum,
+                    title: text || `Episode ${epNum}`,
+                    link: link.startsWith('http') ? link : domain + link
+                });
+            }
+        }
+    });
+
+    if (rawEpisodes.length === 0) {
+        console.log(`[AnimixStream] No episode links found. Attempting fallback generation...`);
+        for (let epNum = 1; epNum <= 50; epNum++) {
+            const epLink = `${domain}/episode/${slug}-episode-${epNum}/`;
+            rawEpisodes.push({
+                number: epNum,
+                title: `Episode ${epNum}`,
+                link: epLink
+            });
+        }
+    }
+
+    const targetSeason = targetSeasonNum || 1;
+
+    for (const ep of rawEpisodes) {
+        if (shouldSkipEpisode(skipEpisodes, ep.number, targetSeason)) {
+            episodes.push({
+                number: ep.number,
+                title: ep.title,
+                link: ep.link,
+                season: targetSeason
+            });
+            continue;
+        }
+
+        try {
+            let epHtml = '';
+            let ok = true;
+            try {
+                const epFetch = await fetchHtmlWithProxy(ep.link);
+                epHtml = epFetch.html;
+                ok = epFetch.ok;
+            } catch {
+                const epResp = await fetch(ep.link, { headers: HEADERS });
+                ok = epResp.ok;
+                if (ok) epHtml = await epResp.text();
+            }
+
+            if (!ok && rawEpisodes.length > 50) {
+                break;
+            }
+
+            if (epHtml) {
+                const ep$ = cheerio.load(epHtml);
+                const iframeSources: string[] = [];
+                ep$('iframe').each((i, elem) => {
+                    const src = ep$(elem).attr('src') || ep$(elem).attr('data-src');
+                    if (src && !src.includes('facebook') && !src.includes('google') && !src.includes('twitter')) {
+                        iframeSources.push(src.startsWith('//') ? 'https:' + src : src);
+                    }
+                });
+
+                ep$('video source').each((i, elem) => {
+                    const src = ep$(elem).attr('src');
+                    if (src) iframeSources.push(src);
+                });
+
+                const streamUrl = iframeSources[0];
+                if (streamUrl) {
+                    episodes.push({
+                        number: ep.number,
+                        title: ep.title,
+                        link: ep.link,
+                        streamingUrl: streamUrl,
+                        season: targetSeason
+                    });
+                    resolvedCount++;
+                } else {
+                    if (rawEpisodes.length > 50 && episodes.length > 0 && resolvedCount === 0) {
+                        break;
+                    }
+                    warnings.push(`S${targetSeason} Ep ${ep.number}: No video player source found`);
+                    episodes.push({
+                        number: ep.number,
+                        title: ep.title,
+                        link: ep.link,
+                        season: targetSeason
+                    });
+                }
+            }
+        } catch (err: any) {
+            warnings.push(`S${targetSeason} Ep ${ep.number}: ${err.message}`);
+            episodes.push({
+                number: ep.number,
+                title: ep.title,
+                link: ep.link,
+                season: targetSeason
+            });
+        }
+
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    return {
+        pageTitle: `${title} (AnimixStream)`,
+        resolution: '720p',
+        seasonZipLink: null,
+        episodes,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        totalFound: episodes.length,
+        resolvedCount
+    };
+}
+
+/**
+ * Scrape ToonStream (toonstream.vip) using toon-scraper-package
+ */
+export async function scrapeToonStream(
+    url: string,
+    skipEpisodes: (string | number)[] = [],
+    targetSeasonNum?: number,
+    movieTitle?: string
+): Promise<ScrapedResult> {
+    console.log(`[ToonStream] Scraping URL: ${url}`);
+    
+    let origin = 'https://toonstream.vip';
+    try {
+        const parsedUrl = new URL(url);
+        if (parsedUrl.hostname.includes('toonstream')) {
+            origin = parsedUrl.origin;
+        }
+    } catch {}
+
+    const config = require('toon-scraper-package/config');
+    config.BASE_URL = origin;
+
+    const Anime = require('toon-scraper-package/src/anime');
+    const Search = require('toon-scraper-package/src/search');
+
+    let slug = '';
+    let type: 'series' | 'movies' = 'series';
+    try {
+        const parsedUrl = new URL(url);
+        const parts = parsedUrl.pathname.split('/').filter(Boolean);
+        if (parts.includes('movies')) {
+            type = 'movies';
+            slug = parts[parts.indexOf('movies') + 1] || parts[parts.length - 1];
+        } else if (parts.includes('series')) {
+            type = 'series';
+            slug = parts[parts.indexOf('series') + 1] || parts[parts.length - 1];
+        } else {
+            slug = parts[parts.length - 1] || '';
+        }
+    } catch {
+        slug = url.split('/').filter(Boolean).pop() || '';
+    }
+
+    if (!slug && movieTitle) {
+        console.log(`[ToonStream] No slug in URL. Fallback search for title: ${movieTitle}`);
+        try {
+            const searchRes = await Search.live_search(movieTitle);
+            const item = searchRes?.result?.series?.[0] || searchRes?.result?.movies?.[0];
+            if (item && item.slug) {
+                slug = item.slug;
+                type = searchRes?.result?.series?.[0] ? 'series' : 'movies';
+            }
+        } catch (searchErr: any) {
+            console.error(`[ToonStream] Live search failed: ${searchErr.message}`);
+        }
+    }
+
+    if (!slug) {
+        throw new Error(`Could not determine ToonStream slug/ID for URL: ${url}`);
+    }
+
+    console.log(`[ToonStream] Fetching info for slug: ${slug}, type: ${type}`);
+    const info = await Anime.movie_or_series_info(slug, type);
+    if (!info) {
+        throw new Error(`Failed to fetch ToonStream info for: ${slug}`);
+    }
+
+    const title = info.title || slug;
+    const episodes: ScrapedEpisode[] = [];
+    const warnings: string[] = [];
+    let resolvedCount = 0;
+
+    const targetSeason = targetSeasonNum || 1;
+
+    if (type === 'movies') {
+        const sources = info.sources || [];
+        const streamUrl = sources[0];
+        if (streamUrl) {
+            episodes.push({
+                number: 1,
+                title: 'Movie',
+                link: streamUrl,
+                streamingUrl: streamUrl,
+                season: 1
+            });
+            resolvedCount = 1;
+        } else {
+            throw new Error(`No streaming source found for movie: ${slug}`);
+        }
+    } else {
+        const seasonsMap = info.seasons || {};
+        const seasonEpisodes = seasonsMap[targetSeason] || [];
+
+        for (const ep of seasonEpisodes) {
+            const epNum = ep.episode;
+            const epTitle = ep.episode_slug || `Episode ${epNum}`;
+
+            if (shouldSkipEpisode(skipEpisodes, epNum, targetSeason)) {
+                episodes.push({
+                    number: epNum,
+                    title: `Episode ${epNum}`,
+                    link: `${origin}/episode/${ep.episode_slug}/`,
+                    season: targetSeason
+                });
+                continue;
+            }
+
+            try {
+                const sources = await Anime.fetch_source(ep.episode_slug, 'series');
+                const streamUrl = sources?.[0];
+                if (streamUrl) {
+                    episodes.push({
+                        number: epNum,
+                        title: `Episode ${epNum}`,
+                        link: `${origin}/episode/${ep.episode_slug}/`,
+                        streamingUrl: streamUrl,
+                        season: targetSeason
+                    });
+                    resolvedCount++;
+                } else {
+                    warnings.push(`S${targetSeason} Ep ${epNum}: No streaming source found`);
+                    episodes.push({
+                        number: epNum,
+                        title: `Episode ${epNum}`,
+                        link: `${origin}/episode/${ep.episode_slug}/`,
+                        season: targetSeason
+                    });
+                }
+            } catch (err: any) {
+                warnings.push(`S${targetSeason} Ep ${epNum}: ${err.message}`);
+                episodes.push({
+                    number: epNum,
+                    title: `Episode ${epNum}`,
+                    link: `${origin}/episode/${ep.episode_slug}/`,
+                    season: targetSeason
+                });
+            }
+            await new Promise(r => setTimeout(r, 300));
+        }
+    }
+
+    return {
+        pageTitle: `${title} (ToonStream)`,
+        resolution: '720p',
+        seasonZipLink: null,
+        episodes,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        totalFound: episodes.length,
+        resolvedCount
+    };
+}
+
+/**
+ * Scrape YouTube Source (Muse India / Ani-One India)
+ */
+export async function scrapeYouTubeSource(
+    url: string,
+    sourceName: string,
+    skipEpisodes: (string | number)[] = [],
+    targetSeasonNum?: number
+): Promise<ScrapedResult> {
+    console.log(`[YouTube Scraper - ${sourceName}] Scraping URL: ${url}`);
+
+    let channelId = '';
+    let playlistId = '';
+
+    try {
+        const urlObj = new URL(url);
+        playlistId = urlObj.searchParams.get('list') || '';
+        
+        if (!playlistId) {
+            const parts = urlObj.pathname.split('/').filter(Boolean);
+            if (parts.includes('channel')) {
+                channelId = parts[parts.indexOf('channel') + 1] || '';
+            } else if (parts.includes('playlist')) {
+                playlistId = parts[parts.indexOf('playlist') + 1] || '';
+            } else if (urlObj.pathname.includes('@')) {
+                const handle = parts.find(p => p.startsWith('@')) || '';
+                if (handle) {
+                    console.log(`[YouTube Scraper] Resolving handle ${handle} to channel ID...`);
+                    const channelPageRes = await fetch(`https://www.youtube.com/${handle}/videos`, { headers: HEADERS });
+                    if (channelPageRes.ok) {
+                        const channelHtml = await channelPageRes.text();
+                        const match = channelHtml.match(/"externalChannelId"\s*:\s*"(UC[^"]+)"/) || 
+                                      channelHtml.match(/"channelId"\s*:\s*"(UC[^"]+)"/);
+                        if (match) {
+                            channelId = match[1];
+                            console.log(`[YouTube Scraper] Resolved ${handle} to channel ID: ${channelId}`);
+                        }
+                    }
+                }
+            }
+        }
+    } catch (err: any) {
+        console.warn(`[YouTube Scraper] Error parsing URL: ${err.message}`);
+    }
+
+    if (!channelId && !playlistId) {
+        if (url.startsWith('UC')) {
+            channelId = url;
+        } else if (url.startsWith('PL')) {
+            playlistId = url;
+        } else {
+            throw new Error(`Could not extract YouTube Channel or Playlist ID from: ${url}`);
+        }
+    }
+
+    const feedUrl = playlistId 
+        ? `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`
+        : `https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`;
+
+    console.log(`[YouTube Scraper] Fetching XML feed: ${feedUrl}`);
+    const resp = await fetch(feedUrl, { headers: HEADERS });
+    if (!resp.ok) {
+        throw new Error(`Failed to fetch YouTube RSS feed: HTTP ${resp.status}`);
+    }
+    const xmlText = await resp.text();
+
+    const $ = cheerio.load(xmlText, { xmlMode: true });
+    const episodes: ScrapedEpisode[] = [];
+    const warnings: string[] = [];
+    const targetSeason = targetSeasonNum || 1;
+    let resolvedCount = 0;
+
+    $('entry').each((i, elem) => {
+        const videoId = $(elem).find('yt\\:videoId, videoId').text().trim();
+        const title = $(elem).find('title').text().trim();
+        
+        if (videoId && title) {
+            const epNum = extractEpisodeNumber(title);
+            if (epNum !== null) {
+                const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                
+                if (shouldSkipEpisode(skipEpisodes, epNum, targetSeason)) {
+                    episodes.push({
+                        number: epNum,
+                        title: title,
+                        link: `https://www.youtube.com/watch?v=${videoId}`,
+                        season: targetSeason
+                    });
+                } else {
+                    episodes.push({
+                        number: epNum,
+                        title: title,
+                        link: `https://www.youtube.com/watch?v=${videoId}`,
+                        streamingUrl: embedUrl,
+                        season: targetSeason
+                    });
+                    resolvedCount++;
+                }
+            }
+        }
+    });
+
+    if (playlistId && episodes.length < 15) {
+        try {
+            console.log(`[YouTube Scraper] Scraping playlist page for full list...`);
+            const playPageRes = await fetch(`https://www.youtube.com/playlist?list=${playlistId}`, { headers: HEADERS });
+            if (playPageRes.ok) {
+                const playHtml = await playPageRes.text();
+                const videoRegex = /"videoId"\s*:\s*"([^"]+)"[\s\S]*?"title"\s*:\s*{\s*"runs"\s*:\s*\[\s*{\s*"text"\s*:\s*"([^"]+)"/g;
+                let match;
+                while ((match = videoRegex.exec(playHtml)) !== null) {
+                    const videoId = match[1];
+                    const title = match[2];
+                    const epNum = extractEpisodeNumber(title);
+                    if (epNum !== null && !episodes.find(e => e.number === epNum)) {
+                        const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                        if (shouldSkipEpisode(skipEpisodes, epNum, targetSeason)) {
+                            episodes.push({
+                                number: epNum,
+                                title: title,
+                                link: `https://www.youtube.com/watch?v=${videoId}`,
+                                season: targetSeason
+                            });
+                        } else {
+                            episodes.push({
+                                number: epNum,
+                                title: title,
+                                link: `https://www.youtube.com/watch?v=${videoId}`,
+                                streamingUrl: embedUrl,
+                                season: targetSeason
+                            });
+                            resolvedCount++;
+                        }
+                    }
+                }
+            }
+        } catch (e: any) {
+            console.warn(`[YouTube Scraper] Playlist page HTML scrape failed: ${e.message}`);
+        }
+    }
+
+    episodes.sort((a, b) => a.number - b.number);
+
+    return {
+        pageTitle: `${sourceName} Channel/Playlist`,
+        resolution: '1080p',
+        seasonZipLink: null,
+        episodes,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        totalFound: episodes.length,
+        resolvedCount
     };
 }
