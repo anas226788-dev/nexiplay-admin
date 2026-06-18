@@ -123,6 +123,38 @@ function parseFxlinksEpisodes(html: string): ScrapedResult {
  * Extract episodes from RareAnimes HTML with language awareness (Hindi DUB / Hindi Sub).
  * Returns separate arrays for DUB and SUB episodes.
  */
+function maskRareAnimesAttributes(html: string): string {
+    return html.replace(/(?:href|src|data-[\w-]+)=["'][^"']*["']/gi, match => ' '.repeat(match.length));
+}
+
+function findRareAnimesHindiDubMarker(html: string): { index: number; length: number } | null {
+    const subSeparator = String.raw`[\s:\u2013\u2014\-/\\|,\[\]\(\)\{\}]*`;
+    const candidates = [
+        /\bHindi\s*(?:DUB|Dubbed)\b/i,
+        new RegExp(String.raw`\bHindi\b(?!${subSeparator}(?:SUB|Subbed|Subtitle|Subtitles)\b)`, 'i'),
+    ];
+
+    let best: { index: number; length: number } | null = null;
+    for (const pattern of candidates) {
+        const match = pattern.exec(html);
+        if (!match || match.index < 0) continue;
+
+        const context = html
+            .substring(match.index, match.index + 120)
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ');
+        if (new RegExp(String.raw`\bHindi${subSeparator}(?:SUB|Subbed|Subtitle|Subtitles)\b`, 'i').test(context)) {
+            continue;
+        }
+
+        if (!best || match.index < best.index) {
+            best = { index: match.index, length: match[0].length };
+        }
+    }
+
+    return best;
+}
+
 function extractRareAnimesEpisodes(html: string): {
     dub: { title: string; zipperUrl: string; streamingUrl?: string }[];
     sub: { title: string; zipperUrl: string; streamingUrl?: string }[];
@@ -154,6 +186,7 @@ function extractRareAnimesEpisodes(html: string): {
             ? epPositions[i + 1].index
             : Math.min(ep.index + 5000, html.length);
         const searchSlice = html.substring(ep.index, endIndex);
+        const markerSearchSlice = maskRareAnimesAttributes(searchSlice);
 
         const epTitle = ep.title
             ? `Episode ${ep.num} ${ep.title}`
@@ -164,12 +197,18 @@ function extractRareAnimesEpisodes(html: string): {
         const watchMultiRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*WatchMultQuality(?:<\/[^>]+>)*<\/a>/i;
         const streamBetaRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*StreamBeta(?:<\/[^>]+>)*<\/a>/i;
 
-        // Find Hindi DUB section and its links
-        const dubIndex = searchSlice.search(/Hindi\s*DUB/i);
-        if (dubIndex !== -1 && !seenDub.has(ep.num)) {
+        // Find only visible Hindi/Hindi DUB sections. Explicit Hindi Sub sections are ignored.
+        const dubMarker = findRareAnimesHindiDubMarker(markerSearchSlice);
+        if (dubMarker && !seenDub.has(ep.num)) {
+            const dubIndex = dubMarker.index;
             const dubSlice = searchSlice.substring(dubIndex, dubIndex + 1500);
+            const maskedDubSlice = markerSearchSlice.substring(dubIndex, dubIndex + 1500);
             // Stop at next language section to avoid grabbing wrong links
-            const nextLangCut = dubSlice.search(/Hindi\s*Sub|Tamil|Telugu|Malayalam/i);
+            const nextLangSearchStart = dubMarker.length;
+            const nextLangMatch = maskedDubSlice
+                .substring(nextLangSearchStart)
+                .search(/\b(?:Hindi\s*(?:Sub|Subbed|Subtitle|Subtitles)|English|Japanese|Tamil|Telugu|Malayalam|Kannada|Bengali|Urdu|Arabic)\b/i);
+            const nextLangCut = nextLangMatch >= 0 ? nextLangSearchStart + nextLangMatch : -1;
             const dubSearchArea = nextLangCut > 0 ? dubSlice.substring(0, nextLangCut) : dubSlice;
             
             const megaMatch = megaLinkRegex.exec(dubSearchArea);
@@ -202,22 +241,7 @@ function extractRareAnimesEpisodes(html: string): {
         }
         */
 
-        // Fallback: if no DUB markers found (and no SUB section present), treat first Mega as DUB (backward compat)
-        if (!seenDub.has(ep.num) && dubIndex === -1) {
-            const megaMatch = megaLinkRegex.exec(searchSlice);
-            if (megaMatch) {
-                const watchMultiMatch = watchMultiRegex.exec(searchSlice);
-                const streamBetaMatch = streamBetaRegex.exec(searchSlice);
-                const streamingUrl = watchMultiMatch ? watchMultiMatch[1] : (streamBetaMatch ? streamBetaMatch[1] : undefined);
-                
-                dub.push({ 
-                    title: cleanTitle, 
-                    zipperUrl: megaMatch[1],
-                    streamingUrl
-                });
-                seenDub.add(ep.num);
-            }
-        }
+        // No fallback import here. RareAnimes should import only clearly labelled Hindi/Hindi DUB rows.
     }
 
     const sortFn = (a: { title: string }, b: { title: string }) => {
@@ -286,8 +310,44 @@ function isCloudflareBlock(status: number, html: string): boolean {
 async function fetchHtmlWithProxy(
     url: string,
     referer?: string,
-    cookies?: string[]
+    cookies?: string[],
+    options: { directFirst?: boolean } = {}
 ): Promise<{ html: string; status: number; ok: boolean; setCookieHeader: string | null }> {
+    const fetchDirect = async () => {
+        const headers: Record<string, string> = { ...HEADERS };
+        if (referer) headers['Referer'] = referer;
+        if (cookies && cookies.length > 0) headers['Cookie'] = cookies.join('; ');
+
+        const res = await undiciFetch(url, {
+            headers,
+            signal: AbortSignal.timeout(12000),
+        });
+
+        const html = await res.text();
+        return {
+            html,
+            status: res.status,
+            ok: res.ok,
+            setCookieHeader: res.headers.get('set-cookie')
+        };
+    };
+
+    let directAttempt: Awaited<ReturnType<typeof fetchDirect>> | null = null;
+    let directError: Error | null = null;
+
+    if (options.directFirst) {
+        try {
+            directAttempt = await fetchDirect();
+            if (directAttempt.ok && !isCloudflareBlock(directAttempt.status, directAttempt.html)) {
+                return directAttempt;
+            }
+            console.warn(`[Direct Fetch] HTTP ${directAttempt.status} or block detected for ${url}; trying proxies.`);
+        } catch (err: any) {
+            directError = err;
+            console.warn(`[Direct Fetch] Failed for ${url}: ${err.message}; trying proxies.`);
+        }
+    }
+
     const proxies = await getProxyList();
     
     if (proxies.length > 0) {
@@ -333,23 +393,9 @@ async function fetchHtmlWithProxy(
     
     console.warn(`[Proxy Rotator] All proxies failed. Falling back to direct fetch for ${url}`);
     
-    // Fallback to direct fetch
-    const headers: Record<string, string> = { ...HEADERS };
-    if (referer) headers['Referer'] = referer;
-    if (cookies && cookies.length > 0) headers['Cookie'] = cookies.join('; ');
-    
-    const res = await undiciFetch(url, {
-        headers,
-        signal: AbortSignal.timeout(12000),
-    });
-    
-    const html = await res.text();
-    return {
-        html,
-        status: res.status,
-        ok: res.ok,
-        setCookieHeader: res.headers.get('set-cookie')
-    };
+    if (directAttempt) return directAttempt;
+    if (directError) throw directError;
+    return fetchDirect();
 }
 
 /**
@@ -357,7 +403,7 @@ async function fetchHtmlWithProxy(
  */
 async function resolveStreamingEmbed(streamingUrl: string): Promise<string> {
     try {
-        const res = await fetchHtmlWithProxy(streamingUrl);
+        const res = await fetchHtmlWithProxy(streamingUrl, undefined, undefined, { directFirst: true });
         if (res.ok) {
             const iframeMatch = res.html.match(/<iframe[^>]+src="([^"]+)"/i);
             if (iframeMatch) return iframeMatch[1];
@@ -475,7 +521,7 @@ async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZip
         const directStep2 = await fetchDirectHtml(step2Url, zipperUrl);
         if (directStep2.ok) {
             const mega = extractMega(directStep2.html);
-            if (mega) return { link: mega };
+            if (mega) return { link: mega, resolvedToMega: true };
             errors.push('direct step2: no Mega link found');
         } else {
             errors.push(`direct step2 HTTP ${directStep2.status}`);
@@ -490,7 +536,7 @@ async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZip
             errors.push(`direct step1 HTTP ${step1.status}`);
         } else {
             const directMega = extractMega(step1.html);
-            if (directMega) return { link: directMega };
+            if (directMega) return { link: directMega, resolvedToMega: true };
 
             const step2Match = step1.html.match(/href=["']([^"']*ad_step=2[^"']*)["']/i);
             if (step2Match) {
@@ -499,7 +545,7 @@ async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZip
                 const resolvedStep2 = await fetchDirectHtml(resolvedStep2Url, zipperUrl);
                 if (resolvedStep2.ok) {
                     const mega = extractMega(resolvedStep2.html);
-                    if (mega) return { link: mega };
+                    if (mega) return { link: mega, resolvedToMega: true };
                     errors.push('direct step1-derived step2: no Mega link found');
                 } else {
                     errors.push(`direct step1-derived step2 HTTP ${resolvedStep2.status}`);
@@ -516,7 +562,7 @@ async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZip
         const proxiedStep2 = await fetchHtmlWithProxy(step2Url, zipperUrl);
         if (proxiedStep2.ok) {
             const mega = extractMega(proxiedStep2.html);
-            if (mega) return { link: mega };
+            if (mega) return { link: mega, resolvedToMega: true };
             errors.push('proxied step2: no Mega link found');
         } else {
             errors.push(`proxied step2 HTTP ${proxiedStep2.status}`);
@@ -663,8 +709,8 @@ export async function scrapeSource(
     let setCookieHeader: string | null = null;
 
     if (source === 'rareanimes') {
-        console.log(`[Scraper] Using proxy rotator for initial fetch of ${url}`);
-        const fetchRes = await fetchHtmlWithProxy(url);
+        console.log(`[Scraper] Fetching RareAnimes source page direct-first: ${url}`);
+        const fetchRes = await fetchHtmlWithProxy(url, undefined, undefined, { directFirst: true });
         html = fetchRes.html;
         status = fetchRes.status;
         ok = fetchRes.ok;
@@ -732,7 +778,7 @@ export async function scrapeSource(
         // Resolve DUB episodes (auto-import)
         for (const ep of rawDubEpisodes) {
             try {
-                const resolved = await resolveZipperToMega(ep.zipperUrl);
+                const resolved = await resolveZipperToMegaStrict(ep.zipperUrl);
                 const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
                 let resolvedStreamingUrl = ep.streamingUrl;
                 if (ep.streamingUrl) {
@@ -2014,10 +2060,19 @@ export async function scrapeAnimixStream(
     console.log(`[AnimixStream] Scraping URL: ${url}`);
 
     let slug = '';
+    let directEpisodeUrl = '';
+    let directEpisodeNumber: number | null = null;
     try {
         const parsedUrl = new URL(url);
         const parts = parsedUrl.pathname.split('/').filter(Boolean);
-        slug = parts[parts.indexOf('anime') + 1] || parts[parts.length - 1];
+        if (parts.includes('episode') || !parts.includes('anime')) {
+            directEpisodeUrl = parsedUrl.href;
+            const episodeSlug = parts[parts.indexOf('episode') + 1] || parts[parts.length - 1] || '';
+            directEpisodeNumber = extractEpisodeNumber(episodeSlug) || extractEpisodeNumber(parsedUrl.pathname) || extractEpisodeNumber(parsedUrl.search) || 1;
+            slug = episodeSlug || 'episode';
+        } else {
+            slug = parts[parts.indexOf('anime') + 1] || parts[parts.length - 1];
+        }
     } catch {
         slug = url.split('/').filter(Boolean).pop() || '';
     }
@@ -2030,38 +2085,71 @@ export async function scrapeAnimixStream(
     const detailUrl = `${domain}/anime/${slug}/`;
 
     let html = '';
-    try {
-        const fetchRes = await fetchHtmlWithProxy(detailUrl);
-        html = fetchRes.html;
-    } catch (err: any) {
-        console.warn(`[AnimixStream] Fetch failed: ${err.message}. Trying direct...`);
-        const resp = await fetch(detailUrl, { headers: HEADERS });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        html = await resp.text();
-    }
-
-    const $ = cheerio.load(html);
-    const title = $('.entry-title, h1.entry-title').text().trim() || slug;
+    let title = slug;
     const episodes: ScrapedEpisode[] = [];
     const warnings: string[] = [];
     let resolvedCount = 0;
 
     const rawEpisodes: { number: number; title: string; link: string }[] = [];
-    
-    $('div.episodelist a, ul.episodes a, div.episodes a, a[href*="/episode/"]').each((i, elem) => {
-        const link = $(elem).attr('href');
-        const text = $(elem).text().trim();
-        if (link) {
-            const epNum = extractEpisodeNumber(text) || extractEpisodeNumber(link);
-            if (epNum !== null && !rawEpisodes.find(e => e.number === epNum)) {
-                rawEpisodes.push({
-                    number: epNum,
-                    title: text || `Episode ${epNum}`,
-                    link: link.startsWith('http') ? link : domain + link
-                });
-            }
+    const normalizeAnimixStreamSource = (src?: string | null): string | null => {
+        if (!src) return null;
+        const cleanSrc = src.trim();
+        if (!cleanSrc) return null;
+        if (cleanSrc.startsWith('//')) return `https:${cleanSrc}`;
+        if (cleanSrc.startsWith('/')) return `${domain}${cleanSrc}`;
+        return cleanSrc;
+    };
+    const shouldIgnoreAnimixStreamSource = (src: string): boolean => {
+        const lowerSrc = src.toLowerCase();
+        return (
+            lowerSrc.includes('facebook') ||
+            lowerSrc.includes('google') ||
+            lowerSrc.includes('twitter') ||
+            lowerSrc.includes('crn77.com') ||
+            lowerSrc.includes('cdncloudflre')
+        );
+    };
+    const pushUniqueAnimixSource = (sources: string[], src?: string | null) => {
+        const normalized = normalizeAnimixStreamSource(src);
+        if (!normalized || shouldIgnoreAnimixStreamSource(normalized)) return;
+        if (!sources.includes(normalized)) sources.push(normalized);
+    };
+
+    if (directEpisodeUrl) {
+        rawEpisodes.push({
+            number: directEpisodeNumber || 1,
+            title: `Episode ${directEpisodeNumber || 1}`,
+            link: directEpisodeUrl
+        });
+    } else {
+        try {
+            const fetchRes = await fetchHtmlWithProxy(detailUrl, undefined, undefined, { directFirst: true });
+            html = fetchRes.html;
+        } catch (err: any) {
+            console.warn(`[AnimixStream] Fetch failed: ${err.message}. Trying direct...`);
+            const resp = await fetch(detailUrl, { headers: HEADERS });
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            html = await resp.text();
         }
-    });
+
+        const $ = cheerio.load(html);
+        title = $('.entry-title, h1.entry-title').text().trim() || slug;
+
+        $('div.episodelist a, ul.episodes a, div.episodes a, a[href*="/episode/"]').each((i, elem) => {
+            const link = $(elem).attr('href');
+            const text = $(elem).text().trim();
+            if (link) {
+                const epNum = extractEpisodeNumber(text) || extractEpisodeNumber(link);
+                if (epNum !== null && !rawEpisodes.find(e => e.number === epNum)) {
+                    rawEpisodes.push({
+                        number: epNum,
+                        title: text || `Episode ${epNum}`,
+                        link: link.startsWith('http') ? link : domain + link
+                    });
+                }
+            }
+        });
+    }
 
     if (rawEpisodes.length === 0) {
         console.log(`[AnimixStream] No episode links found. Attempting fallback generation...`);
@@ -2092,7 +2180,7 @@ export async function scrapeAnimixStream(
             let epHtml = '';
             let ok = true;
             try {
-                const epFetch = await fetchHtmlWithProxy(ep.link);
+                const epFetch = await fetchHtmlWithProxy(ep.link, undefined, undefined, { directFirst: true });
                 epHtml = epFetch.html;
                 ok = epFetch.ok;
             } catch {
@@ -2107,20 +2195,30 @@ export async function scrapeAnimixStream(
 
             if (epHtml) {
                 const ep$ = cheerio.load(epHtml);
-                const iframeSources: string[] = [];
+                const preferredSources: string[] = [];
+                const fallbackSources: string[] = [];
+
+                ep$('.server-tab[data-src]').each((i, elem) => {
+                    const src = ep$(elem).attr('data-src');
+                    const className = ep$(elem).attr('class') || '';
+                    if (className.includes('server-tab-external')) {
+                        pushUniqueAnimixSource(fallbackSources, src);
+                    } else {
+                        pushUniqueAnimixSource(preferredSources, src);
+                    }
+                });
+
                 ep$('iframe').each((i, elem) => {
                     const src = ep$(elem).attr('src') || ep$(elem).attr('data-src');
-                    if (src && !src.includes('facebook') && !src.includes('google') && !src.includes('twitter')) {
-                        iframeSources.push(src.startsWith('//') ? 'https:' + src : src);
-                    }
+                    pushUniqueAnimixSource(fallbackSources, src);
                 });
 
                 ep$('video source').each((i, elem) => {
                     const src = ep$(elem).attr('src');
-                    if (src) iframeSources.push(src);
+                    pushUniqueAnimixSource(fallbackSources, src);
                 });
 
-                const streamUrl = iframeSources[0];
+                const streamUrl = preferredSources[0] || fallbackSources[0];
                 if (streamUrl) {
                     episodes.push({
                         number: ep.number,
@@ -2360,6 +2458,40 @@ export async function scrapeToonStream(
 /**
  * Scrape YouTube Source (Muse India / Ani-One India)
  */
+function extractYouTubeVideoId(urlOrId: string): string | null {
+    const input = urlOrId.trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
+
+    try {
+        const parsed = new URL(input);
+        const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+        if (host === 'youtu.be') {
+            const id = parsed.pathname.split('/').filter(Boolean)[0];
+            return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+        }
+        if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+            const watchId = parsed.searchParams.get('v');
+            if (watchId && /^[a-zA-Z0-9_-]{11}$/.test(watchId)) return watchId;
+
+            const parts = parsed.pathname.split('/').filter(Boolean);
+            const marker = ['embed', 'shorts', 'live'].find(part => parts.includes(part));
+            if (marker) {
+                const id = parts[parts.indexOf(marker) + 1];
+                return id && /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+            }
+        }
+    } catch {
+        const match = input.match(/(?:v=|youtu\.be\/|embed\/|shorts\/|live\/)([a-zA-Z0-9_-]{11})/);
+        if (match) return match[1];
+    }
+
+    return null;
+}
+
+function buildCleanYouTubeEmbedUrl(videoId: string): string {
+    return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&playsinline=1&iv_load_policy=3&fs=1`;
+}
+
 export async function scrapeYouTubeSource(
     url: string,
     sourceName: string,
@@ -2367,6 +2499,25 @@ export async function scrapeYouTubeSource(
     targetSeasonNum?: number
 ): Promise<ScrapedResult> {
     console.log(`[YouTube Scraper - ${sourceName}] Scraping URL: ${url}`);
+
+    const directVideoId = extractYouTubeVideoId(url);
+    if (directVideoId) {
+        const targetSeason = targetSeasonNum || 1;
+        return {
+            pageTitle: `${sourceName} Video`,
+            resolution: '1080p',
+            seasonZipLink: null,
+            episodes: [{
+                number: 1,
+                title: 'YouTube Video',
+                link: `https://www.youtube.com/watch?v=${directVideoId}`,
+                streamingUrl: buildCleanYouTubeEmbedUrl(directVideoId),
+                season: targetSeason
+            }],
+            totalFound: 1,
+            resolvedCount: 1
+        };
+    }
 
     let channelId = '';
     let playlistId = '';
@@ -2436,7 +2587,7 @@ export async function scrapeYouTubeSource(
         if (videoId && title) {
             const epNum = extractEpisodeNumber(title);
             if (epNum !== null) {
-                const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                const embedUrl = buildCleanYouTubeEmbedUrl(videoId);
                 
                 if (shouldSkipEpisode(skipEpisodes, epNum, targetSeason)) {
                     episodes.push({
@@ -2472,7 +2623,7 @@ export async function scrapeYouTubeSource(
                     const title = match[2];
                     const epNum = extractEpisodeNumber(title);
                     if (epNum !== null && !episodes.find(e => e.number === epNum)) {
-                        const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+                        const embedUrl = buildCleanYouTubeEmbedUrl(videoId);
                         if (shouldSkipEpisode(skipEpisodes, epNum, targetSeason)) {
                             episodes.push({
                                 number: epNum,

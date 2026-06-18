@@ -688,8 +688,6 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                                                 <option value="rareanimes">RareAnimes (Mega/Codedew)</option>
                                                 <option value="movielink">MovieLinkBD</option>
                                                 <option value="bollyflix">BollyFlix</option>
-                                                <option value="animerulz">Animerulz (m3u8/m3u8 stream)</option>
-                                                <option value="toonplay">Nexiplay Private Server (m3u8 stream)</option>
                                             </select>
                                         </div>
                                         <div>

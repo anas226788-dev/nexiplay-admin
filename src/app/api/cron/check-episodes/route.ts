@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { scrapeSource } from '@/lib/scraper-utils';
+import { mergeMoviesWithStreaming, upsertStreamingRow } from '@/lib/streaming-table';
 
 export const dynamic = 'force-dynamic';
+
+const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix']);
+const isRunningScraperSource = (source?: string | null) => !!source && RUNNING_SCRAPER_SOURCES.has(source);
+const DISABLED_STREAMING_SCRAPER_SOURCES = new Set(['muse_india', 'anione_india']);
 
 function getLinkField(url: string): 'mega_link' | 'gdrive_link' | 'mediafire_link' | 'terabox_link' | 'pcloud_link' | 'youtube_link' {
     const lowerUrl = url.toLowerCase();
@@ -223,20 +228,24 @@ async function autoMatchStreaming(
             .from('movies')
             .update(finalUpdates)
             .eq('id', movieId);
+        await upsertStreamingRow(supabase, movieId, finalUpdates);
         
         console.log(`[Cron Auto-Match] Successfully updated streaming IDs for: ${title}`);
     }
 }
 
-async function handleCheckEpisodes(movieId?: string) {
+type CheckMode = 'running' | 'streaming';
+
+async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'running') {
     const results: any[] = [];
+    const isStreamingMode = mode === 'streaming';
     
     // 1. Fetch Target Movies
     let query = supabase.from('movies').select('*');
     
-    if (movieId) {
-        query = query.eq('id', movieId);
-    } else {
+    if (targetMovieId) {
+        query = query.eq('id', targetMovieId);
+    } else if (!isStreamingMode) {
         query = query
             .eq('is_running', true)
             .eq('running_status', 'Ongoing');
@@ -249,16 +258,19 @@ async function handleCheckEpisodes(movieId?: string) {
     }
 
     if (!movies || movies.length === 0) {
-        return { message: 'No active running series with scraper configuration found.' };
+        return { message: isStreamingMode ? 'No content found for streaming scrape.' : 'No active running series with scraper configuration found.' };
     }
+    const targetMovies = isStreamingMode
+        ? await mergeMoviesWithStreaming(supabase, movies as any[])
+        : movies;
 
     // 2. Loop Through Movies and Process
-    for (const movie of movies) {
+    for (const movie of targetMovies) {
         const movieTitle = movie.title;
         const movieId = movie.id;
         
-        // Auto-match streaming IDs if missing during cron run
-        if (!movie.tmdb_id && (movie.type !== 'anime' || !movie.mal_id)) {
+        // Streaming-only runs may refresh external IDs. Running checks stay focused on release tracking.
+        if (isStreamingMode && !movie.tmdb_id && (movie.type !== 'anime' || !movie.mal_id)) {
             try {
                 const tmdbApiKey = process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
                 await autoMatchStreaming(movie.id, movie.title, movie.type as any, movie.release_year, tmdbApiKey);
@@ -269,7 +281,8 @@ async function handleCheckEpisodes(movieId?: string) {
                     .eq('id', movie.id)
                     .single();
                 if (updatedMovie) {
-                    Object.assign(movie, updatedMovie);
+                    const [mergedMovie] = await mergeMoviesWithStreaming(supabase, [updatedMovie as any]);
+                    Object.assign(movie, mergedMovie || updatedMovie);
                 }
             } catch (matchErr) {
                 console.error(`[Cron Auto-Match] Failed for "${movie.title}":`, matchErr);
@@ -277,13 +290,18 @@ async function handleCheckEpisodes(movieId?: string) {
         }
         
         try {
-            // Check if movie has scraper settings configured
-            if (!movie.animerulz_url && !movie.toonplay_url && !movie.scraper_url) {
+            const hasRunningScraper = !!(movie.scraper_url && isRunningScraperSource(movie.scraper_source));
+            const hasStreamingScraper = !!(movie.animerulz_url || movie.toonplay_url || (movie.scraper_url && movie.scraper_source === 'multi'));
+
+            // Check if movie has scraper settings configured for the selected workflow.
+            if ((isStreamingMode && !hasStreamingScraper) || (!isStreamingMode && !hasRunningScraper)) {
                 results.push({
                     id: movie.id,
                     title: movie.title,
                     status: 'skipped',
-                    reason: 'Scraper configuration incomplete (URLs or source missing)',
+                    reason: isStreamingMode
+                        ? 'Streaming scraper configuration incomplete.'
+                        : 'Running scraper configuration incomplete.',
                 });
                 continue;
             }
@@ -292,8 +310,8 @@ async function handleCheckEpisodes(movieId?: string) {
             const nextDueDate = movie.next_episode_date ? new Date(movie.next_episode_date) : null;
             const isDue = nextDueDate ? nextDueDate.getTime() <= now.getTime() : true;
 
-            // If a specific movie is targeted, bypass date check. Otherwise, enforce scheduling.
-            if (!movieId && !isDue) {
+            // If a specific movie is targeted, bypass date check. Streaming-only runs never affect scheduling.
+            if (!isStreamingMode && !targetMovieId && !isDue) {
                 results.push({
                     id: movie.id,
                     title: movie.title,
@@ -303,8 +321,8 @@ async function handleCheckEpisodes(movieId?: string) {
                 continue;
             }
 
-            // We support legacy scrapers (if scraper_url and scraper_source are configured)
-            // alongside the concurrent dual scrapers (animerulz_url, toonplay_url).
+            // Running mode uses only the running scraper source.
+            // Streaming mode uses only streaming server scrapers.
             let maxScrapedEpNum = 0;
             let importedAnimerulzCount = 0;
             let importedToonplayCount = 0;
@@ -355,11 +373,39 @@ async function handleCheckEpisodes(movieId?: string) {
                 return fallbackSeasonId || '';
             };
 
-            // 1. Run Legacy/Manual Scraper (fxlinks, rareanimes, movielink, bollyflix etc) if configured and not a duplicate
-            if (movie.scraper_url && movie.scraper_source && 
-                movie.scraper_source !== 'multi' &&
-                !(movie.scraper_source === 'animerulz' && movie.animerulz_url) && 
-                !(movie.scraper_source === 'toonplay' && movie.toonplay_url)) {
+            const saveEpisodeServerStream = async (episodeId: string, serverKey: string, streamUrl: string, epNum: number): Promise<boolean> => {
+                const { data: currentEp } = await supabase
+                    .from('episodes')
+                    .select('streaming_url')
+                    .eq('id', episodeId)
+                    .single();
+
+                let streamingUrlObj: Record<string, string> = {};
+                if (currentEp?.streaming_url && currentEp.streaming_url.trim().startsWith('{')) {
+                    try {
+                        streamingUrlObj = JSON.parse(currentEp.streaming_url);
+                    } catch {}
+                } else if (currentEp?.streaming_url) {
+                    streamingUrlObj.legacy = currentEp.streaming_url;
+                }
+
+                streamingUrlObj[serverKey] = streamUrl;
+
+                const { error: updateEpError } = await supabase
+                    .from('episodes')
+                    .update({ streaming_url: JSON.stringify(streamingUrlObj) })
+                    .eq('id', episodeId);
+
+                if (updateEpError) {
+                    console.warn(`[Cron Multi-Scraper] Failed to save streaming_url for Ep ${epNum} on "${serverKey}":`, updateEpError);
+                    return false;
+                }
+
+                return true;
+            };
+
+            // 1. Run Running/Manual Scraper (fxlinks, rareanimes, movielink, bollyflix etc).
+            if (movie.scraper_url && isRunningScraperSource(movie.scraper_source) && !isStreamingMode) {
                 const scraperUrl = movie.scraper_url;
                 const scraperSource = movie.scraper_source;
                 const scraperResolution = movie.scraper_resolution || '720p';
@@ -429,19 +475,91 @@ async function handleCheckEpisodes(movieId?: string) {
                 }
             }
 
-            // 1b. Run Multi-Scraper if configured
-            if (movie.scraper_url && movie.scraper_source === 'multi') {
+            // 1b. Run Multi-Scraper if configured for streaming.
+            if (isStreamingMode && movie.scraper_url && movie.scraper_source === 'multi') {
                 console.log(`[Cron Multi-Scraper] Processing movie: "${movie.title}"`);
                 try {
                     const scraperConfig = JSON.parse(movie.scraper_url);
                     
                     for (const [serverKey, config] of Object.entries(scraperConfig)) {
-                        const srvConfig = config as { mode: 'single' | 'separate'; url: string; urls: Record<number, string> };
-                        if (!srvConfig.url && (!srvConfig.urls || Object.keys(srvConfig.urls).length === 0)) {
+                        if (DISABLED_STREAMING_SCRAPER_SOURCES.has(serverKey)) {
+                            console.log(`[Cron Multi-Scraper] Skipping disabled server: "${serverKey}"`);
+                            continue;
+                        }
+
+                        const srvConfig = config as { mode: 'single' | 'separate' | 'episode'; url: string; urls: Record<number, string>; episodeUrls?: Record<string, string> };
+                        if (
+                            !srvConfig.url &&
+                            (!srvConfig.urls || Object.keys(srvConfig.urls).length === 0) &&
+                            (!srvConfig.episodeUrls || Object.keys(srvConfig.episodeUrls).length === 0)
+                        ) {
                             continue;
                         }
 
                         console.log(`[Cron Multi-Scraper] Running scraper for server: "${serverKey}"`);
+
+                        if (srvConfig.mode === 'episode') {
+                            for (const [episodeKey, targetUrl] of Object.entries(srvConfig.episodeUrls || {})) {
+                                if (!targetUrl) continue;
+
+                                const [seasonPart, episodePart] = episodeKey.split('_');
+                                const sNum = parseInt(seasonPart, 10);
+                                const epNum = parseInt(episodePart, 10);
+                                if (Number.isNaN(sNum) || Number.isNaN(epNum)) {
+                                    warnings.push(`Multi-Scraper (${serverKey}): Invalid episode key "${episodeKey}"`);
+                                    continue;
+                                }
+
+                                console.log(`[Cron Multi-Scraper] Scraping "${serverKey}" S${sNum} E${epNum} using URL: ${targetUrl}`);
+
+                                try {
+                                    const scrapeResult = await scrapeSource(
+                                        targetUrl,
+                                        serverKey as any,
+                                        [],
+                                        { targetSeason: sNum, movieTitle: movie.title }
+                                    );
+
+                                    if (scrapeResult.warnings) {
+                                        warnings.push(...scrapeResult.warnings.map(w => `Multi-Scraper (${serverKey} S${sNum} E${epNum}): ${w}`));
+                                    }
+
+                                    const scrapedEp = scrapeResult.episodes.find(ep => ep.streamingUrl) || scrapeResult.episodes[0];
+                                    if (!scrapedEp?.streamingUrl) {
+                                        warnings.push(`Multi-Scraper (${serverKey} S${sNum} E${epNum}): No streaming URL found`);
+                                        continue;
+                                    }
+
+                                    if (!dbSeasonMap.has(sNum)) {
+                                        const { data: newSeason, error: createSeasonError } = await supabase
+                                            .from('seasons')
+                                            .insert({
+                                                movie_id: movie.id,
+                                                season_number: sNum,
+                                                season_title: `Season ${sNum}`,
+                                            })
+                                            .select()
+                                            .single();
+                                        if (createSeasonError) throw createSeasonError;
+                                        dbSeasonMap.set(sNum, newSeason.id);
+                                        seasonIdToNumberMap.set(newSeason.id, sNum);
+                                    }
+
+                                    const seasonId = getEpisodeSeasonId(epNum, sNum);
+                                    const episodeId = await getOrCreateEpisode(seasonId, epNum);
+                                    if (await saveEpisodeServerStream(episodeId, serverKey, scrapedEp.streamingUrl, epNum)) {
+                                        importedLegacyCount++;
+                                    }
+                                    if (epNum > maxScrapedEpNum) {
+                                        maxScrapedEpNum = epNum;
+                                    }
+                                } catch (err: any) {
+                                    console.error(`[Cron Multi-Scraper] Episode scraper "${serverKey}" failed for S${sNum} E${epNum}:`, err.message);
+                                    warnings.push(`Multi-Scraper (${serverKey} S${sNum} E${epNum}): ${err.message}`);
+                                }
+                            }
+                            continue;
+                        }
 
                         for (const season of (seasonsList || [])) {
                             const sNum = season.season_number;
@@ -474,31 +592,7 @@ async function handleCheckEpisodes(movieId?: string) {
 
                                     const episodeId = await getOrCreateEpisode(season.id, ep.number);
                                     
-                                    const { data: currentEp } = await supabase
-                                        .from('episodes')
-                                        .select('streaming_url')
-                                        .eq('id', episodeId)
-                                        .single();
-                                    
-                                    let streamingUrlObj: Record<string, string> = {};
-                                    if (currentEp?.streaming_url && currentEp.streaming_url.trim().startsWith('{')) {
-                                        try {
-                                            streamingUrlObj = JSON.parse(currentEp.streaming_url);
-                                        } catch {}
-                                    } else if (currentEp?.streaming_url) {
-                                        streamingUrlObj.legacy = currentEp.streaming_url;
-                                    }
-
-                                    streamingUrlObj[serverKey] = ep.streamingUrl;
-
-                                    const { error: updateEpError } = await supabase
-                                        .from('episodes')
-                                        .update({ streaming_url: JSON.stringify(streamingUrlObj) })
-                                        .eq('id', episodeId);
-
-                                    if (updateEpError) {
-                                        console.warn(`[Cron Multi-Scraper] Failed to save streaming_url for Ep ${ep.number} on "${serverKey}":`, updateEpError);
-                                    } else {
+                                    if (await saveEpisodeServerStream(episodeId, serverKey, ep.streamingUrl, ep.number)) {
                                         importedLegacyCount++;
                                     }
 
@@ -518,8 +612,8 @@ async function handleCheckEpisodes(movieId?: string) {
                 }
             }
 
-            // 2. Run Animerulz Scraper if configured
-            if (movie.animerulz_url) {
+            // 2. Run Animerulz streaming scraper if configured.
+            if (isStreamingMode && movie.animerulz_url) {
                 const animerulzUrl = movie.animerulz_url;
                 const animerulzSeason = movie.animerulz_season || 1;
                 const animerulzResolution = movie.animerulz_resolution || '720p';
@@ -638,8 +732,8 @@ async function handleCheckEpisodes(movieId?: string) {
                 }
             }
 
-            // 3. Run Toonplay Scraper if configured
-            if (movie.toonplay_url) {
+            // 3. Run Toonplay streaming scraper if configured.
+            if (isStreamingMode && movie.toonplay_url) {
                 const toonplayUrl = movie.toonplay_url;
                 const toonplaySeason = movie.toonplay_season || 1;
                 const toonplayResolution = movie.toonplay_resolution || '720p';
@@ -762,6 +856,22 @@ async function handleCheckEpisodes(movieId?: string) {
             const totalImported = importedLegacyCount + importedAnimerulzCount + importedToonplayCount;
 
             if (totalImported > 0) {
+                if (isStreamingMode) {
+                    results.push({
+                        id: movie.id,
+                        title: movie.title,
+                        status: 'success',
+                        importedLegacy: importedLegacyCount,
+                        importedAnimerulz: importedAnimerulzCount,
+                        importedToonplay: importedToonplayCount,
+                        lastEpisode: movie.last_episode || 0,
+                        nextEpisodeDate: movie.next_episode_date,
+                        message: 'Streaming URLs updated without changing running schedule.',
+                        warnings: warnings.length > 0 ? warnings : undefined
+                    });
+                    continue;
+                }
+
                 // Update Movie schedule and metadata if a new episode was found
                 const currentLastEpisode = movie.last_episode || 0;
                 let finalLastEpisode = currentLastEpisode;
@@ -769,6 +879,55 @@ async function handleCheckEpisodes(movieId?: string) {
                 let nextEpisodeDateStr = movie.next_episode_date;
 
                 const hasNewEpisodeNum = maxScrapedEpNum > currentLastEpisode;
+
+                if (!hasNewEpisodeNum) {
+                    if (isDue) {
+                        const originalDate = movie.next_episode_date || new Date().toISOString();
+                        const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                        const tomorrowStr = tomorrow.toISOString();
+
+                        let updatedAdminNote = movie.admin_note;
+                        if (!getOriginalDueDate(movie.admin_note)) {
+                            updatedAdminNote = setOriginalDueDate(movie.admin_note, originalDate);
+                        }
+
+                        const { error: rescheduleError } = await supabase
+                            .from('movies')
+                            .update({
+                                next_episode_date: tomorrowStr,
+                                admin_note: updatedAdminNote,
+                                notify_admin: false,
+                            })
+                            .eq('id', movie.id);
+
+                        if (rescheduleError) throw rescheduleError;
+
+                        results.push({
+                            id: movie.id,
+                            title: movie.title,
+                            status: 'no_updates_found',
+                            message: `No new episode found. Latest scraped episode is still ${maxScrapedEpNum || 'unknown'}. Retry scheduled for tomorrow.`,
+                            importedLegacy: importedLegacyCount,
+                            importedCount: importedLegacyCount,
+                            lastEpisode: currentLastEpisode,
+                            nextEpisodeDate: tomorrowStr,
+                            warnings: warnings.length > 0 ? warnings : undefined
+                        });
+                    } else {
+                        results.push({
+                            id: movie.id,
+                            title: movie.title,
+                            status: 'no_updates_found',
+                            message: `No new episode found. Latest scraped episode is still ${maxScrapedEpNum || 'unknown'}.`,
+                            importedLegacy: importedLegacyCount,
+                            importedCount: importedLegacyCount,
+                            lastEpisode: currentLastEpisode,
+                            nextEpisodeDate: movie.next_episode_date,
+                            warnings: warnings.length > 0 ? warnings : undefined
+                        });
+                    }
+                    continue;
+                }
 
                 if (hasNewEpisodeNum) {
                     finalLastEpisode = maxScrapedEpNum;
@@ -835,6 +994,7 @@ async function handleCheckEpisodes(movieId?: string) {
                     title: movie.title,
                     status: 'success',
                     importedLegacy: importedLegacyCount,
+                    importedCount: importedLegacyCount,
                     importedAnimerulz: importedAnimerulzCount,
                     importedToonplay: importedToonplayCount,
                     lastEpisode: finalLastEpisode,
@@ -843,6 +1003,17 @@ async function handleCheckEpisodes(movieId?: string) {
                 });
 
             } else {
+                if (isStreamingMode) {
+                    results.push({
+                        id: movie.id,
+                        title: movie.title,
+                        status: 'no_updates_found',
+                        message: 'No streaming URLs were updated.',
+                        warnings: warnings.length > 0 ? warnings : undefined
+                    });
+                    continue;
+                }
+
                 // No episodes were successfully parsed/imported. If due/overdue, reschedule daily (tomorrow)
                 if (isDue) {
                     const originalDate = movie.next_episode_date || new Date().toISOString();
@@ -902,8 +1073,9 @@ export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const movieId = searchParams.get('movieId') || undefined;
+        const mode = searchParams.get('mode') === 'streaming' ? 'streaming' : 'running';
         
-        const results = await handleCheckEpisodes(movieId);
+        const results = await handleCheckEpisodes(movieId, mode);
         return NextResponse.json({ success: true, results });
     } catch (err: any) {
         console.error('Cron job failed:', err);
@@ -914,33 +1086,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         let movieId: string | undefined;
+        let mode: CheckMode = 'running';
         
         try {
             const body = await request.json();
             movieId = body.movieId || undefined;
+            mode = body.mode === 'streaming' ? 'streaming' : 'running';
         } catch {
             // No body or invalid JSON is fine, runs all
         }
 
         if (movieId) {
-            console.log(`[Cron Scraper] Starting background scraper for movieId: ${movieId}`);
-            // Fire and forget (executed asynchronously in background)
-            handleCheckEpisodes(movieId).catch(err => {
-                console.error(`[Background Scraper Error] for movieId ${movieId}:`, err);
-            });
-            
-            // Return immediate response with mock result structure for frontend success handling
-            return NextResponse.json({
-                success: true,
-                results: [{
-                    id: movieId,
-                    status: 'success',
-                    message: 'Scraping started in background.'
-                }]
-            });
+            console.log(`[Cron Scraper] Starting ${mode} scraper for movieId: ${movieId}`);
+            const results = await handleCheckEpisodes(movieId, mode);
+            return NextResponse.json({ success: true, results });
         }
 
-        const results = await handleCheckEpisodes(movieId);
+        const results = await handleCheckEpisodes(movieId, mode);
         return NextResponse.json({ success: true, results });
     } catch (err: any) {
         console.error('Cron job failed:', err);

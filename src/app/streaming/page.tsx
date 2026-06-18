@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Movie } from '@/lib/types';
 import AdminShell from '@/components/AdminShell';
+import { mergeMoviesWithStreaming, upsertStreamingRow } from '@/lib/streaming-table';
+
+type ScraperLinkMode = 'single' | 'separate' | 'episode';
 
 interface MatchResult {
     id: string; // TMDB ID or MAL ID
@@ -61,31 +64,27 @@ export default function StreamingPage() {
 
         // Season Scraper URL States
     const [scraperSeasons, setScraperSeasons] = useState<any[]>([]);
+    const [scraperEpisodes, setScraperEpisodes] = useState<any[]>([]);
     const [toonplayLinkMode, setToonplayLinkMode] = useState<'single' | 'separate'>('single');
     const [toonplayUrls, setToonplayUrls] = useState<Record<number, string>>({});
     const [animerulzLinkMode, setAnimerulzLinkMode] = useState<'single' | 'separate'>('single');
     const [animerulzUrls, setAnimerulzUrls] = useState<Record<number, string>>({});
 
     // New scrapers states
-    const [animeworldLinkMode, setAnimeworldLinkMode] = useState<'single' | 'separate'>('single');
+    const [animeworldLinkMode, setAnimeworldLinkMode] = useState<ScraperLinkMode>('single');
     const [animeworldUrl, setAnimeworldUrl] = useState<string>('');
     const [animeworldUrls, setAnimeworldUrls] = useState<Record<number, string>>({});
+    const [animeworldEpisodeUrls, setAnimeworldEpisodeUrls] = useState<Record<string, string>>({});
 
-    const [animixstreamLinkMode, setAnimixstreamLinkMode] = useState<'single' | 'separate'>('single');
+    const [animixstreamLinkMode, setAnimixstreamLinkMode] = useState<ScraperLinkMode>('single');
     const [animixstreamUrl, setAnimixstreamUrl] = useState<string>('');
     const [animixstreamUrls, setAnimixstreamUrls] = useState<Record<number, string>>({});
+    const [animixstreamEpisodeUrls, setAnimixstreamEpisodeUrls] = useState<Record<string, string>>({});
 
-    const [toonstreamLinkMode, setToonstreamLinkMode] = useState<'single' | 'separate'>('single');
+    const [toonstreamLinkMode, setToonstreamLinkMode] = useState<ScraperLinkMode>('single');
     const [toonstreamUrl, setToonstreamUrl] = useState<string>('');
     const [toonstreamUrls, setToonstreamUrls] = useState<Record<number, string>>({});
-
-    const [museindiaLinkMode, setMuseindiaLinkMode] = useState<'single' | 'separate'>('single');
-    const [museindiaUrl, setMuseindiaUrl] = useState<string>('');
-    const [museindiaUrls, setMuseindiaUrls] = useState<Record<number, string>>({});
-
-    const [anioneindiaLinkMode, setAnioneindiaLinkMode] = useState<'single' | 'separate'>('single');
-    const [anioneindiaUrl, setAnioneindiaUrl] = useState<string>('');
-    const [anioneindiaUrls, setAnioneindiaUrls] = useState<Record<number, string>>({});
+    const [toonstreamEpisodeUrls, setToonstreamEpisodeUrls] = useState<Record<string, string>>({});
 
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
@@ -135,6 +134,15 @@ export default function StreamingPage() {
                     parsedOther = JSON.parse(sUrl);
                 } catch(e) {}
             }
+            const readEpisodeUrls = (config: any) => {
+                const episodeUrls: Record<string, string> = {};
+                if (config?.episodeUrls) {
+                    for (const [k, v] of Object.entries(config.episodeUrls)) {
+                        if (v) episodeUrls[k] = v as string;
+                    }
+                }
+                return episodeUrls;
+            };
 
             // AnimeWorld
             const aw = parsedOther.animeworld || {};
@@ -147,6 +155,8 @@ export default function StreamingPage() {
                 }
             }
             setAnimeworldUrls(awUrls);
+            const awEpisodeUrls = readEpisodeUrls(aw);
+            setAnimeworldEpisodeUrls(awEpisodeUrls);
 
             // AnimixStream
             const am = parsedOther.animixstream || {};
@@ -159,6 +169,8 @@ export default function StreamingPage() {
                 }
             }
             setAnimixstreamUrls(amUrls);
+            const amEpisodeUrls = readEpisodeUrls(am);
+            setAnimixstreamEpisodeUrls(amEpisodeUrls);
 
             // ToonStream
             const ts = parsedOther.toonstream || {};
@@ -171,30 +183,8 @@ export default function StreamingPage() {
                 }
             }
             setToonstreamUrls(tsUrls);
-
-            // Muse India
-            const mi = parsedOther.muse_india || {};
-            setMuseindiaLinkMode(mi.mode || 'single');
-            setMuseindiaUrl(mi.url || '');
-            const miUrls: Record<number, string> = {};
-            if (mi.urls) {
-                for (const [k, v] of Object.entries(mi.urls)) {
-                    miUrls[parseInt(k)] = v as string;
-                }
-            }
-            setMuseindiaUrls(miUrls);
-
-            // Ani-One India
-            const ao = parsedOther.anione_india || {};
-            setAnioneindiaLinkMode(ao.mode || 'single');
-            setAnioneindiaUrl(ao.url || '');
-            const aoUrls: Record<number, string> = {};
-            if (ao.urls) {
-                for (const [k, v] of Object.entries(ao.urls)) {
-                    aoUrls[parseInt(k)] = v as string;
-                }
-            }
-            setAnioneindiaUrls(aoUrls);
+            const tsEpisodeUrls = readEpisodeUrls(ts);
+            setToonstreamEpisodeUrls(tsEpisodeUrls);
 
             if (editingScraperMovie.type === 'anime' || editingScraperMovie.type === 'series') {
                 supabase
@@ -213,8 +203,13 @@ export default function StreamingPage() {
                         Object.keys(awUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
                         Object.keys(amUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
                         Object.keys(tsUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
-                        Object.keys(miUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
-                        Object.keys(aoUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+                        [awEpisodeUrls, amEpisodeUrls, tsEpisodeUrls].forEach(map => {
+                            Object.keys(map).forEach(key => {
+                                const [seasonPart] = key.split('_');
+                                const seasonNum = parseInt(seasonPart, 10);
+                                if (!Number.isNaN(seasonNum)) extraSeasonNums.add(seasonNum);
+                            });
+                        });
 
                         const finalSeasons = [...dbSeasons];
                         Array.from(extraSeasonNums).sort((a, b) => a - b).forEach(sNum => {
@@ -230,12 +225,52 @@ export default function StreamingPage() {
                         // Sort by season_number
                         finalSeasons.sort((a, b) => a.season_number - b.season_number);
                         setScraperSeasons(finalSeasons);
+
+                        const seasonNumberById = new Map(dbSeasons.map(s => [s.id, s.season_number]));
+                        if (dbSeasons.length > 0) {
+                            supabase
+                                .from('episodes')
+                                .select('id, season_id, episode_number, episode_title')
+                                .in('season_id', dbSeasons.map(s => s.id))
+                                .order('episode_number', { ascending: true })
+                                .then(({ data: episodesData }) => {
+                                    const existingEpisodes = (episodesData || []).map(ep => ({
+                                        id: ep.id,
+                                        season_number: seasonNumberById.get(ep.season_id) || 1,
+                                        episode_number: ep.episode_number,
+                                        episode_title: ep.episode_title
+                                    }));
+                                    const byKey = new Map(existingEpisodes.map(ep => [`${ep.season_number}_${ep.episode_number}`, ep]));
+                                    [awEpisodeUrls, amEpisodeUrls, tsEpisodeUrls].forEach(map => {
+                                        Object.keys(map).forEach(key => {
+                                            if (byKey.has(key)) return;
+                                            const [seasonPart, episodePart] = key.split('_');
+                                            const seasonNum = parseInt(seasonPart, 10);
+                                            const episodeNum = parseInt(episodePart, 10);
+                                            if (Number.isNaN(seasonNum) || Number.isNaN(episodeNum)) return;
+                                            byKey.set(key, {
+                                                id: `virtual_ep_${key}`,
+                                                season_number: seasonNum,
+                                                episode_number: episodeNum,
+                                                episode_title: `Episode ${episodeNum}`
+                                            });
+                                        });
+                                    });
+                                    setScraperEpisodes(Array.from(byKey.values()).sort((a, b) =>
+                                        a.season_number - b.season_number || a.episode_number - b.episode_number
+                                    ));
+                                });
+                        } else {
+                            setScraperEpisodes([]);
+                        }
                     });
             } else {
                 setScraperSeasons([]);
+                setScraperEpisodes([]);
             }
         } else {
             setScraperSeasons([]);
+            setScraperEpisodes([]);
             setToonplayLinkMode('single');
             setToonplayUrls({});
             setAnimerulzLinkMode('single');
@@ -244,18 +279,15 @@ export default function StreamingPage() {
             setAnimeworldLinkMode('single');
             setAnimeworldUrl('');
             setAnimeworldUrls({});
+            setAnimeworldEpisodeUrls({});
             setAnimixstreamLinkMode('single');
             setAnimixstreamUrl('');
             setAnimixstreamUrls({});
+            setAnimixstreamEpisodeUrls({});
             setToonstreamLinkMode('single');
             setToonstreamUrl('');
             setToonstreamUrls({});
-            setMuseindiaLinkMode('single');
-            setMuseindiaUrl('');
-            setMuseindiaUrls({});
-            setAnioneindiaLinkMode('single');
-            setAnioneindiaUrl('');
-            setAnioneindiaUrls({});
+            setToonstreamEpisodeUrls({});
             setExpandedSection(null);
         }
     }, [editingScraperMovie]);
@@ -290,17 +322,26 @@ export default function StreamingPage() {
 
     const getOtherScrapersJsonToSave = () => {
         const payload: Record<string, any> = {};
+        const filterEpisodeUrls = (source: Record<string, string>) => {
+            const filtered: Record<string, string> = {};
+            for (const [k, v] of Object.entries(source)) {
+                if (v && v.trim()) filtered[k] = v.trim();
+            }
+            return filtered;
+        };
         
         // AnimeWorld
         const awFiltered: Record<number, string> = {};
         for (const [k, v] of Object.entries(animeworldUrls)) {
             if (v && v.trim()) awFiltered[parseInt(k)] = v.trim();
         }
-        if (animeworldUrl.trim() || Object.keys(awFiltered).length > 0) {
+        const awEpisodeFiltered = filterEpisodeUrls(animeworldEpisodeUrls);
+        if (animeworldUrl.trim() || Object.keys(awFiltered).length > 0 || Object.keys(awEpisodeFiltered).length > 0) {
             payload.animeworld = {
                 mode: animeworldLinkMode,
                 url: animeworldLinkMode === 'single' ? animeworldUrl.trim() : '',
-                urls: animeworldLinkMode === 'separate' ? awFiltered : {}
+                urls: animeworldLinkMode === 'separate' ? awFiltered : {},
+                episodeUrls: animeworldLinkMode === 'episode' ? awEpisodeFiltered : {}
             };
         }
 
@@ -309,11 +350,13 @@ export default function StreamingPage() {
         for (const [k, v] of Object.entries(animixstreamUrls)) {
             if (v && v.trim()) amFiltered[parseInt(k)] = v.trim();
         }
-        if (animixstreamUrl.trim() || Object.keys(amFiltered).length > 0) {
+        const amEpisodeFiltered = filterEpisodeUrls(animixstreamEpisodeUrls);
+        if (animixstreamUrl.trim() || Object.keys(amFiltered).length > 0 || Object.keys(amEpisodeFiltered).length > 0) {
             payload.animixstream = {
                 mode: animixstreamLinkMode,
                 url: animixstreamLinkMode === 'single' ? animixstreamUrl.trim() : '',
-                urls: animixstreamLinkMode === 'separate' ? amFiltered : {}
+                urls: animixstreamLinkMode === 'separate' ? amFiltered : {},
+                episodeUrls: animixstreamLinkMode === 'episode' ? amEpisodeFiltered : {}
             };
         }
 
@@ -322,37 +365,13 @@ export default function StreamingPage() {
         for (const [k, v] of Object.entries(toonstreamUrls)) {
             if (v && v.trim()) tsFiltered[parseInt(k)] = v.trim();
         }
-        if (toonstreamUrl.trim() || Object.keys(tsFiltered).length > 0) {
+        const tsEpisodeFiltered = filterEpisodeUrls(toonstreamEpisodeUrls);
+        if (toonstreamUrl.trim() || Object.keys(tsFiltered).length > 0 || Object.keys(tsEpisodeFiltered).length > 0) {
             payload.toonstream = {
                 mode: toonstreamLinkMode,
                 url: toonstreamLinkMode === 'single' ? toonstreamUrl.trim() : '',
-                urls: toonstreamLinkMode === 'separate' ? tsFiltered : {}
-            };
-        }
-
-        // Muse India
-        const miFiltered: Record<number, string> = {};
-        for (const [k, v] of Object.entries(museindiaUrls)) {
-            if (v && v.trim()) miFiltered[parseInt(k)] = v.trim();
-        }
-        if (museindiaUrl.trim() || Object.keys(miFiltered).length > 0) {
-            payload.muse_india = {
-                mode: museindiaLinkMode,
-                url: museindiaLinkMode === 'single' ? museindiaUrl.trim() : '',
-                urls: museindiaLinkMode === 'separate' ? miFiltered : {}
-            };
-        }
-
-        // Ani-One India
-        const aoFiltered: Record<number, string> = {};
-        for (const [k, v] of Object.entries(anioneindiaUrls)) {
-            if (v && v.trim()) aoFiltered[parseInt(k)] = v.trim();
-        }
-        if (anioneindiaUrl.trim() || Object.keys(aoFiltered).length > 0) {
-            payload.anione_india = {
-                mode: anioneindiaLinkMode,
-                url: anioneindiaLinkMode === 'single' ? anioneindiaUrl.trim() : '',
-                urls: anioneindiaLinkMode === 'separate' ? aoFiltered : {}
+                urls: toonstreamLinkMode === 'separate' ? tsFiltered : {},
+                episodeUrls: toonstreamLinkMode === 'episode' ? tsEpisodeFiltered : {}
             };
         }
 
@@ -399,7 +418,16 @@ export default function StreamingPage() {
 
     const getEnabledServers = (code: string | undefined | null) => {
         if (code === undefined || code === null) {
-            return ['custom', 'vidsrc_to', 'embed_su', 'vidsrc_me', 'vidsrc_anime', 'toonplay'];
+            return [
+                'custom',
+                'vidsrc_to',
+                'vidsrc_me',
+                'toonplay',
+                'animerulz',
+                'animeworld',
+                'animixstream',
+                'toonstream'
+            ];
         }
         if (code.trim() === '' || code.trim().toLowerCase() === 'none') {
             return [];
@@ -457,7 +485,10 @@ export default function StreamingPage() {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            if (data) setMovies(data);
+            if (data) {
+                const merged = await mergeMoviesWithStreaming(supabase, data as Movie[]);
+                setMovies(merged as Movie[]);
+            }
         } catch (e: any) {
             showMessage('error', 'Failed to fetch content: ' + e.message);
         } finally {
@@ -525,8 +556,7 @@ export default function StreamingPage() {
                     scraper_source: data.matched.scraper_source,
                     scraper_url: data.matched.scraper_url,
                     scraper_season: data.matched.scraper_season,
-                    scraper_resolution: data.matched.scraper_resolution,
-                    is_running: data.matched.is_running
+                    scraper_resolution: data.matched.scraper_resolution
                 } : m));
                 showMessage('success', 'Streaming config saved and scraper triggered!');
             } else {
@@ -556,6 +586,7 @@ export default function StreamingPage() {
                 .eq('id', movie.id);
 
             if (error) throw error;
+            await upsertStreamingRow(supabase, movie.id, { streaming_url: newStreamingUrl || null });
             
             setMovies(prev => prev.map(m => m.id === movie.id ? { ...m, streaming_url: newStreamingUrl } : m));
             showMessage('success', isCurrentlyDisabled ? 'Streaming turned ON!' : 'Streaming turned OFF!');
@@ -725,8 +756,7 @@ export default function StreamingPage() {
                             scraper_source: data.matched.scraper_source || m.scraper_source,
                             scraper_url: data.matched.scraper_url || m.scraper_url,
                             scraper_season: data.matched.scraper_season || m.scraper_season,
-                            scraper_resolution: data.matched.scraper_resolution || m.scraper_resolution,
-                            is_running: data.matched.is_running !== undefined ? data.matched.is_running : m.is_running
+                            scraper_resolution: data.matched.scraper_resolution || m.scraper_resolution
                         } : m));
                     } else {
                         failedCount++;
@@ -998,12 +1028,8 @@ export default function StreamingPage() {
                                 { id: 'toonstream', name: 'ToonStream Server', icon: '📺', desc: 'ToonStream.vip' },
                                 { id: 'animeworld', name: 'AnimeWorld Server', icon: '🌐', desc: 'watchanimeworld.net' },
                                 { id: 'animixstream', name: 'AnimixStream Server', icon: '🚀', desc: 'animixstream.com' },
-                                { id: 'muse_india', name: 'Muse India (YT)', icon: '🔴', desc: 'YouTube playlist' },
-                                { id: 'anione_india', name: 'Ani-One India (YT)', icon: '🔵', desc: 'YouTube playlist' },
                                 { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '⚡', desc: 'Auto Embed' },
-                                { id: 'embed_su', name: 'Embed.su', icon: '💿', desc: 'Auto Embed' },
-                                { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
-                                { id: 'vidsrc_anime', name: 'AnimeSrc', icon: '🌸', desc: 'Anime Only' }
+                                { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' }
                             ].map((server) => {
                                 const isEnabled = getEnabledServers(settings.social_bar_code).includes(server.id);
                                 return (
@@ -1489,9 +1515,7 @@ export default function StreamingPage() {
                                             { key: 'animerulz', label: 'Animerulz', color: 'bg-red-500/10 border-red-500/25 text-red-400' },
                                             { key: 'toonstream', label: 'ToonStream', color: 'bg-purple-500/10 border-purple-500/25 text-purple-400' },
                                             { key: 'animeworld', label: 'AnimeWorld', color: 'bg-green-500/10 border-green-500/25 text-green-400' },
-                                            { key: 'animixstream', label: 'AnimixStream', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
-                                            { key: 'muse_india', label: 'Muse India', color: 'bg-red-600/10 border-red-600/25 text-red-500' },
-                                            { key: 'anione_india', label: 'Ani-One India', color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' }
+                                            { key: 'animixstream', label: 'AnimixStream', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' }
                                         ].map((srv) => (
                                             <button
                                                 key={srv.key}
@@ -1834,11 +1858,9 @@ export default function StreamingPage() {
                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">⚡ Additional Servers</h4>
                                 
                                 {[
-                                    { id: 'animeworld', name: 'AnimeWorld Server', color: 'text-green-400', mode: animeworldLinkMode, setMode: setAnimeworldLinkMode, val: animeworldUrl, setVal: setAnimeworldUrl, map: animeworldUrls, setMap: setAnimeworldUrls, placeholder: 'https://watchanimeworld.net/anime/...' },
-                                    { id: 'animixstream', name: 'AnimixStream Server', color: 'text-cyan-400', mode: animixstreamLinkMode, setMode: setAnimixstreamLinkMode, val: animixstreamUrl, setVal: setAnimixstreamUrl, map: animixstreamUrls, setMap: setAnimixstreamUrls, placeholder: 'https://animixstream.com/anime/...' },
-                                    { id: 'toonstream', name: 'ToonStream Server', color: 'text-purple-400', mode: toonstreamLinkMode, setMode: setToonstreamLinkMode, val: toonstreamUrl, setVal: setToonstreamUrl, map: toonstreamUrls, setMap: setToonstreamUrls, placeholder: 'https://toonstream.vip/home/...' },
-                                    { id: 'muse_india', name: 'Muse India (YouTube)', color: 'text-red-500', mode: museindiaLinkMode, setMode: setMuseindiaLinkMode, val: museindiaUrl, setVal: setMuseindiaUrl, map: museindiaUrls, setMap: setMuseindiaUrls, placeholder: 'YouTube Channel or Playlist URL...' },
-                                    { id: 'anione_india', name: 'Ani-One India (YouTube)', color: 'text-blue-400', mode: anioneindiaLinkMode, setMode: setAnioneindiaLinkMode, val: anioneindiaUrl, setVal: setAnioneindiaUrl, map: anioneindiaUrls, setMap: setAnioneindiaUrls, placeholder: 'YouTube Channel or Playlist URL...' }
+                                    { id: 'animeworld', name: 'AnimeWorld Server', color: 'text-green-400', mode: animeworldLinkMode, setMode: setAnimeworldLinkMode, val: animeworldUrl, setVal: setAnimeworldUrl, map: animeworldUrls, setMap: setAnimeworldUrls, episodeMap: animeworldEpisodeUrls, setEpisodeMap: setAnimeworldEpisodeUrls, placeholder: 'https://watchanimeworld.net/anime/...' },
+                                    { id: 'animixstream', name: 'AnimixStream Server', color: 'text-cyan-400', mode: animixstreamLinkMode, setMode: setAnimixstreamLinkMode, val: animixstreamUrl, setVal: setAnimixstreamUrl, map: animixstreamUrls, setMap: setAnimixstreamUrls, episodeMap: animixstreamEpisodeUrls, setEpisodeMap: setAnimixstreamEpisodeUrls, placeholder: 'https://animixstream.com/anime/...' },
+                                    { id: 'toonstream', name: 'ToonStream Server', color: 'text-purple-400', mode: toonstreamLinkMode, setMode: setToonstreamLinkMode, val: toonstreamUrl, setVal: setToonstreamUrl, map: toonstreamUrls, setMap: setToonstreamUrls, episodeMap: toonstreamEpisodeUrls, setEpisodeMap: setToonstreamEpisodeUrls, placeholder: 'https://toonstream.vip/home/...' }
                                 ].map((srv) => {
                                     const isOpen = expandedSection === srv.id;
                                     return (
@@ -1868,6 +1890,7 @@ export default function StreamingPage() {
                                                         >
                                                             <option value="single">One Link All Seasons</option>
                                                             <option value="separate">Separate Season Links</option>
+                                                            <option value="episode">Separate Episode Links</option>
                                                         </select>
                                                     </div>
 
@@ -1882,7 +1905,7 @@ export default function StreamingPage() {
                                                                 placeholder={srv.placeholder}
                                                             />
                                                         </div>
-                                                    ) : (
+                                                    ) : srv.mode === 'separate' ? (
                                                         <div className="space-y-3">
                                                             {scraperSeasons.length === 0 ? (
                                                                 <p className="text-[11px] text-gray-400 italic">No seasons configured. Click "+ Add Season Input" below to add fields.</p>
@@ -1938,6 +1961,70 @@ export default function StreamingPage() {
                                                                 ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
                                                             </button>
                                                         </div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            {scraperEpisodes.length === 0 ? (
+                                                                <p className="text-[11px] text-gray-400 italic">No episodes configured. Click "+ Add Episode Link" below to add fields.</p>
+                                                            ) : (
+                                                                scraperEpisodes.map((episode) => {
+                                                                    const key = `${episode.season_number}_${episode.episode_number}`;
+                                                                    return (
+                                                                        <div key={episode.id || key} className="flex items-center gap-2">
+                                                                            <span className="text-xs font-bold text-gray-300 w-24">
+                                                                                S{episode.season_number} E{episode.episode_number}:
+                                                                            </span>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={srv.episodeMap[key] || ''}
+                                                                                onChange={(e) => srv.setEpisodeMap({
+                                                                                    ...srv.episodeMap,
+                                                                                    [key]: e.target.value
+                                                                                })}
+                                                                                className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                                                placeholder={`Episode ${episode.episode_number} URL...`}
+                                                                            />
+                                                                            {episode.id?.toString().startsWith('virtual_ep_') && (
+                                                                                <button
+                                                                                    type="button"
+                                                                                    onClick={() => {
+                                                                                        setScraperEpisodes(prev => prev.filter(ep => ep.id !== episode.id));
+                                                                                        const updated = { ...srv.episodeMap };
+                                                                                        delete updated[key];
+                                                                                        srv.setEpisodeMap(updated);
+                                                                                    }}
+                                                                                    className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                                                    title="Remove episode field"
+                                                                                >
+                                                                                    âœ•
+                                                                                </button>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const defaultSeason = scraperSeasons[0]?.season_number || 1;
+                                                                    const seasonEpisodes = scraperEpisodes.filter(ep => ep.season_number === defaultSeason);
+                                                                    const nextEpisodeNum = seasonEpisodes.length > 0
+                                                                        ? Math.max(...seasonEpisodes.map(ep => ep.episode_number)) + 1
+                                                                        : 1;
+                                                                    setScraperEpisodes(prev => [
+                                                                        ...prev,
+                                                                        {
+                                                                            id: `virtual_ep_${defaultSeason}_${nextEpisodeNum}`,
+                                                                            season_number: defaultSeason,
+                                                                            episode_number: nextEpisodeNum,
+                                                                            episode_title: `Episode ${nextEpisodeNum}`
+                                                                        }
+                                                                    ]);
+                                                                }}
+                                                                className="text-xs font-bold text-orange-500 hover:text-orange-400 flex items-center gap-1 mt-1 hover:underline"
+                                                            >
+                                                                âž• Add Episode Link
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             )}
@@ -1975,12 +2062,21 @@ export default function StreamingPage() {
                                                 toonplay_resolution: editingScraperMovie.toonplay_resolution || null,
                                                 scraper_url: otherUrlsJson,
                                                 scraper_source: otherUrlsJson ? 'multi' : null,
-                                                is_running: !!(aUrl || tUrl || otherUrlsJson),
                                                 updated_at: new Date().toISOString()
                                             })
                                             .eq('id', editingScraperMovie.id);
 
                                         if (updateErr) throw updateErr;
+                                        await upsertStreamingRow(supabase, editingScraperMovie.id, {
+                                            animerulz_url: aUrl,
+                                            animerulz_season: editingScraperMovie.animerulz_season || undefined,
+                                            animerulz_resolution: editingScraperMovie.animerulz_resolution,
+                                            toonplay_url: tUrl,
+                                            toonplay_season: editingScraperMovie.toonplay_season || undefined,
+                                            toonplay_resolution: editingScraperMovie.toonplay_resolution,
+                                            scraper_url: otherUrlsJson,
+                                            scraper_source: otherUrlsJson ? 'multi' : undefined
+                                        });
 
                                         // Update local state
                                         setMovies(prev => prev.map(m => m.id === editingScraperMovie.id ? {
@@ -1992,8 +2088,7 @@ export default function StreamingPage() {
                                             toonplay_season: editingScraperMovie.toonplay_season,
                                             toonplay_resolution: editingScraperMovie.toonplay_resolution,
                                             scraper_url: otherUrlsJson || undefined,
-                                            scraper_source: otherUrlsJson ? 'multi' : undefined,
-                                            is_running: !!(aUrl || tUrl || otherUrlsJson)
+                                            scraper_source: otherUrlsJson ? 'multi' : undefined
                                         } : m));
 
                                         showMessage('success', 'Scraper settings saved successfully!');
@@ -2030,12 +2125,21 @@ export default function StreamingPage() {
                                                 toonplay_resolution: editingScraperMovie.toonplay_resolution || null,
                                                 scraper_url: otherUrlsJson,
                                                 scraper_source: otherUrlsJson ? 'multi' : null,
-                                                is_running: !!(aUrl || tUrl || otherUrlsJson),
                                                 updated_at: new Date().toISOString()
                                             })
                                             .eq('id', editingScraperMovie.id);
 
                                         if (updateErr) throw updateErr;
+                                        await upsertStreamingRow(supabase, editingScraperMovie.id, {
+                                            animerulz_url: aUrl,
+                                            animerulz_season: editingScraperMovie.animerulz_season || undefined,
+                                            animerulz_resolution: editingScraperMovie.animerulz_resolution,
+                                            toonplay_url: tUrl,
+                                            toonplay_season: editingScraperMovie.toonplay_season || undefined,
+                                            toonplay_resolution: editingScraperMovie.toonplay_resolution,
+                                            scraper_url: otherUrlsJson,
+                                            scraper_source: otherUrlsJson ? 'multi' : undefined
+                                        });
 
                                         // Update local state
                                         setMovies(prev => prev.map(m => m.id === editingScraperMovie.id ? {
@@ -2047,8 +2151,7 @@ export default function StreamingPage() {
                                             toonplay_season: editingScraperMovie.toonplay_season,
                                             toonplay_resolution: editingScraperMovie.toonplay_resolution,
                                             scraper_url: otherUrlsJson || undefined,
-                                            scraper_source: otherUrlsJson ? 'multi' : undefined,
-                                            is_running: !!(aUrl || tUrl || otherUrlsJson)
+                                            scraper_source: otherUrlsJson ? 'multi' : undefined
                                         } : m));
 
                                         // 2. Trigger check-episodes scraper
@@ -2056,7 +2159,7 @@ export default function StreamingPage() {
                                         const checkRes = await fetch('/api/cron/check-episodes', {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ movieId: editingScraperMovie.id })
+                                            body: JSON.stringify({ movieId: editingScraperMovie.id, mode: 'streaming' })
                                         });
 
                                         if (!checkRes.ok) throw new Error('Scraper request failed');

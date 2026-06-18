@@ -7,6 +7,9 @@ import AdminShell from '@/components/AdminShell';
 
 type RunningTask = Pick<Movie, 'id' | 'title' | 'type' | 'poster_url' | 'last_episode' | 'next_episode' | 'next_episode_date' | 'admin_note' | 'notify_admin' | 'is_running' | 'running_status' | 'created_at' | 'scraper_url' | 'scraper_source' | 'scraper_resolution' | 'scraper_season'>;
 
+const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix']);
+const isRunningScraperSource = (source?: string | null) => !!source && RUNNING_SCRAPER_SOURCES.has(source);
+
 interface PendingSubInfo {
     linkId: string;
     episodeNumber: number;
@@ -41,7 +44,8 @@ export default function RunningTasksPage() {
             .order('created_at', { ascending: false });
 
         if (data) {
-            const sorted = data.sort((a, b) => {
+            const runningOnlyTasks = data.filter(task => !task.scraper_source || isRunningScraperSource(task.scraper_source));
+            const sorted = runningOnlyTasks.sort((a, b) => {
                 const dateA = a.next_episode_date ? new Date(a.next_episode_date).getTime() : Infinity;
                 const dateB = b.next_episode_date ? new Date(b.next_episode_date).getTime() : Infinity;
                 return dateA - dateB;
@@ -125,9 +129,11 @@ export default function RunningTasksPage() {
                 const result = data.results?.[0];
                 if (result) {
                     if (result.status === 'success') {
-                        let msg = `🎉 Imported ${result.importedCount} DUB episode(s) (Latest: Ep ${result.lastEpisode})`;
+                        const importedCount = result.importedCount ?? result.importedLegacy ?? 0;
+                        const latestEpisode = result.lastEpisode ?? 'unchanged';
+                        let msg = result.message || `Imported ${importedCount} DUB episode(s) (Latest: Ep ${latestEpisode})`;
                         if (result.pendingSubCount > 0) {
-                            msg += `\n📋 ${result.pendingSubCount} SUB episode(s) pending your approval.`;
+                            msg += `\n${result.pendingSubCount} SUB episode(s) pending your approval.`;
                         }
                         alert(msg);
                         fetchTasks();
@@ -406,7 +412,7 @@ export default function RunningTasksPage() {
                                                 </span>
                                             </div>
 
-                                            {task.scraper_source && (
+                                            {task.scraper_source && isRunningScraperSource(task.scraper_source) && (
                                                 <div className="text-xs text-gray-500 mb-2 flex items-center gap-1.5 flex-wrap">
                                                     <span>🤖 Auto Scraper:</span>
                                                     <span className="font-semibold text-gray-400 capitalize bg-white/5 px-1.5 py-0.5 rounded border border-white/5">{task.scraper_source}</span>
@@ -482,7 +488,7 @@ export default function RunningTasksPage() {
                                             </svg>
                                         </button>
 
-                                        {task.scraper_url && task.scraper_source && (
+                                        {task.scraper_url && task.scraper_source && isRunningScraperSource(task.scraper_source) && (
                                             <button
                                                 onClick={() => handleCheckSingle(task.id)}
                                                 disabled={checkingId === task.id}
@@ -602,8 +608,6 @@ export default function RunningTasksPage() {
                                             <option value="rareanimes">RareAnimes</option>
                                             <option value="movielink">MovieLinkBD</option>
                                             <option value="bollyflix">BollyFlix</option>
-                                            <option value="animerulz">Animerulz</option>
-                                            <option value="toonplay">Nexiplay Private Server</option>
                                         </select>
                                     </div>
                                     <div>
