@@ -2192,6 +2192,42 @@ export async function scrapeToonStream(
     const Anime = require('toon-scraper-package/src/anime');
     const Search = require('toon-scraper-package/src/search');
 
+    const normalizeToonStreamUrl = (sourceUrl: string) => {
+        if (!sourceUrl) return '';
+        if (sourceUrl.startsWith('//')) return `https:${sourceUrl}`;
+        if (sourceUrl.startsWith('/')) return `${origin}${sourceUrl}`;
+        return sourceUrl;
+    };
+
+    const resolveToonStreamEmbed = async (sourceUrl: string) => {
+        const normalizedUrl = normalizeToonStreamUrl(sourceUrl);
+        if (!normalizedUrl) return '';
+
+        let parsedSource: URL;
+        try {
+            parsedSource = new URL(normalizedUrl);
+        } catch {
+            return normalizedUrl;
+        }
+
+        const isEpisodePage = parsedSource.hostname.includes('toonstream') && parsedSource.pathname.includes('/episode/');
+        if (!isEpisodePage) {
+            return normalizedUrl;
+        }
+
+        const response = await fetch(normalizedUrl, { headers: HEADERS });
+        const html = await response.text();
+        const $ = cheerio.load(html);
+        const iframeSources: string[] = [];
+
+        $('iframe').each((_, elem) => {
+            const src = $(elem).attr('data-src') || $(elem).attr('src');
+            if (src) iframeSources.push(normalizeToonStreamUrl(src));
+        });
+
+        return iframeSources.find(src => src.includes('trembed=')) || iframeSources[0] || normalizedUrl;
+    };
+
     let slug = '';
     let type: 'series' | 'movies' = 'series';
     try {
@@ -2243,7 +2279,7 @@ export async function scrapeToonStream(
 
     if (type === 'movies') {
         const sources = info.sources || [];
-        const streamUrl = sources[0];
+        const streamUrl = sources[0] ? await resolveToonStreamEmbed(sources[0]) : '';
         if (streamUrl) {
             episodes.push({
                 number: 1,
@@ -2276,7 +2312,9 @@ export async function scrapeToonStream(
 
             try {
                 const sources = await Anime.fetch_source(ep.episode_slug, 'series');
-                const streamUrl = sources?.[0];
+                const streamUrl = sources?.[0]
+                    ? await resolveToonStreamEmbed(sources[0])
+                    : await resolveToonStreamEmbed(`${origin}/episode/${ep.episode_slug}/`);
                 if (streamUrl) {
                     episodes.push({
                         number: epNum,
