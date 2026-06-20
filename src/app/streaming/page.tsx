@@ -329,6 +329,27 @@ export default function StreamingPage() {
             }
             return filtered;
         };
+        const normalizeToonStreamInput = (value: string) => {
+            const trimmed = value.trim();
+            if (/^\d+$/.test(trimmed)) {
+                return `https://toonstream.vip/?trembed=${trimmed}`;
+            }
+            return trimmed;
+        };
+        const filterToonStreamSeasonUrls = (source: Record<number, string>) => {
+            const filtered: Record<number, string> = {};
+            for (const [k, v] of Object.entries(source)) {
+                if (v && v.trim()) filtered[parseInt(k)] = normalizeToonStreamInput(v);
+            }
+            return filtered;
+        };
+        const filterToonStreamEpisodeUrls = (source: Record<string, string>) => {
+            const filtered: Record<string, string> = {};
+            for (const [k, v] of Object.entries(source)) {
+                if (v && v.trim()) filtered[k] = normalizeToonStreamInput(v);
+            }
+            return filtered;
+        };
         
         // AnimeWorld
         const awFiltered: Record<number, string> = {};
@@ -361,15 +382,12 @@ export default function StreamingPage() {
         }
 
         // ToonStream
-        const tsFiltered: Record<number, string> = {};
-        for (const [k, v] of Object.entries(toonstreamUrls)) {
-            if (v && v.trim()) tsFiltered[parseInt(k)] = v.trim();
-        }
-        const tsEpisodeFiltered = filterEpisodeUrls(toonstreamEpisodeUrls);
+        const tsFiltered = filterToonStreamSeasonUrls(toonstreamUrls);
+        const tsEpisodeFiltered = filterToonStreamEpisodeUrls(toonstreamEpisodeUrls);
         if (toonstreamUrl.trim() || Object.keys(tsFiltered).length > 0 || Object.keys(tsEpisodeFiltered).length > 0) {
             payload.toonstream = {
                 mode: toonstreamLinkMode,
-                url: toonstreamLinkMode === 'single' ? toonstreamUrl.trim() : '',
+                url: toonstreamLinkMode === 'single' ? normalizeToonStreamInput(toonstreamUrl) : '',
                 urls: toonstreamLinkMode === 'separate' ? tsFiltered : {},
                 episodeUrls: toonstreamLinkMode === 'episode' ? tsEpisodeFiltered : {}
             };
