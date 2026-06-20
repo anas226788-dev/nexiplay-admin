@@ -1402,6 +1402,58 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
     // Anchor pattern: href and link text/html
     const anchorPattern = /<a\s+[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
 
+    const getAnchorText = (anchorHtml: string) =>
+        anchorHtml
+            .replace(/<[^>]*>/g, '')
+            .replace(/&amp;/g, '&')
+            .replace(/&#038;/g, '&')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+    const isNoiseLink = (textLower: string, hrefLower: string) =>
+        textLower.includes('how to download') ||
+        textLower.includes('join us') ||
+        textLower.includes('telegram') ||
+        textLower.includes('watch online') ||
+        hrefLower.includes('t.me/') ||
+        hrefLower.includes('telegram');
+
+    const isGoogleDriveCandidate = (href: string, text: string) => {
+        const textLower = text.toLowerCase();
+        const hrefLower = href.toLowerCase();
+        if (isNoiseLink(textLower, hrefLower)) return false;
+
+        return (
+            textLower.includes('google drive') ||
+            textLower.includes('g-drive') ||
+            textLower.includes('gdrive') ||
+            textLower.includes('drive') ||
+            hrefLower.includes('drive.google.com') ||
+            hrefLower.includes('gdflix') ||
+            hrefLower.includes('gdtot') ||
+            hrefLower.includes('gdbot') ||
+            hrefLower.includes('driveseed') ||
+            hrefLower.includes('drivebot')
+        );
+    };
+
+    const isDownloadCandidate = (href: string, text: string) => {
+        const textLower = text.toLowerCase();
+        const hrefLower = href.toLowerCase();
+        if (isNoiseLink(textLower, hrefLower)) return false;
+
+        return (
+            textLower.includes('download links') ||
+            textLower.includes('direct links') ||
+            textLower.includes('download now') ||
+            /^download(?:\s+link)?s?$/i.test(text) ||
+            hrefLower.includes('/elinks/') ||
+            hrefLower.includes('/download/') ||
+            hrefLower.includes('/downloads/') ||
+            hrefLower.includes('/links/')
+        );
+    };
+
     for (let i = 0; i < sections.length; i++) {
         const section = sections[i];
         const endIndex =
@@ -1413,42 +1465,26 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
         
         anchorPattern.lastIndex = 0; // reset
         let aMatch: RegExpExecArray | null;
-        const foundForSection: { href: string; text: string }[] = [];
+        const gdriveForSection: { href: string; text: string }[] = [];
+        const downloadForSection: { href: string; text: string }[] = [];
 
         while ((aMatch = anchorPattern.exec(slice)) !== null) {
             const href = aMatch[1];
-            const text = aMatch[2].replace(/<[^>]*>/g, '').trim();
-            const textLower = text.toLowerCase();
-            const hrefLower = href.toLowerCase();
+            const text = getAnchorText(aMatch[2]);
 
-            // Criteria to determine if it is a Google Drive link:
-            // 1. Text contains "google drive", "g-drive", "gdrive", or "drive"
-            // 2. OR href contains google drive / proxy domains
-            const isGoogleDriveLink = 
-                textLower.includes('google drive') || 
-                textLower.includes('g-drive') || 
-                textLower.includes('gdrive') ||
-                textLower.includes('drive') ||
-                hrefLower.includes('drive.google.com') ||
-                hrefLower.includes('gdflix') ||
-                hrefLower.includes('gdtot') ||
-                hrefLower.includes('gdbot') ||
-                hrefLower.includes('driveseed') ||
-                hrefLower.includes('drivebot');
-
-            const isExcluded = 
-                textLower.includes('download links') || 
-                textLower.includes('direct links') ||
-                textLower.includes('how to download') ||
-                textLower.includes('join us') ||
-                textLower.includes('telegram');
-
-            if (isGoogleDriveLink && !isExcluded) {
-                foundForSection.push({ href, text });
+            if (isGoogleDriveCandidate(href, text)) {
+                gdriveForSection.push({ href, text });
+            } else if (isDownloadCandidate(href, text)) {
+                downloadForSection.push({ href, text });
             }
         }
 
+        const foundForSection = gdriveForSection.length > 0 ? gdriveForSection : downloadForSection;
         if (foundForSection.length > 0) {
+            if (gdriveForSection.length === 0) {
+                warnings.push(`Used fallback download link for ${section.resolution}${section.size ? ' [' + section.size + ']' : ''}`);
+            }
+
             foundForSection.forEach((item, fIdx) => {
                 const label = section.size
                     ? `${section.resolution} [${section.size}]` + (foundForSection.length > 1 ? ` - Link ${fIdx + 1}` : '')
@@ -1461,7 +1497,7 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
                 });
             });
         } else {
-            warnings.push(`No Google Drive link found for ${section.resolution}${section.size ? ' [' + section.size + ']' : ''}`);
+            warnings.push(`No Google Drive or fallback download link found for ${section.resolution}${section.size ? ' [' + section.size + ']' : ''}`);
         }
     }
 
@@ -1469,42 +1505,35 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
     if (episodes.length === 0) {
         anchorPattern.lastIndex = 0;
         let aMatch: RegExpExecArray | null;
+        const gdriveLinks: { href: string; text: string }[] = [];
+        const downloadLinks: { href: string; text: string }[] = [];
+
         while ((aMatch = anchorPattern.exec(contentHtml)) !== null) {
             const href = aMatch[1];
-            const text = aMatch[2].replace(/<[^>]*>/g, '').trim();
-            const textLower = text.toLowerCase();
-            const hrefLower = href.toLowerCase();
+            const text = getAnchorText(aMatch[2]);
 
-            const isGoogleDriveLink = 
-                textLower.includes('google drive') || 
-                textLower.includes('g-drive') || 
-                textLower.includes('gdrive') ||
-                textLower.includes('drive') ||
-                hrefLower.includes('drive.google.com') ||
-                hrefLower.includes('gdflix') ||
-                hrefLower.includes('gdtot') ||
-                hrefLower.includes('gdbot') ||
-                hrefLower.includes('driveseed') ||
-                hrefLower.includes('drivebot');
-
-            const isExcluded = 
-                textLower.includes('download links') || 
-                textLower.includes('direct links') ||
-                textLower.includes('how to download') ||
-                textLower.includes('join us') ||
-                textLower.includes('telegram');
-
-            if (isGoogleDriveLink && !isExcluded) {
-                episodes.push({
-                    number: idx++,
-                    title: `Google Drive Link ${idx - 1} (${resolution})`,
-                    link: href,
-                });
+            if (isGoogleDriveCandidate(href, text)) {
+                gdriveLinks.push({ href, text });
+            } else if (isDownloadCandidate(href, text)) {
+                downloadLinks.push({ href, text });
             }
         }
 
+        const selectedLinks = gdriveLinks.length > 0 ? gdriveLinks : downloadLinks;
+        if (gdriveLinks.length === 0 && selectedLinks.length > 0) {
+            warnings.push('No Google Drive links found. Used fallback download links.');
+        }
+
+        selectedLinks.forEach(item => {
+            episodes.push({
+                number: idx++,
+                title: `${gdriveLinks.length > 0 ? 'Google Drive' : 'Download'} Link ${idx - 1} (${resolution})`,
+                link: item.href,
+            });
+        });
+
         if (episodes.length === 0) {
-            throw new Error('No Google Drive download links found on this BollyFlix page.');
+            throw new Error('No Google Drive or fallback download links found on this BollyFlix page.');
         }
     }
 
@@ -2274,11 +2303,12 @@ export async function scrapeToonStream(
     targetSeasonNum?: number,
     movieTitle?: string
 ): Promise<ScrapedResult> {
-    console.log(`[ToonStream] Scraping URL: ${url}`);
+    const inputUrl = (url || '').trim();
+    console.log(`[ToonStream] Scraping URL: ${inputUrl}`);
     
     let origin = 'https://toonstream.vip';
     try {
-        const parsedUrl = new URL(url);
+        const parsedUrl = new URL(inputUrl);
         if (parsedUrl.hostname.includes('toonstream')) {
             origin = parsedUrl.origin;
         }
@@ -2290,12 +2320,79 @@ export async function scrapeToonStream(
     const Anime = require('toon-scraper-package/src/anime');
     const Search = require('toon-scraper-package/src/search');
 
-    const normalizeToonStreamUrl = (sourceUrl: string) => {
-        if (!sourceUrl) return '';
-        if (sourceUrl.startsWith('//')) return `https:${sourceUrl}`;
-        if (sourceUrl.startsWith('/')) return `${origin}${sourceUrl}`;
-        return sourceUrl;
+    const buildToonStreamEmbedUrl = (embedId: string, embedOrigin = origin) => {
+        return `${embedOrigin}/?trembed=${encodeURIComponent(embedId)}`;
     };
+
+    const getDirectToonStreamEmbedUrl = (sourceUrl: string): string | null => {
+        const trimmed = (sourceUrl || '').trim();
+        if (!trimmed) return null;
+
+        if (/^\d+$/.test(trimmed)) {
+            return buildToonStreamEmbedUrl(trimmed);
+        }
+
+        const trembedMatch = trimmed.match(/[?&]trembed=(\d+)/i);
+        if (trembedMatch) {
+            try {
+                const parsed = new URL(trimmed.startsWith('//') ? `https:${trimmed}` : trimmed);
+                return buildToonStreamEmbedUrl(trembedMatch[1], parsed.origin);
+            } catch {
+                return buildToonStreamEmbedUrl(trembedMatch[1]);
+            }
+        }
+
+        try {
+            const parsed = new URL(trimmed.startsWith('//') ? `https:${trimmed}` : trimmed);
+            const embedId =
+                parsed.searchParams.get('trembed') ||
+                parsed.searchParams.get('embed') ||
+                parsed.searchParams.get('id');
+            if (embedId && /^\d+$/.test(embedId)) {
+                return buildToonStreamEmbedUrl(embedId, parsed.origin);
+            }
+
+            const parts = parsed.pathname.split('/').filter(Boolean);
+            const lastPart = parts[parts.length - 1] || '';
+            const isContentPage = parts.some(part => ['series', 'movies', 'movie', 'episode'].includes(part.toLowerCase()));
+            if (!isContentPage && /^\d+$/.test(lastPart)) {
+                return buildToonStreamEmbedUrl(lastPart, parsed.origin);
+            }
+        } catch {
+            // Non-URL values are handled by the numeric/trembed checks above.
+        }
+
+        return null;
+    };
+
+    const normalizeToonStreamUrl = (sourceUrl: string) => {
+        const trimmed = (sourceUrl || '').trim();
+        if (!trimmed) return '';
+        const directEmbedUrl = getDirectToonStreamEmbedUrl(trimmed);
+        if (directEmbedUrl) return directEmbedUrl;
+        if (trimmed.startsWith('//')) return `https:${trimmed}`;
+        if (trimmed.startsWith('/')) return `${origin}${trimmed}`;
+        return trimmed;
+    };
+
+    const directEmbedUrl = getDirectToonStreamEmbedUrl(inputUrl);
+    if (directEmbedUrl) {
+        const targetSeason = targetSeasonNum || 1;
+        return {
+            pageTitle: `${movieTitle || 'ToonStream'} (ToonStream)`,
+            resolution: '720p',
+            seasonZipLink: null,
+            episodes: [{
+                number: 1,
+                title: 'Episode 1',
+                link: directEmbedUrl,
+                streamingUrl: directEmbedUrl,
+                season: targetSeason
+            }],
+            totalFound: 1,
+            resolvedCount: 1
+        };
+    }
 
     const resolveToonStreamEmbed = async (sourceUrl: string) => {
         const normalizedUrl = normalizeToonStreamUrl(sourceUrl);
@@ -2329,7 +2426,7 @@ export async function scrapeToonStream(
     let slug = '';
     let type: 'series' | 'movies' = 'series';
     try {
-        const parsedUrl = new URL(url);
+        const parsedUrl = new URL(inputUrl);
         const parts = parsedUrl.pathname.split('/').filter(Boolean);
         if (parts.includes('movies')) {
             type = 'movies';
@@ -2341,7 +2438,7 @@ export async function scrapeToonStream(
             slug = parts[parts.length - 1] || '';
         }
     } catch {
-        slug = url.split('/').filter(Boolean).pop() || '';
+        slug = inputUrl.split('/').filter(Boolean).pop() || '';
     }
 
     if (!slug && movieTitle) {
@@ -2359,7 +2456,7 @@ export async function scrapeToonStream(
     }
 
     if (!slug) {
-        throw new Error(`Could not determine ToonStream slug/ID for URL: ${url}`);
+        throw new Error(`Could not determine ToonStream slug/ID for URL: ${inputUrl}`);
     }
 
     console.log(`[ToonStream] Fetching info for slug: ${slug}, type: ${type}`);
