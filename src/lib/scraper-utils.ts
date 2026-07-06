@@ -353,9 +353,16 @@ async function fetchHtmlWithProxy(
     if (proxies.length > 0) {
         // Shuffle to get a random assortment of proxies
         const shuffled = [...proxies].sort(() => Math.random() - 0.5);
-        const maxRetries = Math.min(15, shuffled.length);
+        const maxRetries = Math.min(5, shuffled.length); // Reduced from 15 to 5 to fail faster
+        let consecutiveTimeouts = 0;
         
         for (let i = 0; i < maxRetries; i++) {
+            // Early abort: if 3 consecutive proxies timeout, the source is likely down
+            if (consecutiveTimeouts >= 3) {
+                console.warn(`[Proxy Rotator] 3 consecutive timeouts for ${url} — source site appears to be down. Aborting proxy attempts.`);
+                break;
+            }
+
             const proxy = shuffled[i];
             const proxyUri = `http://${proxy}`;
             
@@ -373,6 +380,7 @@ async function fetchHtmlWithProxy(
                 });
                 
                 const html = await res.text();
+                consecutiveTimeouts = 0; // Reset on successful connection
                 
                 if (res.ok && !isCloudflareBlock(res.status, html)) {
                     console.log(`[Proxy Rotator] Successfully fetched ${url} via proxy ${proxyUri}`);
@@ -386,6 +394,8 @@ async function fetchHtmlWithProxy(
                     console.warn(`[Proxy Rotator] Proxy ${proxyUri} blocked or returned status ${res.status} for ${url}`);
                 }
             } catch (err: any) {
+                const isTimeout = err.message?.includes('timeout') || err.message?.includes('aborted');
+                if (isTimeout) consecutiveTimeouts++;
                 console.warn(`[Proxy Rotator] Proxy ${proxyUri} failed for ${url}: ${err.message}`);
             }
         }
@@ -703,6 +713,15 @@ export async function scrapeSource(
     if (source === 'anione_india') {
         return scrapeYouTubeSource(url, 'Ani-One India', skipEpisodes, options.targetSeason);
     }
+    if (source === 'animerulz') {
+        return scrapeAnimerulz(url, skipEpisodes, options.disableSequels || false, options.targetSeason);
+    }
+    if (source === 'toonplay') {
+        return scrapeToonplay(url, skipEpisodes, options.targetSeason);
+    }
+    if (source === 'bollyflix') {
+        return scrapeBollyflix(url);
+    }
     let html = '';
     let status = 200;
     let ok = true;
@@ -913,12 +932,6 @@ export async function scrapeSource(
             totalFound: buttons.length,
             resolvedCount: episodes.length,
         };
-    } else if (source === 'bollyflix') {
-        return scrapeBollyflix(url);
-    } else if (source === 'animerulz') {
-        return scrapeAnimerulz(url, skipEpisodes, options.disableSequels, options.targetSeason);
-    } else if (source === 'toonplay') {
-        return scrapeToonplay(url, skipEpisodes, options.targetSeason);
     } else {
         throw new Error(`Unsupported scraper source: ${source}`);
     }

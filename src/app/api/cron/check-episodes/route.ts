@@ -1057,11 +1057,23 @@ async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'ru
 
         } catch (movieErr: any) {
             console.error(`Error processing auto-checker for "${movieTitle}":`, movieErr);
+            const errMsg = movieErr.message || JSON.stringify(movieErr);
+            const isTimeout = errMsg.includes('timeout') || errMsg.includes('aborted');
+            const isCfBlock = errMsg.includes('Cloudflare') || errMsg.includes('block');
+            const isConnectionErr = errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND') || errMsg.includes('fetch failed');
+            
+            let userFriendlyError = errMsg;
+            if (isTimeout || isConnectionErr) {
+                userFriendlyError = `Source site is not responding (timeout). The site may be down or blocking requests. Try again later.`;
+            } else if (isCfBlock) {
+                userFriendlyError = `Source site is protected by Cloudflare and blocked the request. Try again later.`;
+            }
+            
             results.push({
                 id: movieId,
                 title: movieTitle,
                 status: 'error',
-                error: movieErr.message || JSON.stringify(movieErr),
+                error: userFriendlyError,
             });
         }
     }
