@@ -65,6 +65,10 @@ export default function SettingsPage() {
                         is_download_verification_enabled: settings.is_download_verification_enabled || false,
                         download_ad_url_1: settings.download_ad_url_1 || '',
                         download_ad_url_2: settings.download_ad_url_2 || '',
+                        // Novel Verification
+                        is_novel_verification_enabled: settings.is_novel_verification_enabled || false,
+                        novel_ad_url_1: settings.novel_ad_url_1 || '',
+                        novel_ad_url_2: settings.novel_ad_url_2 || '',
                         // Latest Updates Ads
                         latest_update_click_ad_link: settings.latest_update_click_ad_link || '',
                         is_verification_enabled: settings.is_verification_enabled || false,
@@ -250,42 +254,80 @@ export default function SettingsPage() {
                             </div>
 
                             {/* Download Verification Ads */}
-                    <div className="p-6 bg-dark-800/50 rounded-xl border border-white/5">
-                        <h3 className="text-lg font-bold mb-1 flex items-center gap-2">🔒 Download Verification Ads</h3>
-                        <p className="text-xs text-gray-400 mb-4">
-                            Users must complete a 2-step ad verification before downloading. Same system as Watch Online verification.
-                        </p>
-                        <div className="flex items-center gap-3 mb-4">
-                            <label className="text-sm font-bold text-gray-300">Enable Download Verification</label>
-                            <button
-                                type="button"
-                                onClick={() => setSettings({...settings, is_download_verification_enabled: !settings.is_download_verification_enabled})}
-                                className={`relative w-12 h-6 rounded-full transition-colors ${
-                                    settings.is_download_verification_enabled ? 'bg-emerald-500' : 'bg-gray-600'
-                                }`}
-                            >
-                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                                    settings.is_download_verification_enabled ? 'translate-x-6' : ''
-                                }`} />
-                            </button>
-                        </div>
-                        <label className="text-xs font-bold text-red-400 block mb-1">Step 1 Ad URL</label>
-                        <input
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg px-3 py-2 text-sm mb-1"
-                            placeholder="https://example.com/ad-link-1"
-                            value={settings.download_ad_url_1 || ''}
-                            onChange={(e) => setSettings({...settings, download_ad_url_1: e.target.value})}
-                        />
-                        <p className="text-[10px] text-gray-500 mb-3">Ad link for the first step (Secure Scanning). If empty, defaults to direct link.</p>
-                        <label className="text-xs font-bold text-red-400 block mb-1">Step 2 Ad URL</label>
-                        <input
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg px-3 py-2 text-sm mb-1"
-                            placeholder="https://example.com/ad-link-2"
-                            value={settings.download_ad_url_2 || ''}
-                            onChange={(e) => setSettings({...settings, download_ad_url_2: e.target.value})}
-                        />
-                        <p className="text-[10px] text-gray-500">Ad link for the second step (Final Verification). If empty, defaults to popunder link.</p>
-                    </div>
+                            <div className="p-6 bg-dark-800/50 rounded-xl border border-white/5 mt-6">
+                                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">🔒 Download Verification Ads</h3>
+                                <p className="text-xs text-gray-400 mb-4">
+                                    Users must complete a 2-step ad verification before downloading movies/series.
+                                </p>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <label className="text-sm font-bold text-gray-300">Enable Verification</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSettings({...settings, is_download_verification_enabled: !settings.is_download_verification_enabled})}
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${
+                                            settings.is_download_verification_enabled ? 'bg-emerald-500' : 'bg-gray-600'
+                                        }`}
+                                    >
+                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                                            settings.is_download_verification_enabled ? 'translate-x-6' : ''
+                                        }`} />
+                                    </button>
+                                </div>
+                                <label className="text-xs font-bold text-red-400 block mb-1">Step 1 Ad URL</label>
+                                <input
+                                    className="w-full bg-dark-700 border border-white/10 rounded-lg px-3 py-2 text-sm mb-1"
+                                    placeholder="https://example.com/ad-link-1"
+                                    value={settings.download_ad_url_1 || ''}
+                                    onChange={(e) => setSettings({...settings, download_ad_url_1: e.target.value})}
+                                />
+                                <p className="text-[10px] text-gray-500 mb-3">Ad link for the first step (Secure Scanning). If empty, defaults to direct link.</p>
+                                <label className="text-xs font-bold text-red-400 block mb-1">Step 2 Ad URL</label>
+                                <input
+                                    className="w-full bg-dark-700 border border-white/10 rounded-lg px-3 py-2 text-sm mb-1"
+                                    placeholder="https://example.com/ad-link-2"
+                                    value={settings.download_ad_url_2 || ''}
+                                    onChange={(e) => setSettings({...settings, download_ad_url_2: e.target.value})}
+                                />
+                                <p className="text-[10px] text-gray-500">Ad link for the second step (Final Verification). If empty, defaults to popunder link.</p>
+                            </div>
+
+                            {/* Novel Verification Ads */}
+                            <div className="p-6 bg-dark-800/50 rounded-xl border border-white/5 mt-6">
+                                <h3 className="text-lg font-bold mb-1 flex items-center gap-2">📖 Novel Reading Verification Ads</h3>
+                                <p className="text-xs text-gray-400 mb-4">
+                                    Users must complete a 2-step ad verification before reading novels or chapters.
+                                </p>
+                                <div className="flex items-center gap-3 mb-4">
+                                    <label className="text-sm font-bold text-gray-300">Enable Novel Verification</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSettings({...settings, is_novel_verification_enabled: !settings.is_novel_verification_enabled})}
+                                        className={`relative w-12 h-6 rounded-full transition-colors ${
+                                            settings.is_novel_verification_enabled ? 'bg-emerald-500' : 'bg-gray-600'
+                                        }`}
+                                    >
+                                        <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                                            settings.is_novel_verification_enabled ? 'translate-x-6' : ''
+                                        }`} />
+                                    </button>
+                                </div>
+                                <label className="text-xs font-bold text-red-400 block mb-1">Step 1 Ad URL</label>
+                                <input
+                                    className="w-full bg-dark-700 border border-white/10 rounded-lg px-3 py-2 text-sm mb-1"
+                                    placeholder="https://example.com/ad-link-1"
+                                    value={settings.novel_ad_url_1 || ''}
+                                    onChange={(e) => setSettings({...settings, novel_ad_url_1: e.target.value})}
+                                />
+                                <p className="text-[10px] text-gray-500 mb-3">Ad link for the first step (Secure Scanning). If empty, defaults to direct link.</p>
+                                <label className="text-xs font-bold text-red-400 block mb-1">Step 2 Ad URL</label>
+                                <input
+                                    className="w-full bg-dark-700 border border-white/10 rounded-lg px-3 py-2 text-sm mb-1"
+                                    placeholder="https://example.com/ad-link-2"
+                                    value={settings.novel_ad_url_2 || ''}
+                                    onChange={(e) => setSettings({...settings, novel_ad_url_2: e.target.value})}
+                                />
+                                <p className="text-[10px] text-gray-500">Ad link for the second step (Final Verification). If empty, defaults to popunder link.</p>
+                            </div>
 
                             {/* Latest Updates Ads */}
                             <div className="space-y-4 pt-6 border-t border-white/5">

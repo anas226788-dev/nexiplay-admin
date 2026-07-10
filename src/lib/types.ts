@@ -164,6 +164,10 @@ export interface AppSettings {
     is_download_verification_enabled?: boolean;
     download_ad_url_1?: string;
     download_ad_url_2?: string;
+    // Novel Verification
+    is_novel_verification_enabled?: boolean;
+    novel_ad_url_1?: string;
+    novel_ad_url_2?: string;
     // Latest Updates Ads
     latest_update_click_ad_link?: string;
     is_verification_enabled?: boolean;
