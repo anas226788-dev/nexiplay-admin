@@ -517,7 +517,7 @@ async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'ru
                                         targetUrl,
                                         serverKey as any,
                                         [],
-                                        { targetSeason: sNum, movieTitle: movie.title }
+                                        { targetSeason: sNum, movieTitle: movie.title, isStreamingOnly: true }
                                     );
 
                                     if (scrapeResult.warnings) {
@@ -580,7 +580,7 @@ async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'ru
                                     targetUrl,
                                     serverKey as any,
                                     [],
-                                    { targetSeason: sNum, movieTitle: movie.title }
+                                    { targetSeason: sNum, movieTitle: movie.title, isStreamingOnly: true }
                                 );
 
                                 if (scrapeResult.warnings) {

@@ -51,6 +51,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
         content: '',
         image_url: '',
         video_url: '',
+        platform: 'both',
         type: 'top_bar',
         pages: 'all',
         movie_id: '',
@@ -93,6 +94,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                     content: data.content || '',
                     image_url: data.image_url || '',
                     video_url: data.video_url || '',
+                    platform: data.platform || 'both',
                     type: data.type || 'top_bar',
                     pages: data.pages || 'all',
                     movie_id: data.movie_id || '',
@@ -163,6 +165,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
             is_active: formData.is_active,
             image_url: formData.image_url || null,
             video_url: formData.video_url || null,
+            platform: formData.platform,
             movie_id: formData.pages === 'specific' && formData.movie_id ? formData.movie_id : null
         };
 
@@ -268,7 +271,19 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-3 gap-6">
+                    <div>
+                        <label className="block text-gray-400 mb-2">Platform</label>
+                        <select
+                            className="w-full bg-dark-900 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-600"
+                            value={formData.platform}
+                            onChange={(e) => setFormData({ ...formData, platform: e.target.value })}
+                        >
+                            <option value="both">🌐 Both (Web & App)</option>
+                            <option value="web">💻 Web Only</option>
+                            <option value="app">📱 App Only</option>
+                        </select>
+                    </div>
                     <div>
                         <label className="block text-gray-400 mb-2">Type</label>
                         <select

@@ -70,6 +70,7 @@ export default function NoticePage() {
                     <thead>
                         <tr className="bg-white/5 border-b border-white/5">
                             <th className="px-6 py-4 text-gray-300 text-sm">Content</th>
+                            <th className="px-6 py-4 text-gray-300 text-sm">Platform</th>
                             <th className="px-6 py-4 text-gray-300 text-sm">Type</th>
                             <th className="px-6 py-4 text-gray-300 text-sm">Pages</th>
                             <th className="px-6 py-4 text-gray-300 text-sm">Status</th>
@@ -86,6 +87,15 @@ export default function NoticePage() {
                                         )}
                                         <div dangerouslySetInnerHTML={{ __html: notice.content }} />
                                     </div>
+                                </td>
+                                <td className="px-6 py-4 text-gray-300">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                                        notice.platform === 'web' ? 'bg-blue-500/20 text-blue-400' :
+                                        notice.platform === 'app' ? 'bg-green-500/20 text-green-400' :
+                                        'bg-purple-500/20 text-purple-400'
+                                    }`}>
+                                        {notice.platform || 'both'}
+                                    </span>
                                 </td>
                                 <td className="px-6 py-4 text-gray-300">
                                     <span className="px-2 py-1 bg-white/10 rounded text-xs font-bold uppercase">{notice.type.replace('_', ' ')}</span>

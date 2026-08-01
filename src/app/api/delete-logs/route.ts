@@ -33,20 +33,22 @@ export async function DELETE(request: Request) {
         }
 
         if (type === 'user_all') {
-            // Delete all events and sessions for this user ID
-            const [eventsRes, sessionsRes] = await Promise.all([
+            // Delete all events, sessions and messages for this user ID
+            const [eventsRes, sessionsRes, messagesRes] = await Promise.all([
                 supabase.from('user_events').delete().eq('user_id', id),
-                supabase.from('user_sessions').delete().eq('user_id', id)
+                supabase.from('user_sessions').delete().eq('user_id', id),
+                supabase.from('notifications').delete().eq('user_id', id)
             ]);
 
             if (eventsRes.error) throw eventsRes.error;
             if (sessionsRes.error) throw sessionsRes.error;
+            if (messagesRes.error) throw messagesRes.error;
 
             return NextResponse.json({ success: true, message: 'All user activity logs deleted successfully' });
         }
 
         if (type === 'notification') {
-            const { error } = await supabase.from('user_notifications').delete().eq('id', id);
+            const { error } = await supabase.from('notifications').delete().eq('id', id);
             if (error) throw error;
             return NextResponse.json({ success: true, message: 'Notification deleted successfully' });
         }

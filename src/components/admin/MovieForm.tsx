@@ -44,6 +44,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     const [imdbId, setImdbId] = useState(initialData?.imdb_id || '');
     const [malId, setMalId] = useState(initialData?.mal_id || '');
     const [streamingUrl, setStreamingUrl] = useState(initialData?.streaming_url || '');
+    const [appStreamingEnabled, setAppStreamingEnabled] = useState(initialData?.app_streaming_enabled ?? true);
 
     // Tracking State
     const [isRunning, setIsRunning] = useState(initialData?.is_running || false);
@@ -274,8 +275,8 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         // Streaming service integration
                         tmdb_id: tmdbId || null,
                         imdb_id: imdbId || null,
-                        mal_id: malId || null,
-                        streaming_url: type === 'movie' ? (streamingUrl || null) : null
+                        streaming_url: type === 'movie' ? (streamingUrl || null) : null,
+                        app_streaming_enabled: appStreamingEnabled
                     })
                     .eq('id', movieId);
 
@@ -332,8 +333,8 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         // Streaming service integration
                         tmdb_id: tmdbId || null,
                         imdb_id: imdbId || null,
-                        mal_id: malId || null,
-                        streaming_url: type === 'movie' ? (streamingUrl || null) : null
+                        streaming_url: type === 'movie' ? (streamingUrl || null) : null,
+                        app_streaming_enabled: appStreamingEnabled
                     })
                     .select()
                     .single();
@@ -527,9 +528,23 @@ export default function MovieForm({ initialData }: MovieFormProps) {
 
             {/* Streaming & Metadata Integration */}
             <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
-                <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <span>📺</span> Streaming & Embeds
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+                    <h3 className="text-xl font-bold flex items-center gap-2">
+                        <span>📺</span> Streaming & Watch Button
+                    </h3>
+                    <label className="relative inline-flex items-center cursor-pointer select-none bg-dark-800/60 p-2.5 rounded-xl border border-white/10">
+                        <input
+                            type="checkbox"
+                            checked={appStreamingEnabled}
+                            onChange={(e) => setAppStreamingEnabled(e.target.checked)}
+                            className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                        <span className={`ml-3 text-sm font-bold ${appStreamingEnabled ? 'text-green-400' : 'text-red-400'}`}>
+                            {appStreamingEnabled ? '📱 App Watch Button: ON 🟢' : '📱 App Watch Button: OFF 🔴'}
+                        </span>
+                    </label>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label className="block text-sm text-gray-400 mb-1">TMDB ID</label>

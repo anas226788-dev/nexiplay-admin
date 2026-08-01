@@ -19,6 +19,7 @@ export interface ScrapedResult {
     totalFound?: number;
     resolvedCount?: number;
     fallbackCount?: number;
+    adminNote?: string;
 }
 
 interface ResolvedZipperLink {
@@ -253,6 +254,64 @@ function extractRareAnimesEpisodes(html: string): {
     sub.sort(sortFn);
 
     return { dub, sub };
+}
+
+function extractRareAnimesStreamingEpisodes(html: string): { title: string; streamingUrl: string }[] {
+    const episodes: { title: string; streamingUrl: string }[] = [];
+    const seen = new Set<string>();
+
+    const epPattern = /Episode\s*(\d+)([^<]*)/gi;
+    let epMatch;
+    const epPositions: { num: string; title: string; index: number }[] = [];
+
+    while ((epMatch = epPattern.exec(html)) !== null) {
+        epPositions.push({
+            num: epMatch[1],
+            title: epMatch[2].replace(/<[^>]*>/g, '').trim(),
+            index: epMatch.index,
+        });
+    }
+
+    for (let i = 0; i < epPositions.length; i++) {
+        const ep = epPositions[i];
+        if (seen.has(ep.num)) continue;
+
+        const endIndex = i + 1 < epPositions.length ? epPositions[i + 1].index : Math.min(ep.index + 5000, html.length);
+        const searchSlice = html.substring(ep.index, endIndex);
+        const markerSearchSlice = maskRareAnimesAttributes(searchSlice);
+
+        const epTitle = ep.title ? `Episode ${ep.num} ${ep.title}` : `Episode ${ep.num}`;
+        const cleanTitle = epTitle.replace(/\s+/g, ' ').trim();
+
+        const dubMarker = findRareAnimesHindiDubMarker(markerSearchSlice);
+        if (dubMarker && !seen.has(ep.num)) {
+            const dubIndex = dubMarker.index;
+            const dubSlice = searchSlice.substring(dubIndex, dubIndex + 1500);
+            const maskedDubSlice = markerSearchSlice.substring(dubIndex, dubIndex + 1500);
+            
+            const nextLangMatch = maskedDubSlice.substring(dubMarker.length).search(/\b(?:Hindi\s*(?:Sub|Subbed|Subtitle|Subtitles)|English|Japanese|Tamil|Telugu|Malayalam|Kannada|Bengali|Urdu|Arabic)\b/i);
+            const nextLangCut = nextLangMatch >= 0 ? dubMarker.length + nextLangMatch : -1;
+            const dubSearchArea = nextLangCut > 0 ? dubSlice.substring(0, nextLangCut) : dubSlice;
+
+            const watchMultiRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*WatchMultQuality(?:<\/[^>]+>)*<\/a>/i;
+
+            const watchMultiMatch = watchMultiRegex.exec(dubSearchArea);
+            
+            if (watchMultiMatch) {
+                const streamingUrl = watchMultiMatch[1];
+                if (streamingUrl) {
+                    episodes.push({ title: cleanTitle, streamingUrl });
+                    seen.add(ep.num);
+                }
+            }
+        }
+    }
+    
+    return episodes.sort((a, b) => {
+        const numA = parseInt(a.title.match(/\d+/)?.[0] || '0', 10);
+        const numB = parseInt(b.title.match(/\d+/)?.[0] || '0', 10);
+        return numA - numB;
+    });
 }
 
 let cachedProxies: string[] = [];
@@ -696,7 +755,7 @@ export async function scrapeSource(
     url: string,
     source: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix' | 'animerulz' | 'toonplay' | 'animeworld' | 'animixstream' | 'toonstream' | 'muse_india' | 'anione_india',
     skipEpisodes: (string | number)[] = [],
-    options: { disableSequels?: boolean; targetSeason?: number; movieTitle?: string } = {}
+    options: { disableSequels?: boolean; targetSeason?: number; movieTitle?: string; isStreamingOnly?: boolean } = {}
 ): Promise<ScrapedResult> {
     if (source === 'animeworld') {
         return scrapeAnimeWorld(url, skipEpisodes, options.targetSeason);
@@ -783,6 +842,39 @@ export async function scrapeSource(
         result.pageTitle = pageTitle || result.pageTitle;
         return result;
     } else if (source === 'rareanimes') {
+        if (options.isStreamingOnly) {
+            const rawDubEpisodes = extractRareAnimesStreamingEpisodes(html);
+            if (rawDubEpisodes.length === 0) {
+                throw new Error('No streaming episodes found on this page.');
+            }
+            const episodes: ScrapedEpisode[] = [];
+            for (const ep of rawDubEpisodes) {
+                try {
+                    const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
+                    let resolvedStreamingUrl = ep.streamingUrl;
+                    if (ep.streamingUrl) {
+                        resolvedStreamingUrl = await resolveStreamingEmbed(ep.streamingUrl);
+                    }
+                    episodes.push({
+                        number: epNum,
+                        title: ep.title,
+                        link: '',
+                        streamingUrl: resolvedStreamingUrl,
+                    });
+                } catch (err: any) {
+                    console.error('Failed to resolve streaming url:', err);
+                }
+            }
+            return {
+                episodes,
+                pageTitle,
+                resolution: '720p',
+                seasonZipLink: null,
+                warnings: [],
+                adminNote: `RareAnimes (Streaming): Found ${episodes.length} episodes.`
+            };
+        }
+
         const { dub: rawDubEpisodes, sub: rawSubEpisodes } = extractRareAnimesEpisodes(html);
 
         if (rawDubEpisodes.length === 0 && rawSubEpisodes.length === 0) {

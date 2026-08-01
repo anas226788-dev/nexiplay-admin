@@ -50,6 +50,7 @@ export interface Movie {
     streaming_url?: string;
     streaming_url_animerulz?: string;
     streaming_url_toonplay?: string;
+    app_streaming_enabled?: boolean;
 }
 
 export interface Download {
@@ -117,6 +118,7 @@ export interface Notice {
     content: string;
     image_url?: string;
     video_url?: string;
+    platform: 'web' | 'app' | 'both';
     type: 'top_bar' | 'popup' | 'inline' | 'toast' | 'bottom_bar' | 'fullscreen' | 'marquee' | 'marquee_bottom';
     pages: 'all' | 'home' | 'movie' | 'specific';
     movie_id?: string;
@@ -144,6 +146,7 @@ export interface AppSettings {
     ad_enabled_devices?: 'all' | 'desktop' | 'mobile';
     native_ad_code?: string;
     social_bar_code?: string;
+    app_enabled_servers?: string;
     // Social Links
     rareanimes_url?: string;
     bollyflix_url?: string;
@@ -173,6 +176,18 @@ export interface AppSettings {
     is_verification_enabled?: boolean;
     verification_ad_url_1?: string;
     verification_ad_url_2?: string;
+    // App Ads SDK Configuration
+    app_ad_network?: 'startio' | 'unity' | 'both';
+    startio_app_id?: string;
+    unity_app_key?: string;
+    unity_banner_id?: string;
+    unity_interstitial_id?: string;
+    unity_rewarded_id?: string;
+    is_banner_enabled?: boolean;
+    is_interstitial_enabled?: boolean;
+    is_rewarded_enabled?: boolean;
+    is_native_enabled?: boolean;
+    is_app_open_enabled?: boolean;
     updated_at: string;
 }
 
@@ -276,6 +291,8 @@ export interface ContactMessage {
     message: string;
     created_at: string;
     is_read: boolean;
+    user_id?: string;
+    status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface DMCARequest {
@@ -311,4 +328,17 @@ export interface Upcoming {
     status: 'announced' | 'confirmed' | 'delayed';
     trailer_url?: string;
     created_at: string;
+}
+
+export interface LeaderboardEntry {
+    id: string;
+    rank: number;
+    user_id: string | null;
+    name: string;
+    avatar_url: string | null;
+    badge_type: 'elite' | 'vip' | 'none' | string;
+    coins: number;
+    watched_count: number;
+    is_fake: boolean;
+    updated_at: string;
 }

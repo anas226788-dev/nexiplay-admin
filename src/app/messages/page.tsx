@@ -38,6 +38,33 @@ export default function MessagesPage() {
         }
     }
 
+    async function approveMessage(id: string) {
+        if (!confirm('Approve this request and award 20 coins?')) return;
+        
+        const { error } = await supabase.rpc('approve_contact_message', { p_msg_id: id });
+        if (error) {
+            alert('Error: ' + error.message);
+        } else {
+            setMessages(messages.map(msg => msg.id === id ? { ...msg, status: 'approved' } : msg));
+            alert('Approved and 20 coins awarded!');
+        }
+    }
+
+    async function rejectMessage(id: string) {
+        if (!confirm('Reject this request?')) return;
+
+        const { error } = await supabase
+            .from('contact_messages')
+            .update({ status: 'rejected' })
+            .eq('id', id);
+
+        if (error) {
+            alert('Error: ' + error.message);
+        } else {
+            setMessages(messages.map(msg => msg.id === id ? { ...msg, status: 'rejected' } : msg));
+        }
+    }
+
     if (loading) return <div className="p-8 text-white">Loading messages...</div>;
 
     return (
@@ -68,18 +95,30 @@ export default function MessagesPage() {
                                         <div className="text-xs text-gray-500">{msg.email}</div>
                                     </td>
                                     <td className="p-4 text-white text-sm">
-                                        {msg.subject}
+                                        <div className="mb-2">
+                                            {msg.subject === "Bug Report" ? (
+                                                <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs font-bold border border-red-500/30">BUG REPORT</span>
+                                            ) : (
+                                                msg.subject
+                                            )}
+                                        </div>
+                                        {msg.status === 'approved' && <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-[10px] font-bold">APPROVED</span>}
+                                        {msg.status === 'rejected' && <span className="bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded text-[10px] font-bold">REJECTED</span>}
+                                        {(!msg.status || msg.status === 'pending') && <span className="bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded text-[10px] font-bold">PENDING</span>}
                                     </td>
                                     <td className="p-4 text-gray-300 text-sm max-w-md">
                                         {msg.message}
                                     </td>
                                     <td className="p-4">
-                                        <button
-                                            onClick={() => deleteMessage(msg.id)}
-                                            className="text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1 rounded text-xs font-bold transition-colors"
-                                        >
-                                            Delete
-                                        </button>
+                                        <div className="flex flex-wrap gap-2">
+                                            {(!msg.status || msg.status === 'pending') && (msg.subject === "Bug Report" || msg.subject === "Feature Request") && (
+                                                <>
+                                                    <button onClick={() => approveMessage(msg.id)} className="text-green-500 hover:text-green-400 bg-green-500/10 hover:bg-green-500/20 px-3 py-1 rounded text-xs font-bold transition-colors">Approve</button>
+                                                    <button onClick={() => rejectMessage(msg.id)} className="text-orange-500 hover:text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 px-3 py-1 rounded text-xs font-bold transition-colors">Reject</button>
+                                                </>
+                                            )}
+                                            <button onClick={() => deleteMessage(msg.id)} className="text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1 rounded text-xs font-bold transition-colors">Delete</button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -114,16 +153,30 @@ export default function MessagesPage() {
                                 </span>
                             </div>
                             {msg.subject && (
-                                <div className="text-sm font-medium text-white">{msg.subject}</div>
+                                <div className="text-sm font-medium text-white mb-2">
+                                    <div className="mb-2">
+                                        {msg.subject === "Bug Report" ? (
+                                            <span className="bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs font-bold border border-red-500/30">BUG REPORT</span>
+                                        ) : (
+                                            msg.subject
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {msg.status === 'approved' && <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-[10px] font-bold">APPROVED</span>}
+                                        {msg.status === 'rejected' && <span className="bg-gray-500/20 text-gray-400 px-2 py-0.5 rounded text-[10px] font-bold">REJECTED</span>}
+                                        {(!msg.status || msg.status === 'pending') && <span className="bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded text-[10px] font-bold">PENDING</span>}
+                                    </div>
+                                </div>
                             )}
                             <p className="text-gray-300 text-sm line-clamp-4">{msg.message}</p>
-                            <div className="pt-2 border-t border-white/5">
-                                <button
-                                    onClick={() => deleteMessage(msg.id)}
-                                    className="w-full text-red-500 bg-red-500/10 py-2 rounded-lg text-xs font-bold active:bg-red-500/20 transition-colors"
-                                >
-                                    Delete
-                                </button>
+                            <div className="pt-2 border-t border-white/5 flex gap-2">
+                                {(!msg.status || msg.status === 'pending') && (msg.subject === "Bug Report" || msg.subject === "Feature Request") && (
+                                    <>
+                                        <button onClick={() => approveMessage(msg.id)} className="flex-1 text-green-500 bg-green-500/10 py-2 rounded-lg text-xs font-bold active:bg-green-500/20 transition-colors">Approve</button>
+                                        <button onClick={() => rejectMessage(msg.id)} className="flex-1 text-orange-500 bg-orange-500/10 py-2 rounded-lg text-xs font-bold active:bg-orange-500/20 transition-colors">Reject</button>
+                                    </>
+                                )}
+                                <button onClick={() => deleteMessage(msg.id)} className="flex-1 text-red-500 bg-red-500/10 py-2 rounded-lg text-xs font-bold active:bg-red-500/20 transition-colors">Delete</button>
                             </div>
                         </div>
                     ))

@@ -52,10 +52,12 @@ type UserNotification = {
 
 function formatDuration(seconds: number) {
     const safeSeconds = Math.max(0, Math.floor(seconds || 0));
+    if (safeSeconds < 60) return `${safeSeconds}s`;
     const hours = Math.floor(safeSeconds / 3600);
     const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const remainingSeconds = safeSeconds % 60;
     if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
+    return `${minutes}m ${remainingSeconds}s`;
 }
 
 function formatDate(value?: string | null) {
@@ -86,7 +88,7 @@ export default function UsersPage() {
                 supabase.from('profiles').select('*').order('created_at', { ascending: false }),
                 supabase.from('user_sessions').select('*').order('last_seen_at', { ascending: false }).limit(1000),
                 supabase.from('user_events').select('*').order('created_at', { ascending: false }).limit(3000),
-                supabase.from('user_notifications').select('*').order('created_at', { ascending: false }).limit(1000)
+                supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(1000)
             ]);
 
             if (profilesRes.error) throw profilesRes.error;
@@ -160,6 +162,7 @@ export default function UsersPage() {
 
     const [messageModalOpen, setMessageModalOpen] = useState(false);
     const [directMessageText, setDirectMessageText] = useState('');
+    const [messageTarget, setMessageTarget] = useState<'app' | 'web'>('app');
     const [sendingMessage, setSendingMessage] = useState(false);
 
     const handleSendDirectMessage = async (e: React.FormEvent) => {
@@ -172,7 +175,8 @@ export default function UsersPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user_id: selectedUser.profile.id,
-                    message: directMessageText
+                    message: directMessageText,
+                    target: messageTarget
                 })
             });
             const data = await res.json();
@@ -333,7 +337,7 @@ export default function UsersPage() {
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Stat title="Total Sessions" value={userSessions.length.toString()} tone="red" />
-                    <Stat title="Total Watch Time" value={formatDuration(selectedUser.totalTime)} tone="green" />
+                    <Stat title="Time on App/Web" value={formatDuration(selectedUser.totalTime)} tone="green" />
                     <Stat title="Watch Events" value={watches.length.toString()} tone="red" />
                     <Stat title="Downloads" value={downloads.length.toString()} tone="yellow" />
                 </div>
@@ -402,12 +406,22 @@ export default function UsersPage() {
                                                         {event.season_number && <span>Season {event.season_number} Episode {event.episode_number}</span>}
                                                         {event.metadata?.server && <span className="text-gray-500">Server: {event.metadata.server}</span>}
                                                         {event.duration_seconds && <span className="text-red-400 font-semibold">{formatDuration(event.duration_seconds)}</span>}
+                                                        {event.metadata?.source === 'android_app' ? (
+                                                            <span className="text-green-400 font-bold text-[10px] bg-green-500/10 w-fit px-1.5 rounded mt-0.5">📱 App</span>
+                                                        ) : (
+                                                            <span className="text-blue-400 font-bold text-[10px] bg-blue-500/10 w-fit px-1.5 rounded mt-0.5">💻 Web</span>
+                                                        )}
                                                     </span>
                                                 )}
                                                 {event.event_type === 'download' && (
                                                     <span className="flex flex-col gap-0.5 text-xs">
                                                         {event.resolution && <span>Quality: {event.resolution}</span>}
                                                         {event.provider && <span className="text-yellow-400 font-semibold">Provider: {event.provider}</span>}
+                                                        {event.metadata?.source === 'android_app' ? (
+                                                            <span className="text-green-400 font-bold text-[10px] bg-green-500/10 w-fit px-1.5 rounded mt-0.5">📱 App</span>
+                                                        ) : (
+                                                            <span className="text-blue-400 font-bold text-[10px] bg-blue-500/10 w-fit px-1.5 rounded mt-0.5">💻 Web</span>
+                                                        )}
                                                     </span>
                                                 )}
                                                 {event.event_type === 'page_view' && (
@@ -468,7 +482,7 @@ export default function UsersPage() {
                                                 {event.metadata?.server && <span>Server: {event.metadata.server}</span>}
                                             </td>
                                             <td className="px-5 py-4 text-red-300 font-bold">
-                                                {event.duration_seconds ? formatDuration(event.duration_seconds) : '0m'}
+                                                {formatDuration(event.duration_seconds || 0)}
                                             </td>
                                             <td className="px-5 py-4 text-gray-400">{formatDate(event.created_at)}</td>
                                             <td className="px-5 py-4 text-right">
@@ -573,11 +587,12 @@ export default function UsersPage() {
                                             <td className="px-5 py-4 text-xs font-mono text-gray-400">{session.session_id.substring(0, 8)}...</td>
                                             <td className="px-5 py-4">
                                                 <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                    session.device_type === 'android_app' ? 'bg-green-500/15 text-green-400 border border-green-500/20' :
                                                     session.device_type === 'mobile' ? 'bg-orange-500/15 text-orange-400' :
                                                     session.device_type === 'tablet' ? 'bg-purple-500/15 text-purple-400' :
                                                     'bg-blue-500/15 text-blue-400'
                                                 }`}>
-                                                    {session.device_type || 'desktop'}
+                                                    {session.device_type === 'android_app' ? '📱 Android App' : (session.device_type || 'desktop')}
                                                 </span>
                                             </td>
                                             <td className="px-5 py-4 text-white font-bold">{formatDuration(session.duration_seconds || 0)}</td>
@@ -677,16 +692,45 @@ export default function UsersPage() {
                                 </button>
                             </div>
                             <form onSubmit={handleSendDirectMessage} className="p-6 space-y-4">
-                                <div className="space-y-2">
-                                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Message Content</label>
-                                    <textarea
-                                        value={directMessageText}
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Target Platform</label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input 
+                                                    type="radio" 
+                                                    name="target" 
+                                                    value="app" 
+                                                    checked={messageTarget === 'app'}
+                                                    onChange={() => setMessageTarget('app')}
+                                                    className="w-4 h-4 text-blue-500 bg-gray-900 border-gray-700 focus:ring-blue-600 focus:ring-2"
+                                                />
+                                                <span className="text-sm text-gray-300">Android App (Notifications)</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                                <input 
+                                                    type="radio" 
+                                                    name="target" 
+                                                    value="web" 
+                                                    checked={messageTarget === 'web'}
+                                                    onChange={() => setMessageTarget('web')}
+                                                    className="w-4 h-4 text-blue-500 bg-gray-900 border-gray-700 focus:ring-blue-600 focus:ring-2"
+                                                />
+                                                <span className="text-sm text-gray-300">Web Dashboard</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider">Message Content</label>
+                                        <textarea
+                                            value={directMessageText}
                                         onChange={e => setDirectMessageText(e.target.value)}
                                         required
-                                        placeholder="Type your official direct message here..."
+                                        placeholder={messageTarget === 'app' ? "Enter message (Will appear as 'Official Notice')..." : "Enter message (Will appear in Web dashboard)..."}
                                         rows={4}
                                         className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors resize-none"
                                     />
+                                </div>
                                 </div>
                                 <div className="flex justify-end gap-3 pt-2">
                                     <button

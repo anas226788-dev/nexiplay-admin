@@ -86,6 +86,11 @@ export default function StreamingPage() {
     const [toonstreamUrls, setToonstreamUrls] = useState<Record<number, string>>({});
     const [toonstreamEpisodeUrls, setToonstreamEpisodeUrls] = useState<Record<string, string>>({});
 
+    const [rareanimesLinkMode, setRareanimesLinkMode] = useState<ScraperLinkMode>('single');
+    const [rareanimesUrl, setRareanimesUrl] = useState<string>('');
+    const [rareanimesUrls, setRareanimesUrls] = useState<Record<number, string>>({});
+    const [rareanimesEpisodeUrls, setRareanimesEpisodeUrls] = useState<Record<string, string>>({});
+
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
     useEffect(() => {
@@ -186,6 +191,20 @@ export default function StreamingPage() {
             const tsEpisodeUrls = readEpisodeUrls(ts);
             setToonstreamEpisodeUrls(tsEpisodeUrls);
 
+            // RareAnimes
+            const ra = parsedOther.rareanimes || {};
+            setRareanimesLinkMode(ra.mode || 'single');
+            setRareanimesUrl(ra.url || '');
+            const raUrls: Record<number, string> = {};
+            if (ra.urls) {
+                for (const [k, v] of Object.entries(ra.urls)) {
+                    raUrls[parseInt(k)] = v as string;
+                }
+            }
+            setRareanimesUrls(raUrls);
+            const raEpisodeUrls = readEpisodeUrls(ra);
+            setRareanimesEpisodeUrls(raEpisodeUrls);
+
             if (editingScraperMovie.type === 'anime' || editingScraperMovie.type === 'series') {
                 supabase
                     .from('seasons')
@@ -203,7 +222,8 @@ export default function StreamingPage() {
                         Object.keys(awUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
                         Object.keys(amUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
                         Object.keys(tsUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
-                        [awEpisodeUrls, amEpisodeUrls, tsEpisodeUrls].forEach(map => {
+                        Object.keys(raUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
+                        [awEpisodeUrls, amEpisodeUrls, tsEpisodeUrls, raEpisodeUrls].forEach(map => {
                             Object.keys(map).forEach(key => {
                                 const [seasonPart] = key.split('_');
                                 const seasonNum = parseInt(seasonPart, 10);
@@ -241,7 +261,7 @@ export default function StreamingPage() {
                                         episode_title: ep.episode_title
                                     }));
                                     const byKey = new Map(existingEpisodes.map(ep => [`${ep.season_number}_${ep.episode_number}`, ep]));
-                                    [awEpisodeUrls, amEpisodeUrls, tsEpisodeUrls].forEach(map => {
+                                    [awEpisodeUrls, amEpisodeUrls, tsEpisodeUrls, raEpisodeUrls].forEach(map => {
                                         Object.keys(map).forEach(key => {
                                             if (byKey.has(key)) return;
                                             const [seasonPart, episodePart] = key.split('_');
@@ -350,6 +370,22 @@ export default function StreamingPage() {
             }
             return filtered;
         };
+
+        const filterGenericSeasonUrls = (source: Record<number, string>) => {
+            const filtered: Record<number, string> = {};
+            for (const [k, v] of Object.entries(source)) {
+                if (v && v.trim()) filtered[parseInt(k)] = v.trim();
+            }
+            return filtered;
+        };
+        
+        const filterGenericEpisodeUrls = (source: Record<string, string>) => {
+            const filtered: Record<string, string> = {};
+            for (const [k, v] of Object.entries(source)) {
+                if (v && v.trim()) filtered[k] = v.trim();
+            }
+            return filtered;
+        };
         
         // AnimeWorld
         const awFiltered: Record<number, string> = {};
@@ -390,6 +426,18 @@ export default function StreamingPage() {
                 url: toonstreamLinkMode === 'single' ? normalizeToonStreamInput(toonstreamUrl) : '',
                 urls: toonstreamLinkMode === 'separate' ? tsFiltered : {},
                 episodeUrls: toonstreamLinkMode === 'episode' ? tsEpisodeFiltered : {}
+            };
+        }
+
+        // RareAnimes
+        const raFiltered = filterGenericSeasonUrls(rareanimesUrls);
+        const raEpisodeFiltered = filterGenericEpisodeUrls(rareanimesEpisodeUrls);
+        if (rareanimesUrl.trim() || Object.keys(raFiltered).length > 0 || Object.keys(raEpisodeFiltered).length > 0) {
+            payload.rareanimes = {
+                mode: rareanimesLinkMode,
+                url: rareanimesLinkMode === 'single' ? rareanimesUrl.trim() : '',
+                urls: rareanimesLinkMode === 'separate' ? raFiltered : {},
+                episodeUrls: rareanimesLinkMode === 'episode' ? raEpisodeFiltered : {}
             };
         }
 
@@ -444,7 +492,8 @@ export default function StreamingPage() {
                 'animerulz',
                 'animeworld',
                 'animixstream',
-                'toonstream'
+                'toonstream',
+                'rareanimes'
             ];
         }
         if (code.trim() === '' || code.trim().toLowerCase() === 'none') {
@@ -481,9 +530,50 @@ export default function StreamingPage() {
                 ...settings,
                 social_bar_code: valueToSave
             });
-            showMessage('success', 'Streaming server configuration updated!');
+            showMessage('success', 'Web streaming server configuration updated!');
         } catch (err: any) {
-            showMessage('error', 'Failed to update server configuration: ' + err.message);
+            showMessage('error', 'Failed to update Web server configuration: ' + err.message);
+        } finally {
+            setSavingSettings(false);
+        }
+    };
+
+    const handleAppServerToggle = async (serverId: string, isChecked: boolean) => {
+        if (!settings) return;
+        setSavingSettings(true);
+        try {
+            const currentCode = settings.app_enabled_servers ?? settings.social_bar_code;
+            let currentEnabled = getEnabledServers(currentCode);
+            if (isChecked) {
+                if (!currentEnabled.includes(serverId)) {
+                    currentEnabled.push(serverId);
+                }
+            } else {
+                currentEnabled = currentEnabled.filter(id => id !== serverId);
+            }
+            const valueToSave = currentEnabled.length === 0 ? 'none' : currentEnabled.join(',');
+            
+            const { error } = await supabase
+                .from('app_settings')
+                .update({
+                    app_enabled_servers: valueToSave,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', 1);
+
+            if (error) throw error;
+            
+            setSettings({
+                ...settings,
+                app_enabled_servers: valueToSave
+            });
+            showMessage('success', 'App streaming server configuration updated!');
+        } catch (err: any) {
+            if (err?.message?.includes('app_enabled_servers') || err?.details?.includes('app_enabled_servers')) {
+                showMessage('error', '⚠️ Supabase app_settings টেবিলে "app_enabled_servers" কলাম নেই। অনুগ্রহ করে Supabase SQL Editor-এ চালান: ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS app_enabled_servers TEXT;');
+            } else {
+                showMessage('error', 'Failed to update App server configuration: ' + err.message);
+            }
         } finally {
             setSavingSettings(false);
         }
@@ -491,7 +581,7 @@ export default function StreamingPage() {
 
     const showMessage = (type: 'success' | 'error', text: string) => {
         setMessage({ type, text });
-        setTimeout(() => setMessage(null), 4000);
+        setTimeout(() => setMessage(null), type === 'error' ? 12000 : 4000);
     };
 
     const fetchMovies = async () => {
@@ -1027,54 +1117,110 @@ export default function StreamingPage() {
                     </div>
                                 </div>
 
-                {/* Streaming Servers Toggle Card */}
+                {/* Streaming Servers Toggle Cards */}
                 {settings && (
-                    <div className="glass-panel p-6 rounded-2xl space-y-4">
-                        <div>
-                            <h3 className="text-lg font-black text-white flex items-center gap-2">
-                                📺 Enabled Streaming Servers
-                            </h3>
-                            <p className="text-gray-400 text-xs mt-1">
-                                Toggle which streaming servers are enabled globally. Disabled servers will be hidden from the player.
-                            </p>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* 🌐 Web Servers Control */}
+                        <div className="glass-panel p-6 rounded-2xl space-y-4 border border-blue-500/20">
+                            <div>
+                                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                    <span>🌐</span> Web Enabled Streaming Servers
+                                </h3>
+                                <p className="text-gray-400 text-xs mt-1">
+                                    Toggle which servers are active on the Web site. Disabled servers are hidden on Web.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {[
+                                    { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
+                                    { id: 'toonplay', name: 'Nexiplay Private Server', icon: '🔒', desc: 'Hindi/Multi-Audio' },
+                                    { id: 'animerulz', name: 'Server Animerulz', icon: '🌀', desc: 'Auto Scraped m3u8' },
+                                    { id: 'toonstream', name: 'ToonStream Server', icon: '📺', desc: 'ToonStream.vip' },
+                                    { id: 'animeworld', name: 'AnimeWorld Server', icon: '🌍', desc: 'watchanimeworld.net' },
+                                    { id: 'animixstream', name: 'AnimixStream Server', icon: '💿', desc: 'animixstream.com' },
+                                    { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
+                                    { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
+                                    { id: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', desc: 'RareAnimes Scraper' }
+                                ].map((server) => {
+                                    const isEnabled = getEnabledServers(settings.social_bar_code).includes(server.id);
+                                    return (
+                                        <div 
+                                            key={`web-${server.id}`} 
+                                            className="flex flex-col justify-between p-3.5 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-all"
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xl">{server.icon}</span>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="sr-only peer"
+                                                        checked={isEnabled}
+                                                        disabled={savingSettings}
+                                                        onChange={(e) => handleServerToggle(server.id, e.target.checked)}
+                                                    />
+                                                    <div className="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                                </label>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-white leading-tight">{server.name}</h4>
+                                                <p className="text-[10px] text-gray-500 mt-0.5">{server.desc}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                                                        {[
-                                { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
-                                { id: 'toonplay', name: 'Nexiplay Private Server', icon: '🔒', desc: 'Hindi/Multi-Audio' },
-                                { id: 'animerulz', name: 'Server Animerulz', icon: '🌀', desc: 'Auto Scraped m3u8' },
-                                { id: 'toonstream', name: 'ToonStream Server', icon: '📺', desc: 'ToonStream.vip' },
-                                { id: 'animeworld', name: 'AnimeWorld Server', icon: '🌐', desc: 'watchanimeworld.net' },
-                                { id: 'animixstream', name: 'AnimixStream Server', icon: '🚀', desc: 'animixstream.com' },
-                                { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '⚡', desc: 'Auto Embed' },
-                                { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' }
-                            ].map((server) => {
-                                const isEnabled = getEnabledServers(settings.social_bar_code).includes(server.id);
-                                return (
-                                    <div 
-                                        key={server.id} 
-                                        className="flex flex-col justify-between p-3.5 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-all"
-                                    >
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xl">{server.icon}</span>
-                                            <label className="relative inline-flex items-center cursor-pointer">
-                                                <input
-                                                    type="checkbox"
-                                                    className="sr-only peer"
-                                                    checked={isEnabled}
-                                                    disabled={savingSettings}
-                                                    onChange={(e) => handleServerToggle(server.id, e.target.checked)}
-                                                />
-                                                <div className="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
-                                            </label>
+
+                        {/* 📱 Android App Servers Control */}
+                        <div className="glass-panel p-6 rounded-2xl space-y-4 border border-green-500/20">
+                            <div>
+                                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                                    <span>📱</span> Android App Enabled Streaming Servers
+                                </h3>
+                                <p className="text-gray-400 text-xs mt-1">
+                                    Toggle which servers are active in the Android App. Independent from Web!
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                {[
+                                    { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
+                                    { id: 'toonplay', name: 'Nexiplay Private Server', icon: '🔒', desc: 'Hindi/Multi-Audio' },
+                                    { id: 'animerulz', name: 'Server Animerulz', icon: '🌀', desc: 'Auto Scraped m3u8' },
+                                    { id: 'toonstream', name: 'ToonStream Server', icon: '📺', desc: 'ToonStream.vip' },
+                                    { id: 'animeworld', name: 'AnimeWorld Server', icon: '🌍', desc: 'watchanimeworld.net' },
+                                    { id: 'animixstream', name: 'AnimixStream Server', icon: '💿', desc: 'animixstream.com' },
+                                    { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
+                                    { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
+                                    { id: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', desc: 'RareAnimes Scraper' }
+                                ].map((server) => {
+                                    const appCode = settings.app_enabled_servers ?? settings.social_bar_code;
+                                    const isEnabled = getEnabledServers(appCode).includes(server.id);
+                                    return (
+                                        <div 
+                                            key={`app-${server.id}`} 
+                                            className="flex flex-col justify-between p-3.5 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-all"
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xl">{server.icon}</span>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="sr-only peer"
+                                                        checked={isEnabled}
+                                                        disabled={savingSettings}
+                                                        onChange={(e) => handleAppServerToggle(server.id, e.target.checked)}
+                                                    />
+                                                    <div className="w-9 h-5 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+                                                </label>
+                                            </div>
+                                            <div>
+                                                <h4 className="text-xs font-bold text-white leading-tight">{server.name}</h4>
+                                                <p className="text-[10px] text-gray-500 mt-0.5">{server.desc}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <h4 className="text-xs font-bold text-white leading-tight">{server.name}</h4>
-                                            <p className="text-[10px] text-gray-500 mt-0.5">{server.desc}</p>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -1533,7 +1679,8 @@ export default function StreamingPage() {
                                             { key: 'animerulz', label: 'Animerulz', color: 'bg-red-500/10 border-red-500/25 text-red-400' },
                                             { key: 'toonstream', label: 'ToonStream', color: 'bg-purple-500/10 border-purple-500/25 text-purple-400' },
                                             { key: 'animeworld', label: 'AnimeWorld', color: 'bg-green-500/10 border-green-500/25 text-green-400' },
-                                            { key: 'animixstream', label: 'AnimixStream', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' }
+                                            { key: 'animixstream', label: 'AnimixStream', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
+                                            { key: 'rareanimes', label: 'RR Nexiplay Server', color: 'bg-pink-500/10 border-pink-500/25 text-pink-400' }
                                         ].map((srv) => (
                                             <button
                                                 key={srv.key}
@@ -1878,7 +2025,8 @@ export default function StreamingPage() {
                                 {[
                                     { id: 'animeworld', name: 'AnimeWorld Server', color: 'text-green-400', mode: animeworldLinkMode, setMode: setAnimeworldLinkMode, val: animeworldUrl, setVal: setAnimeworldUrl, map: animeworldUrls, setMap: setAnimeworldUrls, episodeMap: animeworldEpisodeUrls, setEpisodeMap: setAnimeworldEpisodeUrls, placeholder: 'https://watchanimeworld.net/anime/...' },
                                     { id: 'animixstream', name: 'AnimixStream Server', color: 'text-cyan-400', mode: animixstreamLinkMode, setMode: setAnimixstreamLinkMode, val: animixstreamUrl, setVal: setAnimixstreamUrl, map: animixstreamUrls, setMap: setAnimixstreamUrls, episodeMap: animixstreamEpisodeUrls, setEpisodeMap: setAnimixstreamEpisodeUrls, placeholder: 'https://animixstream.com/anime/...' },
-                                    { id: 'toonstream', name: 'ToonStream Server', color: 'text-purple-400', mode: toonstreamLinkMode, setMode: setToonstreamLinkMode, val: toonstreamUrl, setVal: setToonstreamUrl, map: toonstreamUrls, setMap: setToonstreamUrls, episodeMap: toonstreamEpisodeUrls, setEpisodeMap: setToonstreamEpisodeUrls, placeholder: 'https://toonstream.vip/home/...' }
+                                    { id: 'toonstream', name: 'ToonStream Server', color: 'text-purple-400', mode: toonstreamLinkMode, setMode: setToonstreamLinkMode, val: toonstreamUrl, setVal: setToonstreamUrl, map: toonstreamUrls, setMap: toonstreamUrls, episodeMap: toonstreamEpisodeUrls, setEpisodeMap: setToonstreamEpisodeUrls, placeholder: 'https://toonstream.vip/home/...' },
+                                    { id: 'rareanimes', name: 'RareAnimes (Hindi)', color: 'text-pink-400', mode: rareanimesLinkMode, setMode: setRareanimesLinkMode, val: rareanimesUrl, setVal: setRareanimesUrl, map: rareanimesUrls, setMap: setRareanimesUrls, episodeMap: rareanimesEpisodeUrls, setEpisodeMap: setRareanimesEpisodeUrls, placeholder: 'https://www.rareanimes.mov/hindi/...' }
                                 ].map((srv) => {
                                     const isOpen = expandedSection === srv.id;
                                     return (
@@ -1890,7 +2038,7 @@ export default function StreamingPage() {
                                                 className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
                                             >
                                                 <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${srv.color}`}>
-                                                    <span>{srv.id === 'animeworld' ? '🌐' : srv.id === 'animixstream' ? '🚀' : srv.id === 'toonstream' ? '📺' : '🔴'}</span>
+                                                    <span>{srv.id === 'animeworld' ? '🌐' : srv.id === 'animixstream' ? '🚀' : srv.id === 'toonstream' ? '📺' : srv.id === 'rareanimes' ? '🎴' : '🔴'}</span>
                                                     {srv.name}
                                                 </span>
                                                 <span className="text-gray-400 text-xs font-mono">{isOpen ? '▼' : '►'}</span>
@@ -1934,7 +2082,7 @@ export default function StreamingPage() {
                                                                         <input
                                                                             type="text"
                                                                             value={srv.map[season.season_number] || ''}
-                                                                            onChange={(e) => srv.setMap({
+                                                                            onChange={(e) => (srv.setMap as any)({
                                                                                 ...srv.map,
                                                                                 [season.season_number]: e.target.value
                                                                             })}
@@ -1948,7 +2096,7 @@ export default function StreamingPage() {
                                                                                     setScraperSeasons(prev => prev.filter(s => s.id !== season.id));
                                                                                     const updated = { ...srv.map };
                                                                                     delete updated[season.season_number];
-                                                                                    srv.setMap(updated);
+                                                                                    (srv.setMap as any)(updated);
                                                                                 }}
                                                                                 className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
                                                                                 title="Remove season field"
