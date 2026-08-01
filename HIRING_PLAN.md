@@ -2,6 +2,8 @@
 
 This document defines the complete AI agent organization for NexiPlay across three divisions: **Web Platform**, **Native Android App**, and **Content + Social Media + Marketing**. Each role specifies title, responsibilities, scope, assigned model, reporting line, collaborators, permissions, and boundaries.
 
+Enhanced with NEX-3 Productivity Review findings (2026-08-01) to address critical production gaps.
+
 ---
 
 ## Division 1: WEB PLATFORM
@@ -49,6 +51,8 @@ This document defines the complete AI agent organization for NexiPlay across thr
 3. Scraper configuration UI
 4. Coin shop, leaderboard, notices, messages admin
 5. Role-based access control in UI
+6. **NEX-3 Gap: Streaming page refactor — split 2,371-line page into composable components**
+7. **NEX-3 Gap: Admin scraper health dashboard (last run, success rate, latency per source)**
 
 **Permissions:** Read/write `nexiplay-admin-main/` only. No direct DB migrations.
 
@@ -108,6 +112,11 @@ This document defines the complete AI agent organization for NexiPlay across thr
 3. API contract stability (OpenAPI/TypeScript types)
 4. Query performance (indexing, materialized views)
 5. Cron job reliability (pg_cron / Supabase Cron)
+6. **NEX-3 Gap: Execute Migration Phase 1 — Create `streaming` and `episode_streaming_links` tables with RLS matching `movies`/`episodes`**
+7. **NEX-3 Gap: Verify RLS policies — Run `supabase db diff` and test admin read/write with non-service-role keys**
+8. **NEX-3 Gap: Add rate limiting on `/api/cron/check-episodes` — `next-rate-limit` or Supabase edge function**
+9. **NEX-3 Gap: Multi-tenant TMDB keys — Per-admin or per-workspace API keys in `app_settings`**
+10. **NEX-3 Gap: Dead letter queue — Failed scrape jobs → retry table with exponential backoff**
 
 **Permissions:** Full Supabase dashboard access. Write migrations. Deploy Edge Functions. No frontend component code.
 
@@ -126,7 +135,7 @@ This document defines the complete AI agent organization for NexiPlay across thr
 **Scope:**
 - `nexiplay-admin-main/src/app/api/scrape*.ts` — all scraper endpoints
 - `nexiplay-admin-main/src/lib/scraper-utils.ts`
-- Scraper configuration in `app_settings` (rareanimes, bollyflix, movielink, animerulz, toonplay)
+- Scraper configuration in `app_settings` (rareamimes, bollyflix, movielink, animerulz, toonplay)
 - Cron jobs: `check-episodes`, `check-links`, `auto-match-streaming`
 - Content request staging (`scraped_data`, `scraper_source`, `review` status)
 - Rate limiting, proxy rotation, retry logic
@@ -137,6 +146,13 @@ This document defines the complete AI agent organization for NexiPlay across thr
 3. Episode auto-discovery & matching
 4. Dead link detection & auto-disable
 5. Scraping ethics & legal compliance (robots.txt, rate limits)
+6. **NEX-3 Gap: Type-safe source enum — Replace `source: 'fxlinks' | ...` with `ScraperSource` type; enforce in `scrapeSource`**
+7. **NEX-3 Gap: Split `scraper-utils.ts` (2,865 lines) — One file per source under `src/lib/scrapers/`, barrel export**
+8. **NEX-3 Gap: Proxy redundancy — Add 2nd proxy provider (e.g., `geonode.com`, `webshare.io`) with weighted rotation**
+9. **NEX-3 Gap: Episode title backfill — Cron should populate `episode_title` from scraped data**
+10. **NEX-3 Gap: Remove duplicate Cloudflare detection logic — Consolidate `isCloudflareBlock` utility**
+11. **NEX-3 Gap: Fix `toon-scraper-package` runtime `require()` — ESM/Next.js compat risk**
+12. **NEX-3 Gap: Add scraper contract tests — Vitest + mocked HTML fixtures for each source (snapshot `ScrapedResult`)**
 
 **Permissions:** Write scraper endpoints & utils. Read `app_settings` & `movies`/`episodes`/`streaming`. No UI code. No auth changes.
 
@@ -167,6 +183,8 @@ This document defines the complete AI agent organization for NexiPlay across thr
 3. Secrets hygiene (no keys in repo)
 4. Build performance (turbopack, caching)
 5. Disaster recovery (DB backups, rollback runbooks)
+6. **NEX-3 Gap: Structured logging — Integrate `pino` with request ID correlation across cron + API**
+7. **NEX-3 Gap: Scraper health dashboard infrastructure — Admin page showing last run, success rate, avg latency per source**
 
 **Permissions:** Vercel & Supabase dashboard admin. CI/CD config. No application code changes.
 
@@ -221,10 +239,11 @@ This document defines the complete AI agent organization for NexiPlay across thr
 
 **Priorities:**
 1. Critical path coverage (auth → watch → download)
-2. Scraper contract tests (mock sources)
+2. **NEX-3 Gap: Scraper contract tests — Vitest + mocked HTML fixtures for each source (snapshot `ScrapedResult`)**
 3. Admin permission matrix tests
 4. Mobile viewport regression
 5. CI integration (block merge on failure)
+6. **NEX-3 Gap: Integration tests for scraper engine — Regression protection on source changes**
 
 **Permissions:** Write test files only. Read all source. No production code changes.
 
@@ -255,6 +274,7 @@ This document defines the complete AI agent organization for NexiPlay across thr
 3. Admin route authZ verification
 4. Secure headers & CSP
 5. Secrets rotation schedule
+6. **NEX-3 Gap: RLS policy audit for new `streaming` and `episode_streaming_links` tables**
 
 **Permissions:** Read all code & infra. Write security docs, audit reports, CSP headers. No feature code.
 
@@ -549,6 +569,7 @@ This document defines the complete AI agent organization for NexiPlay across thr
 3. Experiment velocity: 2+ tests/month
 4. Data freshness < 15 min
 5. PII compliance (no raw emails in analytics)
+6. **NEX-3 Gap: Scraper health metrics pipeline — Success rate, latency, error categorization per source**
 
 **Permissions:** Read all DB tables. Write analytics schema (separate schema). Deploy dashboards. No product code.
 
@@ -580,6 +601,7 @@ This document defines the complete AI agent organization for NexiPlay across thr
 3. Clear decision logs (RFC/ADR)
 4. Resource allocation visibility
 5. Retrospective action items closed
+6. **NEX-3 Gap: Track Migration Phase 1 execution as cross-division milestone**
 
 **Permissions:** Read all repos, issues, PRs. Write project docs, sprint plans. No code.
 
@@ -607,6 +629,8 @@ This document defines the complete AI agent organization for NexiPlay across thr
 2. Runbook for every critical service (scraper, streaming, auth)
 3. New contributor productive in < 2h
 4. Postmortem published < 48h after incident
+5. **NEX-3 Gap: Document scraper source integration guide (adding new sources)**
+6. **NEX-3 Gap: Document streaming table migration runbook (phases, rollback, verification)**
 
 **Permissions:** Write `docs/`, OpenAPI config. Read all code. No logic changes.
 
@@ -691,7 +715,7 @@ RW = Read/Write, R = Read only, Coord = Coordinate/Propose, - = No access
 3. DevOps & Infrastructure Engineer
 4. Chief of Staff
 
-**Phase 2 (Week 3-4): Web Feature Velocity**
+**Phase 2 (Week 3-4): Web Feature Velocity + NEX-3 Gap Closure**
 5. Senior Frontend Engineer — Admin
 6. Senior Frontend Engineer — Public
 7. Scraper & Automation Engineer
@@ -718,6 +742,27 @@ RW = Read/Write, R = Read only, Coord = Coordinate/Propose, - = No access
 
 ---
 
+## NEX-3 Productivity Review — Gap-to-Role Mapping
+
+| Gap Category | Specific Gap | Primary Owner | Supporting Roles |
+|--------------|--------------|---------------|------------------|
+| **Migration** | `streaming` + `episode_streaming_links` tables not created | Backend Engineer | Platform Architect, DevOps |
+| **Migration** | RLS policies unverified for new tables | Security Auditor | Backend Engineer |
+| **Testing** | No integration tests for scraper engine | QA Engineer (Web) | Scraper Engineer |
+| **Testing** | No scraper contract tests (Vitest + HTML fixtures) | QA Engineer (Web) | Scraper Engineer |
+| **Type Safety** | `scrapeSource` accepts `any` for source | Scraper Engineer | Platform Architect |
+| **Code Health** | `scraper-utils.ts` 2,865 lines — needs splitting | Scraper Engineer | Platform Architect |
+| **Resilience** | Single proxy provider (`proxyscrape.com`) | Scraper Engineer | DevOps |
+| **Observability** | No structured logging (Pino) | DevOps | Backend Engineer, Scraper Engineer |
+| **Observability** | No scraper health dashboard | Frontend Engineer (Admin) | Analytics Engineer, Scraper Engineer |
+| **Rate Limiting** | No rate limiting on `/api/cron/check-episodes` | Backend Engineer | DevOps |
+| **Data Quality** | Episode title not backfilled from scraped data | Scraper Engineer | Content Curator |
+| **Compat** | `toon-scraper-package` runtime `require()` | Scraper Engineer | Platform Architect |
+| **Multi-tenancy** | TMDB API key only in `app_settings` (id=1) | Backend Engineer | Platform Architect |
+| **Reliability** | Dead letter queue for failed scrape jobs | Backend Engineer | Scraper Engineer, DevOps |
+
+---
+
 ## Acceptance Criteria for This Plan
 
 - [ ] All 21 roles defined with complete template sections
@@ -728,6 +773,8 @@ RW = Read/Write, R = Read only, Coord = Coordinate/Propose, - = No access
 - [ ] Phased hiring sequence respects dependencies
 - [ ] Cross-division collaboration paths explicit
 - [ ] Document saved as `HIRING_PLAN.md` in repo root
+- [ ] **NEX-3 Gap-to-Role mapping complete — every critical/high gap has owner**
+- [ ] **Priorities updated to reflect production blockers from review**
 
 ---
 
