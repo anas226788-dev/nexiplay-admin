@@ -1,0 +1,9 @@
+{
+    "redirects": [
+        {
+            "source": "/.git/(.*)",
+            "destination": "/",
+            "permanent": true
+        }
+    ]
+}

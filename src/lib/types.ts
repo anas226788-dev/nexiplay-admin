@@ -342,3 +342,14 @@ export interface LeaderboardEntry {
     is_fake: boolean;
     updated_at: string;
 }
+
+export interface AppConfig {
+    id: string;
+    latest_version_code: number;
+    latest_version_name: string;
+    apk_url: string;
+    release_notes: string;
+    force_update: boolean;
+    min_version_code: number;
+    updated_at: string;
+}

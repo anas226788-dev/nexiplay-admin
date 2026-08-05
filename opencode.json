@@ -1,0 +1,56 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "username": "Nahiyan",
+  "model": "nvidia/nemotron-3-ultra",
+  "small_model": "nvidia/nemotron-3-ultra",
+  "default_agent": "lead-fullstack-engineer",
+  "shell": "powershell.exe",
+  "logLevel": "INFO",
+  "share": "manual",
+  "autoupdate": true,
+  "snapshot": true,
+  "instructions": ["AGENTS.md"],
+  "skills": {
+    "paths": [".opencode/skills"]
+  },
+  "references": {
+    "docs": {
+      "path": "docs",
+      "description": "Use for product behavior, architecture, and documentation conventions"
+    },
+    "hiring-plan": {
+      "path": "HIRING_PLAN.md",
+      "description": "Use for agent roles, responsibilities, and organizational structure"
+    }
+  },
+  "agent": {
+    "lead-fullstack-engineer": {
+      "description": "Lead Full-Stack Engineer - NexiPlay web platform, admin panel, backend, APIs, database",
+      "mode": "subagent",
+      "model": "nvidia/nemotron-3-ultra"
+    },
+    "senior-android-engineer": {
+      "description": "Senior Android Engineer - Native NexiPlay Android app, Kotlin, Compose, ExoPlayer, Supabase sync",
+      "mode": "subagent",
+      "model": "nvidia/nemotron-3-ultra"
+    },
+    "devops-qa-security-engineer": {
+      "description": "DevOps + QA + Security Engineer - Vercel, Supabase, CI/CD, testing, security, monitoring, release validation",
+      "mode": "subagent",
+      "model": "nvidia/nemotron-3-ultra"
+    }
+  },
+  "permission": {
+    "edit": "ask",
+    "bash": { "git *": "allow", "npm *": "allow", "pnpm *": "allow", "*": "ask" },
+    "external_directory": { "~/secrets/**": "deny", "*": "allow" }
+  },
+  "formatter": false,
+  "lsp": true,
+  "experimental": {
+    "primary_tools": ["edit", "bash", "glob", "grep", "read", "write", "task"],
+    "mcp_timeout": 30000
+  },
+  "tool_output": { "max_lines": 200, "max_bytes": 8192 },
+  "compaction": { "auto": true, "tail_turns": 15 }
+}
