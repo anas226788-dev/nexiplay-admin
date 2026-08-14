@@ -30,12 +30,16 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         fetchAlerts();
 
         const fetchPendingRequests = async () => {
-            const { count } = await supabase
-                .from('content_requests')
-                .select('id', { count: 'exact', head: true })
-                .in('status', ['pending', 'review']);
-            if (count !== null) setPendingRequests(count);
+            try {
+                const response = await fetch('/api/admin/requests?summary=pending', { cache: 'no-store' });
+                const payload = await response.json();
+                setPendingRequests(response.ok ? (payload.count ?? 0) : 0);
+            } catch (error) {
+                console.error('Failed to load pending request count:', error);
+                setPendingRequests(0);
+            }
         };
+        fetchPendingRequests();
         fetchPendingRequests();
     }, [pathname]); // Refresh when navigating
 

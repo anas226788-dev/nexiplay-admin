@@ -53,15 +53,20 @@ export default function RequestsPage() {
 
     const fetchRequests = async () => {
         setLoading(true);
-        const { data } = await supabase
-            .from('content_requests')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (data) setRequests(data);
-        setLoading(false);
+        try {
+            const response = await fetch('/api/admin/requests', { cache: 'no-store' });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Failed to load requests');
+            setRequests(payload.requests ?? []);
+        } catch (error: unknown) {
+            console.error('Failed to load requests:', error);
+            setRequests([]);
+            const message = error instanceof Error ? error.message : 'Failed to load requests';
+            showMessage('error', message);
+        } finally {
+            setLoading(false);
+        }
     };
-
     const fetchSettings = async () => {
         const { data } = await supabase
             .from('app_settings')
