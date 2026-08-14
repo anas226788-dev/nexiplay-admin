@@ -24,7 +24,7 @@ export default function RequestsPage() {
 
     // Search Modal
     const [activeSearchRequest, setActiveSearchRequest] = useState<ContentRequest | null>(null);
-    const [activeSearchRequestType, setActiveSearchRequestType] = useState<'movie' | 'series' | 'anime'>('movie');
+    const [activeSearchRequestType, setActiveSearchRequestType] = useState<'auto' | 'movie' | 'series' | 'anime'>('auto');
     const [searchSource, setSearchSource] = useState<'rareanimes' | 'bollyflix' | 'movielink'>('movielink');
     const [searchQuery, setSearchQuery] = useState('');
     const [searching, setSearching] = useState(false);
@@ -128,13 +128,20 @@ export default function RequestsPage() {
         }
     };
 
+    const suggestImportSource = (contentName: string): 'rareanimes' | 'bollyflix' | 'movielink' => {
+        const title = contentName.toLowerCase();
+        if (/anime|manga|manhwa|isekai|seasons*d|episodes*d|sd+/.test(title)) return 'rareanimes';
+        if (/series|kdrama|drama|web series|season/.test(title)) return 'bollyflix';
+        return 'movielink';
+    };
+
     // Open Search Modal
     const handleStartAgentImport = (req: ContentRequest) => {
         setActiveSearchRequest(req);
         setSearchQuery(req.content_name);
         setSearchResults([]);
-        setSearchSource('movielink');
-        setActiveSearchRequestType('movie');
+        setSearchSource(suggestImportSource(req.content_name));
+        setActiveSearchRequestType('auto');
     };
 
     // Execute Search API
@@ -181,7 +188,8 @@ export default function RequestsPage() {
             // Reload requests
             await fetchRequests();
             setActiveSearchRequest(null);
-            showMessage('success', 'Content scraped successfully! Ready for review.');
+            const detectedType = data.meta?.detected_type || data.data?.type || activeSearchRequestType;
+            showMessage('success', `Imported as ${detectedType}. Content is ready for review.`);
         } catch (e: any) {
             alert(e.message);
         } finally {
@@ -671,6 +679,7 @@ export default function RequestsPage() {
                                             onChange={(e) => setActiveSearchRequestType(e.target.value as any)}
                                             className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500 font-semibold"
                                         >
+                                            <option value="auto">Auto Detect (Recommended)</option>
                                             <option value="movie">Movie</option>
                                             <option value="series">Series</option>
                                             <option value="anime">Anime</option>
@@ -722,7 +731,7 @@ export default function RequestsPage() {
                                         </span>
                                         <div className="text-center">
                                             <h4 className="font-bold text-purple-400 text-sm">Agent Scraping Content Details</h4>
-                                            <p className="text-xs text-gray-400 mt-1">Resolving redirections, fetching metadata and screenshot paths...</p>
+                                            <p className="text-xs text-gray-400 mt-1">Detecting type, normalizing metadata, grouping links and validating the import...</p>
                                         </div>
                                     </div>
                                 )}

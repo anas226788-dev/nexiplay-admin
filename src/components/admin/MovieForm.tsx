@@ -284,7 +284,6 @@ export default function MovieForm({ initialData }: MovieFormProps) {
 
                 // Clear existing categories and downloads to replace them
                 await supabase.from('movie_categories').delete().eq('movie_id', movieId);
-                await supabase.from('downloads').delete().eq('movie_id', movieId);
 
             } else {
                 // INSERT New Movie
@@ -357,22 +356,17 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                 if (catError) throw catError;
             }
 
-            // 3. Insert Downloads (ALLOW EMPTY URL)
-            const downloadInserts = downloads.map(d => ({
-                movie_id: movieId,
-                quality: d.quality,
-                file_size: d.fileSize,
-                file_url: d.fileUrl || null
-            }));
-
-            if (downloadInserts.length > 0) {
-                const { error: dlError } = await supabase
-                    .from('downloads')
-                    .insert(downloadInserts);
-
-                if (dlError) throw dlError;
+            // 3. Save Downloads through the server-side admin route.
+            // The browser anon client cannot bypass downloads-table RLS.
+            const downloadsResponse = await fetch('/api/admin/downloads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ movieId, downloads }),
+            });
+            const downloadsResult = await downloadsResponse.json().catch(() => null);
+            if (!downloadsResponse.ok) {
+                throw new Error(downloadsResult?.error || 'Failed to save downloads.');
             }
-
             // 4. Insert Screenshots
             // Strategy: Delete all existing and re-insert (Simple & Effective for ordering)
             await supabase.from('movie_screenshots').delete().eq('movie_id', movieId);

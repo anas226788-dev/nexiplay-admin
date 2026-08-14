@@ -327,6 +327,7 @@ async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'ru
             let importedAnimerulzCount = 0;
             let importedToonplayCount = 0;
             let importedLegacyCount = 0;
+            let pendingSubCount = 0;
             const warnings: string[] = [];
 
             // Fetch all seasons for this movie to map episodes correctly across seasons
@@ -414,6 +415,7 @@ async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'ru
                 // Scrape legacy source
                 const scrapeResult = await scrapeSource(scraperUrl, scraperSource);
                 const scrapedEpisodes = scrapeResult.episodes;
+                const pendingSubEpisodes = scrapeResult.pendingSubEpisodes || [];
                 if (scrapeResult.warnings) {
                     warnings.push(...scrapeResult.warnings.map(w => `Legacy Scraper: ${w}`));
                 }
@@ -473,8 +475,27 @@ async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'ru
                         maxScrapedEpNum = ep.number;
                     }
                 }
-            }
 
+                // Hindi Sub links are resolved to final Mega URLs but remain
+                // approval-gated and must not advance the release schedule.
+                if (scraperSource === 'rareanimes' && pendingSubEpisodes.length > 0) {
+                    for (const ep of pendingSubEpisodes) {
+                        try {
+                            const episodeId = await getOrCreateEpisode(seasonId, ep.number);
+                            await upsertDownloadLink(
+                                episodeId,
+                                scraperResolution,
+                                ep.link,
+                                'sub',
+                                'pending'
+                            );
+                            pendingSubCount++;
+                        } catch (err: any) {
+                            warnings.push(`Legacy Scraper SUB ${ep.title}: ${err.message}`);
+                        }
+                    }
+                }
+            }
             // 1b. Run Multi-Scraper if configured for streaming.
             if (isStreamingMode && movie.scraper_url && movie.scraper_source === 'multi') {
                 console.log(`[Cron Multi-Scraper] Processing movie: "${movie.title}"`);
@@ -855,6 +876,21 @@ async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'ru
             // Check if any episode links were processed
             const totalImported = importedLegacyCount + importedAnimerulzCount + importedToonplayCount;
 
+            if (totalImported === 0 && pendingSubCount > 0) {
+                results.push({
+                    id: movie.id,
+                    title: movie.title,
+                    status: 'pending_approval',
+                    importedLegacy: 0,
+                    importedCount: 0,
+                    pendingSub: pendingSubCount,
+                    lastEpisode: movie.last_episode || 0,
+                    nextEpisodeDate: movie.next_episode_date,
+                    message: `Found ${pendingSubCount} Hindi Sub Mega link${pendingSubCount === 1 ? '' : 's'} and queued for approval.`,
+                    warnings: warnings.length > 0 ? warnings : undefined,
+                });
+                continue;
+            }
             if (totalImported > 0) {
                 if (isStreamingMode) {
                     results.push({

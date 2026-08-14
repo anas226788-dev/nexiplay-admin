@@ -1,56 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { isScraperSource, normalizeSearchResults, scraperSourceLabels } from '@/lib/agent-import';
 import { searchWordPressSite } from '@/lib/scraper-utils';
+
+export const dynamic = 'force-dynamic';
+
+function jsonError(message: string, status = 400) {
+    return NextResponse.json({ success: false, error: message }, { status });
+}
 
 export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const { query, source } = body;
+        const body = await request.json().catch(() => null);
+        const query = typeof body?.query === 'string' ? body.query.trim() : '';
+        const source = body?.source;
+        if (query.length < 2) return jsonError('Search query must contain at least 2 characters');
+        if (query.length > 120) return jsonError('Search query is too long');
+        if (!isScraperSource(source)) return jsonError('Invalid scraper source');
 
-        if (!query || typeof query !== 'string') {
-            return NextResponse.json({ error: 'Search query is required' }, { status: 400 });
-        }
-
-        if (!source || !['rareanimes', 'bollyflix', 'movielink'].includes(source)) {
-            return NextResponse.json({ error: 'Invalid scraper source' }, { status: 400 });
-        }
-
-        // Fetch scraper domains from database
         const { data: settings, error: settingsError } = await supabase
             .from('app_settings')
             .select('rareanimes_url, bollyflix_url, movielink_url')
             .eq('id', 1)
             .single();
-
         if (settingsError) {
             console.error('Failed to fetch scraper domains:', settingsError);
-            return NextResponse.json({ error: 'Failed to fetch scraper domains' }, { status: 500 });
+            return jsonError('Failed to fetch scraper domains', 500);
         }
 
-        let baseUrl = '';
-        if (source === 'rareanimes') {
-            baseUrl = settings.rareanimes_url || 'https://rareanimes.ski';
-        } else if (source === 'bollyflix') {
-            baseUrl = settings.bollyflix_url || 'https://bollyflix.ski';
-        } else if (source === 'movielink') {
-            baseUrl = settings.movielink_url || 'https://movielinkbd.li';
-        }
-
+        const baseUrl = source === 'rareanimes'
+            ? settings.rareanimes_url || 'https://rareanimes.ski'
+            : source === 'bollyflix'
+                ? settings.bollyflix_url || 'https://bollyflix.ski'
+                : settings.movielink_url || 'https://movielinkbd.li';
         try {
             new URL(baseUrl);
         } catch {
-            return NextResponse.json({ error: `Invalid configuration URL for source ${source}: ${baseUrl}` }, { status: 500 });
+            return jsonError(`Invalid configuration URL for ${scraperSourceLabels[source]}`, 500);
         }
 
-        const results = await searchWordPressSite(baseUrl, query);
+        const rawResults = await searchWordPressSite(baseUrl, query);
+        const results = normalizeSearchResults(rawResults).map((result) => ({
+            ...result,
+            source,
+            source_label: scraperSourceLabels[source],
+        }));
 
-        return NextResponse.json({ results });
-
-    } catch (error: any) {
+        return NextResponse.json({
+            success: true,
+            results,
+            meta: { source, source_label: scraperSourceLabels[source], count: results.length },
+        }, { headers: { 'Cache-Control': 'no-store' } });
+    } catch (error) {
         console.error('Agent search error:', error);
-        return NextResponse.json(
-            { error: `Search failed: ${error.message}` },
-            { status: 500 }
-        );
+        return jsonError(error instanceof Error ? error.message : 'Search failed', 500);
     }
 }

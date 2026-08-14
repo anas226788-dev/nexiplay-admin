@@ -6,6 +6,7 @@ export interface ScrapedEpisode {
     title: string;
     link: string;
     streamingUrl?: string;
+    languageType?: 'dub' | 'sub';
     season?: number;  // Source season number (for multi-season scrapers)
 }
 
@@ -198,7 +199,7 @@ function extractRareAnimesEpisodes(html: string): {
         const watchMultiRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*WatchMultQuality(?:<\/[^>]+>)*<\/a>/i;
         const streamBetaRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*StreamBeta(?:<\/[^>]+>)*<\/a>/i;
 
-        // Find only visible Hindi/Hindi DUB sections. Explicit Hindi Sub sections are ignored.
+        // Find only clearly labelled Hindi DUB and Hindi Sub sections.
         const dubMarker = findRareAnimesHindiDubMarker(markerSearchSlice);
         if (dubMarker && !seenDub.has(ep.num)) {
             const dubIndex = dubMarker.index;
@@ -227,12 +228,12 @@ function extractRareAnimesEpisodes(html: string): {
             }
         }
 
-        // Find Hindi Sub section and its Mega link (Disabled - DUB only as per user request)
-        /*
+        // Find Hindi Sub section and its Mega link. Sub links are returned separately
+        // so callers can keep them approval-gated instead of auto-importing them.
         const subIndex = searchSlice.search(/Hindi\s*Sub/i);
         if (subIndex !== -1 && !seenSub.has(ep.num)) {
             const subSlice = searchSlice.substring(subIndex, subIndex + 1500);
-            const nextLangCut = subSlice.search(/Tamil|Telugu|Malayalam/i);
+            const nextLangCut = subSlice.search(/Tamil|Telugu|Malayalam|Kannada|Bengali|Urdu|Arabic/i);
             const subSearchArea = nextLangCut > 0 ? subSlice.substring(0, nextLangCut) : subSlice;
             const megaMatch = megaLinkRegex.exec(subSearchArea);
             if (megaMatch) {
@@ -240,9 +241,7 @@ function extractRareAnimesEpisodes(html: string): {
                 seenSub.add(ep.num);
             }
         }
-        */
-
-        // No fallback import here. RareAnimes should import only clearly labelled Hindi/Hindi DUB rows.
+        // No fallback import here. RareAnimes should import only clearly labelled Hindi DUB or Hindi Sub rows.
     }
 
     const sortFn = (a: { title: string }, b: { title: string }) => {
@@ -370,7 +369,7 @@ async function fetchHtmlWithProxy(
     url: string,
     referer?: string,
     cookies?: string[],
-    options: { directFirst?: boolean } = {}
+    options: { directFirst?: boolean } = { directFirst: true }
 ): Promise<{ html: string; status: number; ok: boolean; setCookieHeader: string | null }> {
     const fetchDirect = async () => {
         const headers: Record<string, string> = { ...HEADERS };
@@ -553,10 +552,33 @@ async function resolveZipperToMega(zipperUrl: string): Promise<ResolvedZipperLin
  * Resolve a Codedew zipper URL without first loading its ad-step 1 page.
  * The ad-step 2 URL contains the final Mega anchor and is much faster.
  */
+const isFinalMegaUrl = (value?: string | null): value is string =>
+    Boolean(value && /^https?:\/\/(?:www\.)?mega\.nz\//i.test(value));
+
 async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZipperLink> {
+    const normalizeMarkup = (html: string): string => html
+        .replace(/&amp;/gi, '&')
+        .replace(/&quot;/gi, '"')
+        .replace(/\\u002f/gi, '/')
+        .replace(/\\\//g, '/');
+
     const extractMega = (html: string): string | null => {
-        const megaMatch = html.match(/href=["'](https:\/\/mega\.nz\/[^"']+)["']/i);
-        return megaMatch ? megaMatch[1] : null;
+        const normalized = normalizeMarkup(html);
+        const attributeMatch = normalized.match(/(?:href|data-href|data-url)\s*=\s*["'](https?:\/\/(?:www\.)?mega\.nz\/[^"']+)["']/i);
+        if (attributeMatch) return attributeMatch[1];
+        const bareMatch = normalized.match(/https?:\/\/(?:www\.)?mega\.nz\/[^\s"'<>\\]+/i);
+        return bareMatch ? bareMatch[0] : null;
+    };
+
+    const extractNextStep = (html: string, baseUrl: string): string | null => {
+        const normalized = normalizeMarkup(html);
+        const nextMatch = normalized.match(/(?:data-href|href)\s*=\s*["']([^"']*(?:ad_done=1|ad_step=2)[^"']*)["']/i);
+        if (!nextMatch) return null;
+        try {
+            return new URL(nextMatch[1], baseUrl).href;
+        } catch {
+            return null;
+        }
     };
 
     const fetchDirectHtml = async (targetUrl: string, referer?: string) => {
@@ -568,7 +590,6 @@ async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZip
             'Sec-Fetch-User': '?1',
         };
         if (referer) headers['Referer'] = referer;
-
         const res = await fetch(targetUrl, {
             headers,
             signal: AbortSignal.timeout(12000),
@@ -583,66 +604,61 @@ async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZip
         return url.href;
     };
 
-    const step2Url = buildStep2Url(zipperUrl);
     const errors: string[] = [];
+    const tryResolve = async (
+        targetUrl: string,
+        referer: string | undefined,
+        label: string,
+        useProxy: boolean
+    ): Promise<string | null> => {
+        try {
+            const response = useProxy
+                ? await fetchHtmlWithProxy(targetUrl, referer)
+                : await fetchDirectHtml(targetUrl, referer);
+            if (!response.ok) {
+                errors.push(`${label} HTTP ${response.status}`);
+                return null;
+            }
 
-    try {
-        const directStep2 = await fetchDirectHtml(step2Url, zipperUrl);
-        if (directStep2.ok) {
-            const mega = extractMega(directStep2.html);
-            if (mega) return { link: mega, resolvedToMega: true };
-            errors.push('direct step2: no Mega link found');
-        } else {
-            errors.push(`direct step2 HTTP ${directStep2.status}`);
-        }
-    } catch (e: any) {
-        errors.push(`direct step2: ${e.message}`);
-    }
+            const directMega = extractMega(response.html);
+            if (directMega) return directMega;
 
-    try {
-        const step1 = await fetchDirectHtml(zipperUrl);
-        if (!step1.ok) {
-            errors.push(`direct step1 HTTP ${step1.status}`);
-        } else {
-            const directMega = extractMega(step1.html);
-            if (directMega) return { link: directMega, resolvedToMega: true };
-
-            const step2Match = step1.html.match(/href=["']([^"']*ad_step=2[^"']*)["']/i);
-            if (step2Match) {
-                const step2Path = step2Match[1].replace(/&amp;/g, '&');
-                const resolvedStep2Url = new URL(step2Path, zipperUrl).href;
-                const resolvedStep2 = await fetchDirectHtml(resolvedStep2Url, zipperUrl);
-                if (resolvedStep2.ok) {
-                    const mega = extractMega(resolvedStep2.html);
-                    if (mega) return { link: mega, resolvedToMega: true };
-                    errors.push('direct step1-derived step2: no Mega link found');
+            const nextUrl = extractNextStep(response.html, targetUrl);
+            if (nextUrl && nextUrl !== targetUrl) {
+                const nextResponse = useProxy
+                    ? await fetchHtmlWithProxy(nextUrl, targetUrl)
+                    : await fetchDirectHtml(nextUrl, targetUrl);
+                if (nextResponse.ok) {
+                    const nextMega = extractMega(nextResponse.html);
+                    if (nextMega) return nextMega;
+                    errors.push(`${label} next step: no Mega link found`);
                 } else {
-                    errors.push(`direct step1-derived step2 HTTP ${resolvedStep2.status}`);
+                    errors.push(`${label} next step HTTP ${nextResponse.status}`);
                 }
             } else {
-                errors.push('direct step1: no ad_step link found');
+                errors.push(`${label}: no ad_done/ad_step link found`);
             }
+        } catch (e: any) {
+            errors.push(`${label}: ${e.message}`);
         }
-    } catch (e: any) {
-        errors.push(`direct step1 flow: ${e.message}`);
-    }
+        return null;
+    };
 
-    try {
-        const proxiedStep2 = await fetchHtmlWithProxy(step2Url, zipperUrl);
-        if (proxiedStep2.ok) {
-            const mega = extractMega(proxiedStep2.html);
-            if (mega) return { link: mega, resolvedToMega: true };
-            errors.push('proxied step2: no Mega link found');
-        } else {
-            errors.push(`proxied step2 HTTP ${proxiedStep2.status}`);
-        }
-    } catch (e: any) {
-        errors.push(`proxied step2: ${e.message}`);
-    }
+    const directStep1Mega = await tryResolve(zipperUrl, undefined, 'direct step1', false);
+    if (directStep1Mega) return { link: directStep1Mega, resolvedToMega: true };
+
+    const step2Url = buildStep2Url(zipperUrl);
+    const directStep2Mega = await tryResolve(step2Url, zipperUrl, 'direct step2', false);
+    if (directStep2Mega) return { link: directStep2Mega, resolvedToMega: true };
+
+    const proxiedStep1Mega = await tryResolve(zipperUrl, undefined, 'proxied step1', true);
+    if (proxiedStep1Mega) return { link: proxiedStep1Mega, resolvedToMega: true };
+
+    const proxiedStep2Mega = await tryResolve(step2Url, zipperUrl, 'proxied step2', true);
+    if (proxiedStep2Mega) return { link: proxiedStep2Mega, resolvedToMega: true };
 
     throw new Error(errors.join('; '));
 }
-
 /**
  * Resolve MovieLinkBD chain.
  */
@@ -885,9 +901,14 @@ export async function scrapeSource(
         const pendingSubEpisodes: ScrapedEpisode[] = [];
         const warnings: string[] = [];
         let resolvedCount = 0;
+        // Preserve the original language priority: use DUB whenever at least
+        // one DUB Mega-labelled link was found; use Sub only when no DUB link
+        // exists on the page at all.
+        const useSubFallback = rawDubEpisodes.length === 0 && rawSubEpisodes.length > 0;
+        const selectedEpisodes = useSubFallback ? rawSubEpisodes : rawDubEpisodes;
+        const languageLabel = useSubFallback ? 'SUB' : 'DUB';
 
-        // Resolve DUB episodes (auto-import)
-        for (const ep of rawDubEpisodes) {
+        for (const ep of selectedEpisodes) {
             try {
                 const resolved = await resolveZipperToMegaStrict(ep.zipperUrl);
                 const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
@@ -895,60 +916,45 @@ export async function scrapeSource(
                 if (ep.streamingUrl) {
                     resolvedStreamingUrl = await resolveStreamingEmbed(ep.streamingUrl);
                 }
-                episodes.push({
-                    number: epNum,
-                    title: ep.title,
-                    link: resolved.link,
-                    streamingUrl: resolvedStreamingUrl,
-                });
-                if (resolved.resolvedToMega) {
+                if (!resolved.resolvedToMega || !isFinalMegaUrl(resolved.link)) {
+                    warnings.push(`${languageLabel} ${ep.title}: Mega link could not be resolved; skipping intermediary Codedew URL`);
+                    continue;
+                }
+                if (useSubFallback) {
+                    // Sub fallback remains approval-gated and is never treated
+                    // as an auto-imported DUB episode.
+                    pendingSubEpisodes.push({
+                        number: epNum,
+                        title: ep.title,
+                        link: resolved.link,
+                        languageType: 'sub',
+                    });
+                } else {
+                    episodes.push({
+                        number: epNum,
+                        title: ep.title,
+                        link: resolved.link,
+                        streamingUrl: resolvedStreamingUrl,
+                        languageType: 'dub',
+                    });
                     resolvedCount++;
-                } else if (resolved.warning) {
-                    warnings.push(`DUB ${ep.title}: ${resolved.warning}`);
                 }
             } catch (err: any) {
-                warnings.push(`DUB ${ep.title}: ${err.message}`);
-                const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
-                episodes.push({
-                    number: epNum,
-                    title: ep.title,
-                    link: ep.zipperUrl,
-                    streamingUrl: ep.streamingUrl,
-                });
+                warnings.push(`${languageLabel} ${ep.title}: ${err.message}`);
             }
             await new Promise(r => setTimeout(r, 400));
         }
-
-        // Resolve SUB episodes (Disabled - DUB only as per user request)
-        /*
-        for (const ep of rawSubEpisodes) {
-            try {
-                const megaLink = await resolveZipperToMega(ep.zipperUrl);
-                const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
-                pendingSubEpisodes.push({
-                    number: epNum,
-                    title: ep.title,
-                    link: megaLink,
-                });
-            } catch (err: any) {
-                warnings.push(`SUB ${ep.title}: ${err.message}`);
-            }
-            await new Promise(r => setTimeout(r, 400));
-        }
-        */
-
-        if (episodes.length === 0) {
+        if (episodes.length === 0 && pendingSubEpisodes.length === 0) {
             throw new Error(`No importable episode links found. Errors: ${warnings.join('; ')}`);
         }
-
         return {
             pageTitle,
             resolution,
             seasonZipLink: null,
             episodes,
-            pendingSubEpisodes: undefined,
+            pendingSubEpisodes: pendingSubEpisodes.length > 0 ? pendingSubEpisodes : undefined,
             warnings,
-            totalFound: rawDubEpisodes.length,
+            totalFound: selectedEpisodes.length,
             resolvedCount,
             fallbackCount: episodes.length - resolvedCount,
         };

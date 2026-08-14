@@ -9,6 +9,7 @@ interface ScrapedEpisode {
     link: string;
     selected: boolean;
     streamingUrl?: string;
+    languageType?: 'dub' | 'sub';
 }
 
 interface ScrapeResult {
@@ -429,7 +430,7 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
 
                     const isRareanimes = sourceType === 'rareanimes';
                     const isAnimerulz = sourceType === 'animerulz';
-                    const langType = (isRareanimes || isAnimerulz) ? 'dub' : null;
+                    const langType = isRareanimes ? (ep.languageType || 'dub') : (isAnimerulz ? 'dub' : null);
                     const linkField = getLinkField(ep.link);
 
                     if (!isAnimerulz) {

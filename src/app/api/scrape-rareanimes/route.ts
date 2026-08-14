@@ -25,13 +25,16 @@ export async function POST(request: NextRequest) {
         }
 
         const result = await scrapeSource(url, 'rareanimes');
-
+        const displayEpisodes = result.episodes.length > 0
+            ? result.episodes
+            : (result.pendingSubEpisodes || []);
         return NextResponse.json({
             ...result,
-            resolvedCount: result.resolvedCount ?? result.episodes.length,
-            totalFound: result.totalFound ?? result.episodes.length,
+            episodes: displayEpisodes,
+            selectedLanguage: result.episodes.length > 0 ? 'dub' : (displayEpisodes.length > 0 ? 'sub' : null),
+            resolvedCount: result.episodes.length > 0 ? (result.resolvedCount ?? displayEpisodes.length) : displayEpisodes.length,
+            totalFound: result.totalFound ?? displayEpisodes.length,
         });
-
     } catch (error: any) {
         console.error('RareAnimes scrape error:', error);
         return NextResponse.json(
