@@ -68,15 +68,16 @@ export default function RequestsPage() {
         }
     };
     const fetchSettings = async () => {
-        const { data } = await supabase
-            .from('app_settings')
-            .select('id, rareanimes_url, bollyflix_url, movielink_url')
-            .eq('id', 1)
-            .single();
-        if (data) setSettings(data as any);
-    };
-
-    const fetchCategories = async () => {
+        try {
+            const response = await fetch('/api/admin/settings', { cache: 'no-store' });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Failed to load scraper domains');
+            if (payload.settings) setSettings(payload.settings as AppSettings);
+        } catch (error) {
+            console.error('Failed to load scraper domains:', error);
+            showMessage('error', error instanceof Error ? error.message : 'Failed to load scraper domains');
+        }
+    };    const fetchCategories = async () => {
         const { data } = await supabase.from('categories').select('*');
         if (data) setCategories(data);
     };
@@ -84,26 +85,28 @@ export default function RequestsPage() {
     const saveSettings = async () => {
         if (!settings) return;
         setSavingSettings(true);
-        const { error } = await supabase
-            .from('app_settings')
-            .update({
-                rareanimes_url: settings.rareanimes_url,
-                bollyflix_url: settings.bollyflix_url,
-                movielink_url: settings.movielink_url,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', 1);
-
-        setSavingSettings(false);
-        if (error) {
-            showMessage('error', 'Failed to save domains: ' + error.message);
-        } else {
+        try {
+            const response = await fetch('/api/admin/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rareanimes_url: settings.rareanimes_url,
+                    bollyflix_url: settings.bollyflix_url,
+                    movielink_url: settings.movielink_url,
+                }),
+            });
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || 'Failed to save scraper domains');
+            if (payload.settings) setSettings(payload.settings as AppSettings);
             showMessage('success', 'Domains updated successfully!');
             setShowSettings(false);
+        } catch (error) {
+            console.error('Failed to save scraper domains:', error);
+            showMessage('error', error instanceof Error ? error.message : 'Failed to save scraper domains');
+        } finally {
+            setSavingSettings(false);
         }
-    };
-
-    const updateStatus = async (id: string, status: 'added' | 'rejected') => {
+    };    const updateStatus = async (id: string, status: 'added' | 'rejected') => {
         const { error } = await supabase
             .from('content_requests')
             .update({ status })

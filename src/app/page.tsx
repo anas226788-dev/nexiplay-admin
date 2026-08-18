@@ -1,13 +1,8 @@
-import { createClient } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Movie } from '@/lib/types';
 import Link from 'next/link';
 import ContentList from '@/components/ContentList';
 
-// Re-creating client here to ensure fresh data
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 async function getMovies(): Promise<Movie[]> {
     const { data, error } = await supabase

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getAdminSupabase } from '@/lib/supabase-admin';
 import { isScraperSource, normalizeSearchResults, scraperSourceLabels } from '@/lib/agent-import';
 import { searchWordPressSite } from '@/lib/scraper-utils';
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
         if (query.length > 120) return jsonError('Search query is too long');
         if (!isScraperSource(source)) return jsonError('Invalid scraper source');
 
-        const { data: settings, error: settingsError } = await supabase
+        const { data: settings, error: settingsError } = await getAdminSupabase()
             .from('app_settings')
             .select('rareanimes_url, bollyflix_url, movielink_url')
             .eq('id', 1)
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         const baseUrl = source === 'rareanimes'
             ? settings.rareanimes_url || 'https://rareanimes.ski'
             : source === 'bollyflix'
-                ? settings.bollyflix_url || 'https://bollyflix.ski'
+                ? settings.bollyflix_url || 'https://bollyflix.free'
                 : settings.movielink_url || 'https://movielinkbd.li';
         try {
             new URL(baseUrl);
