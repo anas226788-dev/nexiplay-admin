@@ -5,7 +5,6 @@ import { Notice } from '@/lib/types';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-
 export default function NoticePage() {
     const [notices, setNotices] = useState<Notice[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,43 +73,59 @@ export default function NoticePage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                        {notices.map((notice) => (
-                            <tr key={notice.id} className="hover:bg-white/5 transition-colors">
-                                <td className="px-6 py-4 text-white max-w-xs truncate" title={notice.content}>
-                                    <div className="flex items-center gap-3">
-                                        {notice.image_url && (
-                                            <img src={notice.image_url} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0 border border-white/10" />
-                                        )}
-                                        <div dangerouslySetInnerHTML={{ __html: notice.content }} />
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4 text-gray-300">
-                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                                        notice.platform === 'web' ? 'bg-blue-500/20 text-blue-400' :
-                                        notice.platform === 'app' ? 'bg-green-500/20 text-green-400' :
-                                        'bg-purple-500/20 text-purple-400'
-                                    }`}>
-                                        {notice.platform || 'both'}
-                                    </span>
-                                </td>
-                                <td className="px-6 py-4 text-gray-300">
-                                    <span className="px-2 py-1 bg-white/10 rounded text-xs font-bold uppercase">{notice.type.replace('_', ' ')}</span>
-                                </td>
-                                <td className="px-6 py-4 text-gray-300 capitalize">{notice.pages}</td>
-                                <td className="px-6 py-4">
-                                    <button
-                                        onClick={() => toggleStatus(notice.id, notice.is_active)}
-                                        className={`px-2 py-1 rounded-full text-xs font-bold ${notice.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}
-                                    >
-                                        {notice.is_active ? 'Active' : 'Inactive'}
-                                    </button>
-                                </td>
-                                <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
-                                    <Link href={`/notices/edit/${notice.id}`} className="text-gray-400 hover:text-white">Edit</Link>
-                                    <button onClick={() => deleteNotice(notice.id)} className="text-red-500 hover:text-red-400">Delete</button>
-                                </td>
-                            </tr>
-                        ))}
+                        {notices.map((notice) => {
+                            const cleanText = notice.content
+                                ? notice.content.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim()
+                                : '';
+                            const snippet = cleanText.length > 70 ? cleanText.substring(0, 70) + '...' : cleanText;
+
+                            return (
+                                <tr key={notice.id} className="hover:bg-white/5 transition-colors">
+                                    <td className="px-6 py-4 text-white max-w-sm">
+                                        <div className="flex items-center gap-3">
+                                            {notice.image_url && (
+                                                <img src={notice.image_url} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0 border border-white/10" />
+                                            )}
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-200 line-clamp-2" title={cleanText}>
+                                                    {snippet || '(No text content)'}
+                                                </p>
+                                                {notice.content?.includes('<a') && (
+                                                    <span className="inline-block mt-1 text-[11px] text-blue-400 font-mono bg-blue-500/10 px-1.5 py-0.5 rounded">
+                                                        🔗 Contains Action Button
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-300">
+                                        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                                            notice.platform === 'web' ? 'bg-blue-500/20 text-blue-400' :
+                                            notice.platform === 'app' ? 'bg-green-500/20 text-green-400' :
+                                            'bg-purple-500/20 text-purple-400'
+                                        }`}>
+                                            {notice.platform || 'both'}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-300">
+                                        <span className="px-2 py-1 bg-white/10 rounded text-xs font-bold uppercase">{notice.type.replace('_', ' ')}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-300 capitalize">{notice.pages}</td>
+                                    <td className="px-6 py-4">
+                                        <button
+                                            onClick={() => toggleStatus(notice.id, notice.is_active)}
+                                            className={`px-2 py-1 rounded-full text-xs font-bold ${notice.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}
+                                        >
+                                            {notice.is_active ? 'Active' : 'Inactive'}
+                                        </button>
+                                    </td>
+                                    <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
+                                        <Link href={`/notices/edit/${notice.id}`} className="text-gray-400 hover:text-white">Edit</Link>
+                                        <button onClick={() => deleteNotice(notice.id)} className="text-red-500 hover:text-red-400">Delete</button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

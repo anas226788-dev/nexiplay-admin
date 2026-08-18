@@ -185,7 +185,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
 
     // ── Quick Templates for App Download ──
     const applyAppDownloadTemplate = (templateType: 'top_bar' | 'popup' | 'bottom_bar') => {
-        const downloadLink = btnUrl || appConfig?.apk_url || 'https://nexiplay.vercel.app';
+        const downloadLink = btnUrl || '/api/download/apk';
         const ver = appConfig?.latest_version_name || '1.0.3';
 
         if (templateType === 'top_bar') {
@@ -196,7 +196,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                 pages: 'all',
                 bg_color: STYLE_PRESETS[1].bg,
                 text_color: 'text-white',
-                content: `📱 <b>NexiPlay Official Android App (v${ver}):</b> Faster streaming, background downloads & zero ads! <a href="${downloadLink}" target="_blank" class="notice-app-btn"><span>📥</span> Download APK</a>`
+                content: `📱 <b>NexiPlay Official Android App (v${ver}):</b> Faster streaming, background downloads & zero ads! <a href="${downloadLink}" class="notice-app-btn"><span>📥</span> Download APK</a>`
             });
             setSelectedPreset('1');
         } else if (templateType === 'popup') {
@@ -212,7 +212,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
   <h3 class="text-xl font-bold text-white">NexiPlay Android App is Live!</h3>
   <p class="text-sm text-gray-300">Enjoy 4K HDR playback, fast episode downloads, novel reading & instant background streaming directly on your phone.</p>
   <div class="pt-2">
-    <a href="${downloadLink}" target="_blank" class="notice-app-btn-lg">🚀 Download Free APK (v${ver})</a>
+    <a href="${downloadLink}" class="notice-app-btn-lg">🚀 Download Free APK (v${ver})</a>
   </div>
 </div>`
             });
@@ -225,7 +225,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                 pages: 'all',
                 bg_color: 'bg-dark-900/95 border-t border-red-500/30',
                 text_color: 'text-white',
-                content: `📲 <b>Watch on Mobile:</b> Download the official NexiPlay app for the fastest streaming experience. <a href="${downloadLink}" target="_blank" class="notice-app-btn">⚡ Install Now</a>`
+                content: `📲 <b>Watch on Mobile:</b> Download the official NexiPlay app for the fastest streaming experience. <a href="${downloadLink}" class="notice-app-btn">⚡ Install Now</a>`
             });
             setSelectedPreset('custom');
         }
@@ -233,14 +233,10 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
 
     // ── Insert Download Button into Message Content ──
     const insertDownloadButton = () => {
-        const downloadLink = btnUrl || appConfig?.apk_url || '';
-        if (!downloadLink) {
-            alert('Please provide an APK Download URL first.');
-            return;
-        }
+        const downloadLink = btnUrl || '/api/download/apk';
 
         const btnClass = btnStyle === 'large' ? 'notice-app-btn-lg' : btnStyle === 'neon' ? 'notice-app-btn-neon' : 'notice-app-btn';
-        const buttonHtml = ` <a href="${downloadLink}" target="_blank" class="${btnClass}">${btnText || '📥 Download APK'}</a>`;
+        const buttonHtml = ` <a href="${downloadLink}" class="${btnClass}">${btnText || '📥 Download APK'}</a>`;
 
         setFormData(prev => ({
             ...prev,
