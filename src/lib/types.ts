@@ -188,6 +188,15 @@ export interface AppSettings {
     is_rewarded_enabled?: boolean;
     is_native_enabled?: boolean;
     is_app_open_enabled?: boolean;
+    is_premium_server_ad_enabled?: boolean;
+    is_test_ads_enabled?: boolean;
+    // Coin Popup Marketing Config
+    coin_popup_enabled?: boolean;
+    coin_popup_title?: string;
+    coin_popup_message?: string;
+    coin_popup_button_text?: string;
+    coin_popup_action?: string;
+    coin_popup_trigger_count?: number;
     updated_at: string;
 }
 

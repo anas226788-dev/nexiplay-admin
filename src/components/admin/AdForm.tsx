@@ -117,10 +117,14 @@ export default function AdForm({ initialData }: AdFormProps) {
                             onChange={(e) => setPlacement(e.target.value as any)}
                             className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-red-500"
                         >
-                            <option value="home_top">Home Top Banner</option>
-                            <option value="home_bottom">Home Bottom Banner</option>
-                            <option value="movie_sidebar">Movie Sidebar</option>
-                            <option value="popup_global">Global Popup</option>
+                            <option value="home_top">Homepage Top (320x50 / 728x90)</option>
+                            <option value="home_bottom">Homepage Bottom (300x250)</option>
+                            <option value="movie_sidebar">Movie/Series Sidebar (160x600)</option>
+                            <option value="download_bottom">Download Page Bottom</option>
+                            <option value="episode_list">Episode List</option>
+                            <option value="popup_global">Global Popunder/Popup</option>
+                            <option value="native_list">Native Horizontal List</option>
+                            <option value="social_bar">Social Bar (Floating)</option>
                         </select>
                     </div>
                 </div>

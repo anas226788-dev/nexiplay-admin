@@ -66,25 +66,11 @@ export default function AppVersionPage() {
                 updated_at: new Date().toISOString(),
             };
 
-            // Try update first
-            const { data: existing } = await supabase
+            // Atomic upsert
+            const { error } = await supabase
                 .from('app_config')
-                .select('id')
-                .eq('id', 'app_update')
-                .single();
-
-            if (existing) {
-                const { error } = await supabase
-                    .from('app_config')
-                    .update(payload)
-                    .eq('id', 'app_update');
-                if (error) throw error;
-            } else {
-                const { error } = await supabase
-                    .from('app_config')
-                    .insert({ id: 'app_update', ...payload });
-                if (error) throw error;
-            }
+                .upsert({ id: 'app_update', ...payload }, { onConflict: 'id' });
+            if (error) throw error;
 
             setMessage({ type: 'success', text: 'App version config updated successfully!' });
             fetchConfig();
