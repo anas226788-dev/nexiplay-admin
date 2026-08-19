@@ -285,11 +285,19 @@ export interface Comment {
 export interface ContentRequest {
     id: string;
     content_name: string;
+    title?: string;
     status: 'pending' | 'added' | 'rejected' | 'review';
     scraped_data?: any;
     scraper_source?: 'rareanimes' | 'bollyflix' | 'movielink' | 'animerulz' | 'toonplay' | null;
     source_url?: string | null;
     created_at: string;
+    user_id?: string | null;
+    user_name?: string | null;
+    user_email?: string | null;
+    user_avatar?: string | null;
+    has_account?: boolean;
+    type?: string | null;
+    notes?: string | null;
 }
 
 export interface ContactMessage {

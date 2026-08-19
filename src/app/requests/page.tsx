@@ -502,8 +502,27 @@ export default function RequestsPage() {
                             <tbody className="divide-y divide-white/5">
                                 {requests.map((req) => (
                                     <tr key={req.id} className="hover:bg-white/5 transition-colors">
-                                        <td className="px-6 py-4 text-white font-medium">
-                                            {req.content_name}
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2.5 flex-wrap">
+                                                <span className="text-white font-semibold text-sm">
+                                                    {req.content_name || req.title}
+                                                </span>
+                                                {req.has_account && (req.user_name || req.user_email) && (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/15 text-blue-300 border border-blue-500/25 shadow-sm">
+                                                        {req.user_avatar ? (
+                                                            <img src={req.user_avatar} alt="" className="w-4 h-4 rounded-full object-cover" />
+                                                        ) : (
+                                                            <span className="text-[11px]">👤</span>
+                                                        )}
+                                                        <span>{req.user_name || req.user_email}</span>
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {req.notes && (
+                                                <p className="text-xs text-gray-400 italic mt-1 font-normal">
+                                                    Note: {req.notes}
+                                                </p>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2.5 py-1 text-xs font-black rounded-full capitalize ${
@@ -591,7 +610,19 @@ export default function RequestsPage() {
                         requests.map((req) => (
                             <div key={req.id} className="glass-panel rounded-xl p-4 space-y-3">
                                 <div className="flex items-start justify-between gap-2">
-                                    <h3 className="font-semibold text-white">{req.content_name}</h3>
+                                    <div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <h3 className="font-semibold text-white">{req.content_name || req.title}</h3>
+                                            {req.has_account && (req.user_name || req.user_email) && (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/25">
+                                                    👤 {req.user_name || req.user_email}
+                                                </span>
+                                            )}
+                                        </div>
+                                        {req.notes && (
+                                            <p className="text-xs text-gray-400 italic mt-1">Note: {req.notes}</p>
+                                        )}
+                                    </div>
                                     <span className={`px-2.5 py-1 text-xs font-bold rounded-full capitalize whitespace-nowrap ${
                                         req.status === 'added' ? 'bg-green-500/20 text-green-400' :
                                         req.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
