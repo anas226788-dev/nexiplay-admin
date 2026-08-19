@@ -15,7 +15,10 @@ async function getMovies(): Promise<Movie[]> {
         return [];
     }
 
-    return data || [];
+    return (data || []).map((m: any) => ({
+        ...m,
+        is_pinned: Boolean(m.is_pinned || m.admin_note === 'pinned'),
+    }));
 }
 
 // Enable revalidation every 60 seconds for free tier safety

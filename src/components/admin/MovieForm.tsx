@@ -79,6 +79,9 @@ export default function MovieForm({ initialData }: MovieFormProps) {
     // Adult Content State
     const [isAdult, setIsAdult] = useState(initialData?.is_adult || false);
 
+    // Pin to Top State
+    const [isPinned, setIsPinned] = useState(Boolean(initialData?.is_pinned || initialData?.admin_note === 'pinned'));
+
 
 
     const [downloads, setDownloads] = useState(
@@ -251,7 +254,8 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         running_status: runningStatus,
                         running_notice: runningNotice,
                         next_episode_date: nextEpisodeDate ? new Date(nextEpisodeDate).toISOString() : null,
-                        admin_note: adminNote || null,
+                        admin_note: isPinned ? 'pinned' : (adminNote === 'pinned' ? null : adminNote) || null,
+                        is_pinned: isPinned,
                         notify_admin: notifyAdmin,
                         // Per-Content Notice System
                         notice_enabled: noticeEnabled,
@@ -308,7 +312,8 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         running_status: runningStatus,
                         running_notice: runningNotice,
                         next_episode_date: nextEpisodeDate ? new Date(nextEpisodeDate).toISOString() : null,
-                        admin_note: adminNote || null,
+                        admin_note: isPinned ? 'pinned' : (adminNote === 'pinned' ? null : adminNote) || null,
+                        is_pinned: isPinned,
                         notify_admin: notifyAdmin,
                         // Per-Content Notice System
                         notice_enabled: noticeEnabled,
@@ -850,6 +855,29 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             onChange={(e) => setIsAdult(e.target.checked)}
                         />
                         <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            {/* 📌 Pin to Top (Latest Additions) */}
+            <div className="glass p-6 rounded-xl border border-white/5 space-y-2">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-xl font-bold flex items-center gap-2">
+                            <span className="text-amber-400">📌</span> Pin to Top (Latest Additions)
+                        </h2>
+                        <p className="text-sm text-gray-400 mt-1">
+                            When enabled, this content will <strong className="text-white">always stay at the very top of Latest Additions</strong> on the website & app. Any newly added content will appear below it.
+                        </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={isPinned}
+                            onChange={(e) => setIsPinned(e.target.checked)}
+                        />
+                        <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-500"></div>
                     </label>
                 </div>
             </div>

@@ -12,17 +12,43 @@ interface ContentListProps {
 export default function ContentList({ initialMovies }: ContentListProps) {
     const [movies, setMovies] = useState<Movie[]>(initialMovies);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [pinningId, setPinningId] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [typeFilter, setTypeFilter] = useState<'all' | 'anime' | 'series' | 'movie'>('all');
+    const [typeFilter, setTypeFilter] = useState<'all' | 'anime' | 'series' | 'movie' | 'pinned'>('all');
 
     // Filtered movies
     const filteredMovies = movies.filter((movie) => {
         const matchesSearch = searchQuery === '' ||
             movie.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             movie.slug?.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesType = typeFilter === 'all' || movie.type === typeFilter;
+        const matchesType = typeFilter === 'all' 
+            ? true 
+            : typeFilter === 'pinned'
+                ? Boolean(movie.is_pinned)
+                : movie.type === typeFilter;
         return matchesSearch && matchesType;
     });
+
+    const handleTogglePin = async (movie: Movie) => {
+        const nextState = !movie.is_pinned;
+        setPinningId(movie.id);
+        try {
+            const res = await fetch('/api/admin/movies/pin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: movie.id, is_pinned: nextState }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to toggle pin');
+
+            setMovies(prev => prev.map(m => m.id === movie.id ? { ...m, is_pinned: nextState } : m));
+        } catch (err: any) {
+            console.error('Error toggling pin:', err);
+            alert('Failed to update pin: ' + (err.message || 'Unknown error'));
+        } finally {
+            setPinningId(null);
+        }
+    };
 
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this content? This will permanently remove all data including seasons, episodes, and images. This action cannot be undone.')) return;
@@ -95,6 +121,7 @@ export default function ContentList({ initialMovies }: ContentListProps) {
 
     const typeButtons = [
         { value: 'all' as const, label: 'All', count: movies.length },
+        { value: 'pinned' as const, label: '📌 Pinned', count: movies.filter(m => m.is_pinned).length },
         { value: 'anime' as const, label: 'Anime', count: movies.filter(m => m.type === 'anime').length },
         { value: 'series' as const, label: 'Series', count: movies.filter(m => m.type === 'series').length },
         { value: 'movie' as const, label: 'Movie', count: movies.filter(m => m.type === 'movie').length },
@@ -130,14 +157,16 @@ export default function ContentList({ initialMovies }: ContentListProps) {
 
                 {/* Type Filter + Count */}
                 <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                         {typeButtons.map((btn) => (
                             <button
                                 key={btn.value}
                                 onClick={() => setTypeFilter(btn.value)}
                                 className={`px-3 py-1.5 text-xs font-bold rounded-lg uppercase transition-all ${
                                     typeFilter === btn.value
-                                        ? 'bg-red-600 text-white shadow-lg shadow-red-900/30'
+                                        ? btn.value === 'pinned'
+                                            ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
+                                            : 'bg-red-600 text-white shadow-lg shadow-red-900/30'
                                         : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
                                 }`}
                             >
@@ -168,8 +197,13 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                             {filteredMovies.map((movie) => (
                                 <tr key={movie.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                                     <td className="px-6 py-4 font-medium">
-                                        <span className="flex items-center gap-2">
-                                            {movie.title}
+                                        <span className="flex items-center gap-2 flex-wrap">
+                                            {movie.is_pinned && (
+                                                <span className="px-2 py-0.5 text-[10px] font-black rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wider shrink-0 flex items-center gap-1">
+                                                    <span>📌</span> PINNED
+                                                </span>
+                                            )}
+                                            <span className="text-white">{movie.title}</span>
                                             {movie.is_adult && (
                                                 <span className="px-1.5 py-0.5 text-[10px] font-black rounded bg-red-600 text-white uppercase tracking-wider shrink-0">18+</span>
                                             )}
@@ -184,6 +218,22 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                                         {movie.release_year}
                                     </td>
                                     <td className="px-6 py-4 text-right">
+                                        <button
+                                            onClick={() => handleTogglePin(movie)}
+                                            disabled={pinningId === movie.id}
+                                            title={movie.is_pinned ? 'Unpin from top' : 'Pin to top of Latest Additions'}
+                                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg border transition-all mr-3 ${
+                                                movie.is_pinned
+                                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20 hover:bg-amber-500/30'
+                                                    : 'bg-white/5 text-gray-400 border-white/10 hover:text-amber-300 hover:border-amber-500/30'
+                                            }`}
+                                        >
+                                            {pinningId === movie.id ? (
+                                                <span className="w-3.5 h-3.5 border-2 border-amber-500/20 border-t-amber-400 rounded-full animate-spin block"></span>
+                                            ) : (
+                                                <span>📌 {movie.is_pinned ? 'Pinned' : 'Pin'}</span>
+                                            )}
+                                        </button>
                                         <Link
                                             href={`/edit/${movie.id}`}
                                             className="text-gray-400 hover:text-white transition-colors mr-4"
@@ -226,8 +276,13 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                             <div key={movie.id} className="p-4 active:bg-white/5 transition-colors">
                                 <div className="flex items-start justify-between gap-3">
                                     <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-white truncate flex items-center gap-2">
-                                            {movie.title}
+                                        <h3 className="font-semibold text-white truncate flex items-center gap-2 flex-wrap">
+                                            {movie.is_pinned && (
+                                                <span className="px-2 py-0.5 text-[9px] font-black rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wider shrink-0">
+                                                    📌 PINNED
+                                                </span>
+                                            )}
+                                            <span>{movie.title}</span>
                                             {movie.is_adult && (
                                                 <span className="px-1.5 py-0.5 text-[10px] font-black rounded bg-red-600 text-white uppercase tracking-wider shrink-0">18+</span>
                                             )}
@@ -239,7 +294,23 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                                             <span className="text-xs text-gray-500">{movie.release_year}</span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3 shrink-0">
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <button
+                                            onClick={() => handleTogglePin(movie)}
+                                            disabled={pinningId === movie.id}
+                                            title={movie.is_pinned ? 'Unpin' : 'Pin'}
+                                            className={`p-2 rounded-lg border text-xs font-bold transition-all ${
+                                                movie.is_pinned
+                                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                                    : 'bg-white/5 text-gray-400 border-white/10'
+                                            }`}
+                                        >
+                                            {pinningId === movie.id ? (
+                                                <span className="w-4 h-4 border-2 border-amber-500/20 border-t-amber-400 rounded-full animate-spin block"></span>
+                                            ) : (
+                                                <span>📌</span>
+                                            )}
+                                        </button>
                                         <Link
                                             href={`/edit/${movie.id}`}
                                             className="p-2 rounded-lg bg-white/5 text-gray-400 active:bg-white/10"
