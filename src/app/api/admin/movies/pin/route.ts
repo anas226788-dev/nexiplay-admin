@@ -23,22 +23,6 @@ export async function POST(req: Request) {
         const pinState = Boolean(is_pinned);
         const adminNoteVal = pinState ? 'pinned' : null;
 
-        // 1. Try updating is_pinned + admin_note
-        const { data, error } = await db
-            .from('movies')
-            .update({
-                admin_note: adminNoteVal,
-                is_pinned: pinState,
-            })
-            .eq('id', id)
-            .select('id, title, admin_note')
-            .single();
-
-        if (!error && data) {
-            return NextResponse.json({ success: true, movie: { ...data, is_pinned: pinState }, is_pinned: pinState });
-        }
-
-        // 2. Fallback: update admin_note only (guaranteed to succeed without column migration)
         const { data: noteData, error: noteError } = await db
             .from('movies')
             .update({ admin_note: adminNoteVal })

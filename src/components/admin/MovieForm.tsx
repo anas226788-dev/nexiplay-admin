@@ -255,7 +255,6 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         running_notice: runningNotice,
                         next_episode_date: nextEpisodeDate ? new Date(nextEpisodeDate).toISOString() : null,
                         admin_note: isPinned ? 'pinned' : (adminNote === 'pinned' ? null : adminNote) || null,
-                        is_pinned: isPinned,
                         notify_admin: notifyAdmin,
                         // Per-Content Notice System
                         notice_enabled: noticeEnabled,
@@ -313,7 +312,6 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         running_notice: runningNotice,
                         next_episode_date: nextEpisodeDate ? new Date(nextEpisodeDate).toISOString() : null,
                         admin_note: isPinned ? 'pinned' : (adminNote === 'pinned' ? null : adminNote) || null,
-                        is_pinned: isPinned,
                         notify_admin: notifyAdmin,
                         // Per-Content Notice System
                         notice_enabled: noticeEnabled,
