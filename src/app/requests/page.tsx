@@ -491,54 +491,61 @@ export default function RequestsPage() {
                     </div>
                 )}
 
-                <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-black text-white flex items-center gap-3">
-                        📥 Content Requests
-                        <span className="px-3 py-1 bg-white/10 text-base rounded-full text-gray-300">
-                            {requests.length}
-                        </span>
-                    </h1>
-                    <button
-                        onClick={() => setShowSettings(!showSettings)}
-                        className={`p-2 rounded-lg border transition-all flex items-center gap-2 ${
-                            showSettings 
-                            ? 'bg-red-600 border-red-500 text-white' 
-                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                        }`}
-                        title="Configure Scraper Domains"
-                    >
-                        <svg className={`w-5 h-5 ${showSettings ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span>Domains</span>
-                    </button>
-                    <button
-                        onClick={handleProcessAll}
-                        disabled={processingAll}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-sm transition-all bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border-purple-500/30 text-purple-300 hover:from-purple-600/30 hover:to-indigo-600/30 disabled:opacity-50"
-                        title="Automatically process all pending requests using the agentic pipeline"
-                    >
-                        {processingAll ? (
-                            <>
-                                <span className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
-                                Processing...
-                            </>
-                        ) : (
-                            <>
-                                <span>🤖</span>
-                                <span>Auto Process All</span>
-                            </>
-                        )}
-                    </button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3">
+                            📥 Content Requests
+                            <span className="px-2.5 py-0.5 bg-white/10 text-xs sm:text-sm rounded-full text-gray-300 font-semibold">
+                                {requests.length}
+                            </span>
+                        </h1>
+                        <p className="text-xs text-gray-400 mt-1">
+                            Automated scraper pipeline runs every 15 min or on-demand
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <button
+                            onClick={() => setShowSettings(!showSettings)}
+                            className={`flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl border transition-all flex items-center justify-center gap-2 text-xs font-bold ${
+                                showSettings 
+                                ? 'bg-red-600 border-red-500 text-white' 
+                                : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
+                            }`}
+                            title="Configure Scraper Domains"
+                        >
+                            <svg className={`w-4 h-4 ${showSettings ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span>Domains</span>
+                        </button>
+                        <button
+                            onClick={handleProcessAll}
+                            disabled={processingAll}
+                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-xs transition-all bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border-purple-500/30 text-purple-300 hover:from-purple-600/30 hover:to-indigo-600/30 disabled:opacity-50 shadow-lg shadow-purple-900/10"
+                            title="Automatically process all pending requests using the agentic pipeline"
+                        >
+                            {processingAll ? (
+                                <>
+                                    <span className="w-3.5 h-3.5 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+                                    <span>Processing...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>🤖</span>
+                                    <span>Auto Process All</span>
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
 
                 {/* Collapsible Scraper Domain Settings Panel */}
                 {showSettings && settings && (
-                    <div className="bg-dark-800 border border-white/5 rounded-2xl p-6 space-y-4 animate-in slide-in-from-top-4 duration-300">
+                    <div className="bg-dark-800 border border-white/5 rounded-2xl p-4 sm:p-6 space-y-4 animate-in slide-in-from-top-4 duration-300">
                         <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                            <h3 className="font-bold text-white text-lg">🔧 Scraper Domain Config</h3>
-                            <span className="text-xs text-gray-500">Update these if the websites change their URLs</span>
+                            <h3 className="font-bold text-white text-base sm:text-lg">🔧 Scraper Domain Config</h3>
+                            <span className="text-xs text-gray-500">Update if domains change</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
@@ -616,6 +623,33 @@ export default function RequestsPage() {
                                                 <p className="text-xs text-gray-400 italic mt-1 font-normal">
                                                     Note: {req.notes}
                                                 </p>
+                                            )}
+                                            {/* Status / Error Banner */}
+                                            {req.automation_error && (
+                                                <div className="mt-2 flex items-start gap-1.5 p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-300 max-w-md">
+                                                    <span className="shrink-0 text-sm">⚠️</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium leading-relaxed">{req.automation_error}</p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => setShowAutomationLog(req.id)}
+                                                        className="shrink-0 text-[11px] font-bold text-red-400 hover:text-white underline ml-1"
+                                                    >
+                                                        Logs
+                                                    </button>
+                                                </div>
+                                            )}
+                                            {req.processing_status === 'processing' && (
+                                                <div className="mt-2 flex items-center gap-2 p-1.5 px-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 animate-pulse w-fit">
+                                                    <span className="w-3 h-3 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin shrink-0" />
+                                                    <span>Agentic pipeline scraping now...</span>
+                                                </div>
+                                            )}
+                                            {req.processing_status === 'idle' && req.status === 'pending' && (
+                                                <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-gray-500">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/70" />
+                                                    <span>Queued for automated scraper</span>
+                                                </div>
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
@@ -724,7 +758,7 @@ export default function RequestsPage() {
                                                     </button>
                                                 </>
                                             )}
-                                            {/* Automation error tooltip */}
+                                            {/* Automation error button */}
                                             {req.automation_error && (
                                                 <button
                                                     onClick={() => setShowAutomationLog(showAutomationLog === req.id ? null : req.id)}
@@ -758,92 +792,217 @@ export default function RequestsPage() {
                     </div>
                 </div>
 
-                {/* Mobile Card Requests View */}
+                {/* Mobile Card Requests View (Phone Optimized) */}
                 <div className="md:hidden space-y-4">
                     {requests.length === 0 ? (
-                        <div className="glass-panel rounded-xl p-8 text-center text-gray-500">
+                        <div className="glass-panel rounded-xl p-8 text-center text-gray-500 text-sm">
                             No requests found.
                         </div>
                     ) : (
                         requests.map((req) => (
-                            <div key={req.id} className="glass-panel rounded-xl p-4 space-y-3">
-                                <div className="flex items-start justify-between gap-2">
-                                    <div>
+                            <div key={req.id} className="glass-panel rounded-2xl p-4 space-y-3.5 border border-white/5 shadow-lg">
+                                {/* Title & Status Row */}
+                                <div className="flex items-start justify-between gap-2.5">
+                                    <div className="min-w-0 flex-1">
                                         <div className="flex items-center gap-2 flex-wrap">
-                                            <h3 className="font-semibold text-white">{req.content_name || req.title}</h3>
-                                            {req.has_account && (req.user_name || req.user_email) && (
-                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/25">
-                                                    👤 {req.user_name || req.user_email}
-                                                </span>
-                                            )}
+                                            <h3 className="font-bold text-white text-base leading-snug">
+                                                {req.content_name || req.title}
+                                            </h3>
                                         </div>
+                                        {req.has_account && (req.user_name || req.user_email) && (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-1.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/25">
+                                                {req.user_avatar ? (
+                                                    <img src={req.user_avatar} alt="" className="w-3.5 h-3.5 rounded-full object-cover" />
+                                                ) : (
+                                                    <span>👤</span>
+                                                )}
+                                                <span>{req.user_name || req.user_email}</span>
+                                            </span>
+                                        )}
                                         {req.notes && (
                                             <p className="text-xs text-gray-400 italic mt-1">Note: {req.notes}</p>
                                         )}
                                     </div>
-                                    <span className={`px-2.5 py-1 text-xs font-bold rounded-full capitalize whitespace-nowrap ${
+                                    <span className={`px-2.5 py-1 text-xs font-black rounded-full capitalize shrink-0 ${
                                         req.status === 'added' ? 'bg-green-500/20 text-green-400' :
                                         req.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                                        req.status === 'review' ? 'bg-purple-500/20 text-purple-400' :
+                                        req.status === 'review' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/20' :
                                         'bg-yellow-500/20 text-yellow-400'
                                     }`}>
                                         {req.status}
                                     </span>
                                 </div>
-                                <div className="text-xs text-gray-500">
-                                    {new Date(req.created_at).toLocaleDateString()}
+
+                                {/* Metadata & Automation Badges */}
+                                <div className="flex items-center justify-between gap-2 pt-1 border-t border-white/5 text-xs text-gray-400 flex-wrap">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span>{new Date(req.created_at).toLocaleDateString()}</span>
+                                        {/* Automation Status Badge */}
+                                        {req.processing_status && req.processing_status !== 'idle' && (
+                                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full inline-flex items-center gap-1 ${
+                                                req.processing_status === 'completed' ? 'bg-emerald-500/15 text-emerald-400' :
+                                                req.processing_status === 'processing' ? 'bg-blue-500/15 text-blue-400 animate-pulse' :
+                                                req.processing_status === 'failed' ? 'bg-orange-500/15 text-orange-400' :
+                                                req.processing_status === 'no_match' ? 'bg-gray-500/15 text-gray-400' :
+                                                req.processing_status === 'duplicate' ? 'bg-amber-500/15 text-amber-400' :
+                                                req.processing_status === 'skipped' ? 'bg-gray-500/15 text-gray-500' :
+                                                'bg-white/5 text-gray-500'
+                                            }`}>
+                                                {req.processing_status === 'completed' && '🤖'}
+                                                {req.processing_status === 'processing' && '⏳'}
+                                                {req.processing_status === 'failed' && '⚠️'}
+                                                {req.processing_status === 'no_match' && '🔍'}
+                                                {req.processing_status === 'duplicate' && '📋'}
+                                                {req.processing_status === 'skipped' && '⏭️'}
+                                                {req.processing_status}
+                                            </span>
+                                        )}
+                                        {typeof req.confidence_score === 'number' && (
+                                            <span className="text-[10px] font-mono font-bold text-emerald-400">
+                                                {Math.round(req.confidence_score * 100)}% match
+                                            </span>
+                                        )}
+                                    </div>
+                                    {req.matched_source && (
+                                        <span className="text-[11px] font-mono text-gray-400 capitalize">
+                                            via {req.matched_source}
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+
+                                {/* Automation Error / Note Banner */}
+                                {req.automation_error && (
+                                    <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-300 flex items-start justify-between gap-2">
+                                        <div className="flex items-start gap-1.5">
+                                            <span className="shrink-0 text-sm">⚠️</span>
+                                            <p className="font-medium leading-relaxed">{req.automation_error}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setShowAutomationLog(req.id)}
+                                            className="shrink-0 text-[11px] font-bold text-red-400 underline"
+                                        >
+                                            Logs
+                                        </button>
+                                    </div>
+                                )}
+
+                                {req.processing_status === 'processing' && (
+                                    <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-2 animate-pulse">
+                                        <span className="w-3.5 h-3.5 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin shrink-0" />
+                                        <span>Agentic pipeline scraping now...</span>
+                                    </div>
+                                )}
+
+                                {req.processing_status === 'idle' && req.status === 'pending' && (
+                                    <div className="p-2 rounded-lg bg-white/[0.02] border border-white/5 text-[11px] text-gray-400 flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/70" />
+                                        <span>Queued for scraper (next cron run or click Auto)</span>
+                                    </div>
+                                )}
+
+                                {/* Action Buttons - Mobile Responsive Grid */}
+                                <div className="pt-2 border-t border-white/5">
                                     {req.status === 'pending' && (
-                                        <>
+                                        <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
                                             <button
                                                 onClick={() => handleAutoProcessSingle(req)}
                                                 disabled={autoProcessingId === req.id}
-                                                className="py-2 px-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold hover:from-amber-500/30 hover:to-orange-500/30 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                                className="py-2.5 px-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold hover:from-amber-500/30 hover:to-orange-500/30 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                                             >
                                                 {autoProcessingId === req.id ? (
                                                     <span className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
                                                 ) : (
                                                     '⚡'
                                                 )}
-                                                Auto
+                                                <span>Auto</span>
                                             </button>
                                             <button
                                                 onClick={() => handleStartAgentImport(req)}
-                                                className="flex-1 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-colors"
+                                                className="py-2.5 px-2 bg-purple-500/20 text-purple-400 rounded-xl text-xs font-bold hover:bg-purple-500/30 transition-colors flex items-center justify-center gap-1"
                                             >
-                                                🤖 Scrape
+                                                <span>🤖</span>
+                                                <span>Scrape</span>
+                                            </button>
+                                            {(req.processing_status === 'failed' || req.processing_status === 'no_match' || req.processing_status === 'skipped') ? (
+                                                <button
+                                                    onClick={() => handleRetryRequest(req.id)}
+                                                    className="py-2.5 px-2 bg-orange-500/20 text-orange-400 rounded-xl text-xs font-bold hover:bg-orange-500/30 transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <span>🔄</span>
+                                                    <span>Retry</span>
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={() => updateStatus(req.id, 'added')}
+                                                    className="py-2.5 px-2 bg-green-500/20 text-green-400 rounded-xl text-xs font-bold hover:bg-green-500/30 transition-colors flex items-center justify-center gap-1"
+                                                >
+                                                    <span>✓</span>
+                                                    <span>Add</span>
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => setShowAutomationLog(req.id)}
+                                                className="py-2.5 px-2 bg-white/5 border border-white/5 text-gray-400 rounded-xl text-xs font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-1"
+                                            >
+                                                <span>📋</span>
+                                                <span>Logs</span>
                                             </button>
                                             <button
-                                                onClick={() => updateStatus(req.id, 'added')}
-                                                className="py-2 px-3 bg-green-500/20 text-green-400 rounded-lg text-xs font-bold hover:bg-green-500/30 transition-colors"
+                                                onClick={() => updateStatus(req.id, 'rejected')}
+                                                className="py-2.5 px-2 bg-white/5 border border-white/5 text-gray-400 rounded-xl text-xs font-bold hover:bg-white/10 transition-colors flex items-center justify-center gap-1"
                                             >
-                                                ✓ Add
+                                                <span>✕</span>
+                                                <span>Reject</span>
                                             </button>
-                                        </>
+                                            <button
+                                                onClick={() => deleteRequest(req.id)}
+                                                className="py-2.5 px-2 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
+                                            >
+                                                <span>🗑️</span>
+                                                <span>Del</span>
+                                            </button>
+                                        </div>
                                     )}
+
                                     {req.status === 'review' && (
-                                        <>
-                                            <button
-                                                onClick={() => handleStartAgentImport(req)}
-                                                className="py-2 px-3 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-500/30 transition-colors"
-                                            >
-                                                🔄 Rescrape
-                                            </button>
+                                        <div className="space-y-2">
                                             <button
                                                 onClick={() => handleStartReview(req)}
-                                                className="flex-1 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-xs font-black uppercase tracking-wider hover:bg-yellow-500/30 transition-colors"
+                                                className="w-full py-3 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-yellow-500/30 transition-all flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/5"
                                             >
-                                                📝 Review Content
+                                                <span>📝</span>
+                                                <span>Review &amp; Approve Content</span>
                                             </button>
-                                        </>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <button
+                                                    onClick={() => handleStartAgentImport(req)}
+                                                    className="py-2 px-3 bg-blue-500/20 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-500/30 transition-colors flex items-center justify-center gap-1.5"
+                                                >
+                                                    <span>🔄</span>
+                                                    <span>Rescrape</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => deleteRequest(req.id)}
+                                                    className="py-2 px-3 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1.5"
+                                                >
+                                                    <span>🗑️</span>
+                                                    <span>Delete</span>
+                                                </button>
+                                            </div>
+                                        </div>
                                     )}
-                                    <button
-                                        onClick={() => deleteRequest(req.id)}
-                                        className="py-2 px-3 bg-red-500/20 text-red-400 rounded-lg text-xs font-bold hover:bg-red-500/30 transition-colors"
-                                    >
-                                        Delete
-                                    </button>
+
+                                    {(req.status === 'added' || req.status === 'rejected') && (
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => deleteRequest(req.id)}
+                                                className="py-2 px-3 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
+                                            >
+                                                <span>🗑️</span>
+                                                <span>Delete</span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))
@@ -981,19 +1140,19 @@ export default function RequestsPage() {
 
                 {/* MODAL 2: Review Staged Content */}
                 {activeReviewRequest && reviewData && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
-                        <div className="w-full max-w-4xl bg-dark-800 border border-white/10 rounded-2xl overflow-hidden shadow-2xl my-8 animate-in zoom-in-95 duration-200">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto animate-in fade-in duration-200">
+                        <div className="w-full max-w-4xl bg-dark-800 border border-white/10 rounded-2xl overflow-hidden shadow-2xl my-4 sm:my-8 animate-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col">
                             {/* Header */}
-                            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div className="p-4 sm:p-6 border-b border-white/5 flex items-center justify-between shrink-0">
                                 <div>
-                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                                         <span>📝</span> Review Staged Content
                                     </h3>
                                     <p className="text-xs text-gray-400 mt-1">Staged from &ldquo;{activeReviewRequest.scraper_source}&rdquo;</p>
                                 </div>
                                 <button
                                     onClick={() => setActiveReviewRequest(null)}
-                                    className="p-1 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
+                                    className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
                                 >
                                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1002,7 +1161,7 @@ export default function RequestsPage() {
                             </div>
 
                             {/* Form Body */}
-                            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">
+                            <div className="p-4 sm:p-6 space-y-6 overflow-y-auto flex-1">
                                 {/* Details Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                     {/* Left fields */}
@@ -1026,7 +1185,7 @@ export default function RequestsPage() {
                                                 className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500 resize-none"
                                             />
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Type</label>
                                                 <select
@@ -1084,7 +1243,7 @@ export default function RequestsPage() {
                                 {/* Genres / Categories selection */}
                                 <div className="space-y-3 pt-4 border-t border-white/5">
                                     <label className="block text-xs font-black text-white uppercase tracking-wider">Genres / Categories</label>
-                                    <div className="flex flex-wrap gap-2.5">
+                                    <div className="flex flex-wrap gap-2">
                                         {categories.map((cat) => {
                                             const isSelected = selectedCategories.includes(cat.id);
                                             return (
@@ -1113,8 +1272,8 @@ export default function RequestsPage() {
 
                                 {/* Content specific downloads / episodes */}
                                 <div className="space-y-4 pt-6 border-t border-white/5">
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="font-black text-white uppercase tracking-wider text-sm flex items-center gap-2">
+                                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                                        <h4 className="font-black text-white uppercase tracking-wider text-xs sm:text-sm flex items-center gap-2">
                                             {reviewData.type === 'movie' ? (
                                                 <>
                                                     <span>💾</span> Download Options ({reviewData.downloads?.length || 0})
@@ -1150,7 +1309,7 @@ export default function RequestsPage() {
                                         <div className="space-y-3 bg-dark-900/50 p-4 rounded-xl border border-white/5">
                                             {reviewData.downloads && reviewData.downloads.length > 0 ? (
                                                 reviewData.downloads.map((dl: any, idx: number) => (
-                                                    <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                                                    <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-center">
                                                         <div>
                                                             <select
                                                                 value={dl.quality}
@@ -1179,7 +1338,7 @@ export default function RequestsPage() {
                                                                 placeholder="e.g. 1.2GB"
                                                             />
                                                         </div>
-                                                        <div className="md:col-span-2 flex gap-2">
+                                                        <div className="sm:col-span-2 flex gap-2">
                                                             <input
                                                                 type="text"
                                                                 value={dl.fileUrl || ''}
@@ -1188,7 +1347,7 @@ export default function RequestsPage() {
                                                                     dls[idx].fileUrl = e.target.value;
                                                                     setReviewData({ ...reviewData, downloads: dls });
                                                                 }}
-                                                                className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs font-mono"
+                                                                className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs font-mono min-w-0"
                                                                 placeholder="File Download URL"
                                                             />
                                                             <button
@@ -1196,7 +1355,7 @@ export default function RequestsPage() {
                                                                     const dls = reviewData.downloads.filter((_: any, i: number) => i !== idx);
                                                                     setReviewData({ ...reviewData, downloads: dls });
                                                                 }}
-                                                                className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg"
+                                                                className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg shrink-0"
                                                             >
                                                                 🗑️
                                                             </button>
@@ -1218,15 +1377,15 @@ export default function RequestsPage() {
                                         </div>
                                     ) : (
                                         /* Series/Anime Episodes view with Multi-Season Tabs */
-                                        <div className="space-y-4 bg-dark-900/30 p-4 rounded-xl border border-white/5">
+                                        <div className="space-y-4 bg-dark-900/30 p-3 sm:p-4 rounded-xl border border-white/5">
                                             {/* Season navigation tabs */}
                                             {reviewData.seasons && reviewData.seasons.length > 0 ? (
                                                 <div className="space-y-4">
-                                                    <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/5">
+                                                    <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/5 scrollbar-none">
                                                         {reviewData.seasons.map((season: any, sIdx: number) => {
                                                             const isActive = (activeSeasonTab >= reviewData.seasons.length ? 0 : activeSeasonTab) === sIdx;
                                                             return (
-                                                                <div key={sIdx} className="flex items-center gap-1">
+                                                                <div key={sIdx} className="flex items-center gap-1 shrink-0">
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => setActiveSeasonTab(sIdx)}
@@ -1248,14 +1407,13 @@ export default function RequestsPage() {
                                                                             type="button"
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                if (confirm(`Delete Season ${season.season_number}? All its episodes will be removed.`)) {
-                                                                                    const newSeasons = reviewData.seasons.filter((_: any, i: number) => i !== sIdx);
-                                                                                    setReviewData({ ...reviewData, seasons: newSeasons });
-                                                                                    setActiveSeasonTab(Math.max(0, sIdx - 1));
-                                                                                }
+                                                                                if (!confirm(`Delete Season ${season.season_number} and all its episodes?`)) return;
+                                                                                const seasons = reviewData.seasons.filter((_: any, idx: number) => idx !== sIdx);
+                                                                                setReviewData({ ...reviewData, seasons });
+                                                                                setActiveSeasonTab(Math.max(0, sIdx - 1));
                                                                             }}
-                                                                            className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded transition-colors text-xs"
-                                                                            title={`Delete Season ${season.season_number}`}
+                                                                            className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded text-xs transition-colors"
+                                                                            title="Delete Season"
                                                                         >
                                                                             ✕
                                                                         </button>
@@ -1265,16 +1423,16 @@ export default function RequestsPage() {
                                                         })}
                                                     </div>
 
-                                                    {/* Active Season Episodes container */}
+                                                    {/* Active Season Episodes */}
                                                     {(() => {
-                                                        const currentSeasonIdx = Math.min(activeSeasonTab, reviewData.seasons.length - 1);
+                                                        const currentSeasonIdx = activeSeasonTab >= reviewData.seasons.length ? 0 : activeSeasonTab;
                                                         const currentSeason = reviewData.seasons[currentSeasonIdx];
                                                         if (!currentSeason) return null;
 
                                                         return (
                                                             <div className="space-y-3">
                                                                 <div className="flex items-center justify-between">
-                                                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                                    <span className="text-xs font-bold text-gray-400">
                                                                         Season {currentSeason.season_number} Episodes ({currentSeason.episodes?.length || 0})
                                                                     </span>
                                                                     <button
@@ -1298,10 +1456,10 @@ export default function RequestsPage() {
                                                                 </div>
 
                                                                 {currentSeason.episodes && currentSeason.episodes.length > 0 ? (
-                                                                    <div className="max-h-[35vh] overflow-y-auto space-y-3 pr-2">
+                                                                    <div className="max-h-[40vh] overflow-y-auto space-y-3 pr-1 sm:pr-2">
                                                                         {currentSeason.episodes.map((ep: any, idx: number) => (
                                                                             <div key={idx} className="p-3 bg-dark-900/60 border border-white/5 rounded-lg space-y-2">
-                                                                                <div className="flex items-center justify-between gap-2">
+                                                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                                                                     <div className="flex items-center gap-2">
                                                                                         <span className="px-2 py-0.5 bg-red-600/20 text-red-400 border border-red-500/20 rounded text-[11px] font-mono font-bold whitespace-nowrap">
                                                                                             S{currentSeason.season_number} E{ep.episode_number}
@@ -1314,38 +1472,40 @@ export default function RequestsPage() {
                                                                                                 copy.seasons[currentSeasonIdx].episodes[idx].episode_number = parseInt(e.target.value) || 1;
                                                                                                 setReviewData(copy);
                                                                                             }}
-                                                                                            className="w-16 bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs font-mono text-center"
+                                                                                            className="w-14 sm:w-16 bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs font-mono text-center"
                                                                                             title="Episode Number"
                                                                                         />
                                                                                     </div>
-                                                                                    <input
-                                                                                        type="text"
-                                                                                        value={ep.episode_title || ''}
-                                                                                        onChange={(e) => {
-                                                                                            const copy = { ...reviewData };
-                                                                                            copy.seasons[currentSeasonIdx].episodes[idx].episode_title = e.target.value;
-                                                                                            setReviewData(copy);
-                                                                                        }}
-                                                                                        className="flex-1 bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs"
-                                                                                        placeholder="Episode Title"
-                                                                                    />
-                                                                                    <button
-                                                                                        type="button"
-                                                                                        onClick={() => {
-                                                                                            const copy = { ...reviewData };
-                                                                                            copy.seasons[currentSeasonIdx].episodes = copy.seasons[currentSeasonIdx].episodes.filter((_: any, i: number) => i !== idx);
-                                                                                            setReviewData(copy);
-                                                                                        }}
-                                                                                        className="p-1.5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded transition-colors text-xs"
-                                                                                        title="Delete Episode"
-                                                                                    >
-                                                                                        🗑️
-                                                                                    </button>
+                                                                                    <div className="flex items-center gap-2 flex-1">
+                                                                                        <input
+                                                                                            type="text"
+                                                                                            value={ep.episode_title || ''}
+                                                                                            onChange={(e) => {
+                                                                                                const copy = { ...reviewData };
+                                                                                                copy.seasons[currentSeasonIdx].episodes[idx].episode_title = e.target.value;
+                                                                                                setReviewData(copy);
+                                                                                            }}
+                                                                                            className="flex-1 bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs min-w-0"
+                                                                                            placeholder="Episode Title"
+                                                                                        />
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                const copy = { ...reviewData };
+                                                                                                copy.seasons[currentSeasonIdx].episodes = copy.seasons[currentSeasonIdx].episodes.filter((_: any, i: number) => i !== idx);
+                                                                                                setReviewData(copy);
+                                                                                            }}
+                                                                                            className="p-1.5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded transition-colors text-xs shrink-0"
+                                                                                            title="Delete Episode"
+                                                                                        >
+                                                                                            🗑️
+                                                                                        </button>
+                                                                                    </div>
                                                                                 </div>
 
                                                                                 {/* Episode Download Links */}
                                                                                 {ep.download_links && ep.download_links.map((link: any, lIdx: number) => (
-                                                                                    <div key={lIdx} className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-1.5 border-t border-white/5 items-center">
+                                                                                    <div key={lIdx} className="grid grid-cols-1 sm:grid-cols-4 gap-2 pt-1.5 border-t border-white/5 items-center">
                                                                                         <div>
                                                                                             <select
                                                                                                 value={link.resolution || '720p'}
@@ -1354,14 +1514,14 @@ export default function RequestsPage() {
                                                                                                     copy.seasons[currentSeasonIdx].episodes[idx].download_links[lIdx].resolution = e.target.value;
                                                                                                     setReviewData(copy);
                                                                                                 }}
-                                                                                                className="w-full bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs font-semibold"
+                                                                                                className="w-full bg-dark-900 border border-white/10 rounded px-2 py-1.5 text-white text-xs font-semibold"
                                                                                             >
                                                                                                 <option value="480p">480p</option>
                                                                                                 <option value="720p">720p</option>
                                                                                                 <option value="1080p">1080p</option>
                                                                                             </select>
                                                                                         </div>
-                                                                                        <div className="md:col-span-3 flex gap-2">
+                                                                                        <div className="sm:col-span-3 flex gap-2">
                                                                                             <input
                                                                                                 type="text"
                                                                                                 value={link.mega_link || link.gdrive_link || ''}
@@ -1378,7 +1538,7 @@ export default function RequestsPage() {
                                                                                                     }
                                                                                                     setReviewData(copy);
                                                                                                 }}
-                                                                                                className="flex-1 bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs font-mono"
+                                                                                                className="flex-1 bg-dark-900 border border-white/10 rounded px-2 py-1.5 text-white text-xs font-mono min-w-0"
                                                                                                 placeholder="GDFlix or Mega Download Link"
                                                                                             />
                                                                                             {ep.download_links.length > 1 && (
@@ -1389,7 +1549,7 @@ export default function RequestsPage() {
                                                                                                         copy.seasons[currentSeasonIdx].episodes[idx].download_links = copy.seasons[currentSeasonIdx].episodes[idx].download_links.filter((_: any, i: number) => i !== lIdx);
                                                                                                         setReviewData(copy);
                                                                                                     }}
-                                                                                                    className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded text-xs"
+                                                                                                    className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded text-xs shrink-0"
                                                                                                     title="Remove Link"
                                                                                                 >
                                                                                                     ✕
@@ -1406,7 +1566,7 @@ export default function RequestsPage() {
                                                                                             copy.seasons[currentSeasonIdx].episodes[idx].download_links = [{ resolution: '720p', gdrive_link: '' }];
                                                                                             setReviewData(copy);
                                                                                         }}
-                                                                                        className="w-full py-1 bg-white/5 hover:bg-white/10 border border-dashed border-white/10 text-gray-400 hover:text-white rounded text-[11px] font-bold"
+                                                                                        className="w-full py-1.5 bg-white/5 hover:bg-white/10 border border-dashed border-white/10 text-gray-400 hover:text-white rounded text-[11px] font-bold"
                                                                                     >
                                                                                         + Add Download Link
                                                                                     </button>
@@ -1421,12 +1581,14 @@ export default function RequestsPage() {
                                                                             type="button"
                                                                             onClick={() => {
                                                                                 const copy = { ...reviewData };
-                                                                                copy.seasons[currentSeasonIdx].episodes = [
-                                                                                    { episode_number: 1, episode_title: 'Episode 1', download_links: [{ resolution: '720p', gdrive_link: '' }] }
-                                                                                ];
+                                                                                copy.seasons[currentSeasonIdx].episodes = [{
+                                                                                    episode_number: 1,
+                                                                                    episode_title: 'Episode 1',
+                                                                                    download_links: [{ resolution: '720p', gdrive_link: '' }]
+                                                                                }];
                                                                                 setReviewData(copy);
                                                                             }}
-                                                                            className="mt-2 px-3 py-1 bg-white/5 hover:bg-white/10 text-white rounded text-xs font-bold"
+                                                                            className="mt-2 text-xs text-red-400 hover:underline font-bold"
                                                                         >
                                                                             + Add First Episode
                                                                         </button>
@@ -1437,8 +1599,8 @@ export default function RequestsPage() {
                                                     })()}
                                                 </div>
                                             ) : (
-                                                <div className="text-center py-6 border border-dashed border-white/10 rounded-lg">
-                                                    <p className="text-gray-500 text-xs">No seasons found for this content.</p>
+                                                <div className="text-center py-8 border border-dashed border-white/10 rounded-xl">
+                                                    <p className="text-gray-500 text-xs">No seasons added yet.</p>
                                                     <button
                                                         type="button"
                                                         onClick={() => {
@@ -1448,9 +1610,9 @@ export default function RequestsPage() {
                                                             });
                                                             setActiveSeasonTab(0);
                                                         }}
-                                                        className="mt-2 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold"
+                                                        className="mt-2 px-3 py-1.5 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold"
                                                     >
-                                                        + Create Season 1
+                                                        + Initialize Season 1
                                                     </button>
                                                 </div>
                                             )}
@@ -1459,27 +1621,31 @@ export default function RequestsPage() {
                                 </div>
                             </div>
 
-                            {/* Footer */}
-                            <div className="p-6 border-t border-white/5 flex justify-end gap-3">
+                            {/* Footer Buttons */}
+                            <div className="p-4 sm:p-6 border-t border-white/5 flex items-center justify-between bg-dark-900/50 shrink-0 gap-2">
                                 <button
+                                    type="button"
                                     onClick={() => setActiveReviewRequest(null)}
-                                    className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-xl text-sm transition-all border border-white/5"
-                                    disabled={approving}
+                                    className="px-4 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 text-xs font-bold transition-all"
                                 >
                                     Cancel
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleApproveContent}
-                                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-sm transition-all flex items-center gap-1.5"
                                     disabled={approving}
+                                    className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-lg shadow-green-600/20 transition-all flex items-center gap-2 disabled:opacity-50"
                                 >
                                     {approving ? (
                                         <>
                                             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            Publishing...
+                                            <span>Approving &amp; Publishing...</span>
                                         </>
                                     ) : (
-                                        'Approve & Publish'
+                                        <>
+                                            <span>✓</span>
+                                            <span>Approve &amp; Add to Catalog</span>
+                                        </>
                                     )}
                                 </button>
                             </div>

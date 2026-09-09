@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 /** Maximum requests to process per cron invocation */
-const BATCH_SIZE = 3;
+const BATCH_SIZE = 4;
 /** Max attempts before marking as skipped */
 const MAX_ATTEMPTS = 5;
 /** Minimum confidence to auto-import */
@@ -71,35 +71,47 @@ export async function GET(request: NextRequest) {
             }
             eligible = [specificReq];
         } else {
-            // 1. Fetch pending requests that need processing
-            const { data: pendingRequests, error: fetchError } = await supabase
+            // PRIORITY 1: Fresh, unattempted requests ('idle') FIRST, NEWEST FIRST!
+            // When a user submits a request, they want to see it processed immediately on the next cron run.
+            const { data: freshRequests, error: freshErr } = await supabase
                 .from('content_requests')
                 .select('*')
                 .eq('status', 'pending')
-                .in('processing_status', ['idle', 'failed', 'no_match'])
-                .lt('processing_attempts', MAX_ATTEMPTS)
-                .order('created_at', { ascending: true })
-                .limit(effectiveBatchSize * 2); // Fetch extra to account for backoff skips
+                .eq('processing_status', 'idle')
+                .order('created_at', { ascending: false })
+                .limit(effectiveBatchSize);
 
-            if (fetchError) throw fetchError;
-            if (!pendingRequests || pendingRequests.length === 0) {
-                return NextResponse.json({
-                    success: true,
-                    message: 'No pending requests to process',
-                    processed: 0,
-                    duration_ms: Date.now() - startedAt,
-                });
+            if (freshErr) throw freshErr;
+
+            eligible = freshRequests || [];
+
+            // PRIORITY 2: If batch capacity remains, pick retryable failed/no_match requests (newest first)
+            // that are past their exponential backoff time so they don't starve new user requests
+            const remainingCapacity = effectiveBatchSize - eligible.length;
+            if (remainingCapacity > 0) {
+                const { data: retryCandidates, error: retryErr } = await supabase
+                    .from('content_requests')
+                    .select('*')
+                    .eq('status', 'pending')
+                    .in('processing_status', ['failed', 'no_match'])
+                    .lt('processing_attempts', MAX_ATTEMPTS)
+                    .order('created_at', { ascending: false })
+                    .limit(remainingCapacity * 3);
+
+                if (retryErr) throw retryErr;
+
+                if (retryCandidates && retryCandidates.length > 0) {
+                    const validRetries = retryCandidates
+                        .filter(r => !shouldSkipForBackoff(r.processing_attempts || 0, r.last_processing_at))
+                        .slice(0, remainingCapacity);
+                    eligible = [...eligible, ...validRetries];
+                }
             }
-
-            // Filter out requests in backoff period
-            eligible = pendingRequests
-                .filter(r => !shouldSkipForBackoff(r.processing_attempts || 0, r.last_processing_at))
-                .slice(0, effectiveBatchSize);
 
             if (eligible.length === 0) {
                 return NextResponse.json({
                     success: true,
-                    message: 'All pending requests are in backoff period',
+                    message: 'No pending requests ready for processing (all in backoff or already processed)',
                     processed: 0,
                     duration_ms: Date.now() - startedAt,
                 });
