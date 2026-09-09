@@ -37,6 +37,10 @@ export default function RequestsPage() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [approving, setApproving] = useState(false);
 
+    // Automation
+    const [processingAll, setProcessingAll] = useState(false);
+    const [showAutomationLog, setShowAutomationLog] = useState<string | null>(null);
+
     // Messages
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -117,6 +121,34 @@ export default function RequestsPage() {
             showMessage('success', `Request marked as ${status}`);
         } else {
             showMessage('error', 'Failed to update request status');
+        }
+    };
+
+    // Trigger automated processing of all pending requests
+    const handleProcessAll = async () => {
+        setProcessingAll(true);
+        try {
+            const res = await fetch('/api/cron/process-requests', { cache: 'no-store' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Processing failed');
+            showMessage('success', `🤖 Processed ${data.processed || 0} request(s). ${(data.results || []).map((r: any) => `${r.name}: ${r.outcome}`).join(', ')}`);
+            await fetchRequests();
+        } catch (e: any) {
+            showMessage('error', e.message);
+        } finally {
+            setProcessingAll(false);
+        }
+    };
+
+    // Reset a failed/skipped request for retry
+    const handleRetryRequest = async (id: string) => {
+        const { error } = await supabase
+            .from('content_requests')
+            .update({ processing_status: 'idle', processing_attempts: 0, automation_error: null })
+            .eq('id', id);
+        if (!error) {
+            setRequests(requests.map(r => r.id === id ? { ...r, processing_status: 'idle', processing_attempts: 0, automation_error: null } : r));
+            showMessage('success', 'Request reset for retry');
         }
     };
 
@@ -204,7 +236,8 @@ export default function RequestsPage() {
     const handleStartReview = (req: ContentRequest) => {
         setActiveReviewRequest(req);
         setReviewData(req.scraped_data);
-        setSelectedCategories([]);
+        // Pre-select categories suggested by the automation pipeline
+        setSelectedCategories(req.suggested_categories || []);
     };
 
     // Submit Approved Content to Database
@@ -437,6 +470,24 @@ export default function RequestsPage() {
                         </svg>
                         <span>Domains</span>
                     </button>
+                    <button
+                        onClick={handleProcessAll}
+                        disabled={processingAll}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-sm transition-all bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border-purple-500/30 text-purple-300 hover:from-purple-600/30 hover:to-indigo-600/30 disabled:opacity-50"
+                        title="Automatically process all pending requests using the agentic pipeline"
+                    >
+                        {processingAll ? (
+                            <>
+                                <span className="w-4 h-4 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
+                                Processing...
+                            </>
+                        ) : (
+                            <>
+                                <span>🤖</span>
+                                <span>Auto Process All</span>
+                            </>
+                        )}
+                    </button>
                 </div>
 
                 {/* Collapsible Scraper Domain Settings Panel */}
@@ -525,19 +576,51 @@ export default function RequestsPage() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2.5 py-1 text-xs font-black rounded-full capitalize ${
-                                                req.status === 'added' ? 'bg-green-500/20 text-green-400' :
-                                                req.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                                                req.status === 'review' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/10' :
-                                                'bg-yellow-500/20 text-yellow-400'
-                                            }`}>
-                                                {req.status}
-                                            </span>
+                                            <div className="flex flex-col gap-1.5">
+                                                <span className={`px-2.5 py-1 text-xs font-black rounded-full capitalize inline-block w-fit ${
+                                                    req.status === 'added' ? 'bg-green-500/20 text-green-400' :
+                                                    req.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                                                    req.status === 'review' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/10' :
+                                                    'bg-yellow-500/20 text-yellow-400'
+                                                }`}>
+                                                    {req.status}
+                                                </span>
+                                                {/* Automation Status Badge */}
+                                                {req.processing_status && req.processing_status !== 'idle' && (
+                                                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full inline-flex items-center gap-1 w-fit ${
+                                                        req.processing_status === 'completed' ? 'bg-emerald-500/15 text-emerald-400' :
+                                                        req.processing_status === 'processing' ? 'bg-blue-500/15 text-blue-400 animate-pulse' :
+                                                        req.processing_status === 'failed' ? 'bg-orange-500/15 text-orange-400' :
+                                                        req.processing_status === 'no_match' ? 'bg-gray-500/15 text-gray-400' :
+                                                        req.processing_status === 'duplicate' ? 'bg-amber-500/15 text-amber-400' :
+                                                        req.processing_status === 'skipped' ? 'bg-gray-500/15 text-gray-500' :
+                                                        'bg-white/5 text-gray-500'
+                                                    }`}>
+                                                        {req.processing_status === 'completed' && '🤖'}
+                                                        {req.processing_status === 'processing' && '⏳'}
+                                                        {req.processing_status === 'failed' && '⚠️'}
+                                                        {req.processing_status === 'no_match' && '🔍'}
+                                                        {req.processing_status === 'duplicate' && '📋'}
+                                                        {req.processing_status === 'skipped' && '⏭️'}
+                                                        {req.processing_status}
+                                                    </span>
+                                                )}
+                                                {/* Confidence Score */}
+                                                {typeof req.confidence_score === 'number' && (
+                                                    <span className={`text-[10px] font-mono font-bold ${
+                                                        req.confidence_score >= 0.85 ? 'text-green-400' :
+                                                        req.confidence_score >= 0.65 ? 'text-yellow-400' :
+                                                        'text-orange-400'
+                                                    }`}>
+                                                        {Math.round(req.confidence_score * 100)}% match
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4 text-gray-400 text-sm">
                                             {new Date(req.created_at).toLocaleDateString()}
                                         </td>
-                                        <td className="px-6 py-4 flex items-center justify-end gap-2">
+                                        <td className="px-6 py-4 flex items-center justify-end gap-2 flex-wrap">
                                             {req.status === 'pending' && (
                                                 <>
                                                     <button
@@ -547,6 +630,15 @@ export default function RequestsPage() {
                                                     >
                                                         🤖 Agent Scrape
                                                     </button>
+                                                    {(req.processing_status === 'failed' || req.processing_status === 'no_match' || req.processing_status === 'skipped') && (
+                                                        <button
+                                                            onClick={() => handleRetryRequest(req.id)}
+                                                            className="p-2 bg-orange-500/20 text-orange-400 rounded-lg hover:bg-orange-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
+                                                            title="Reset and retry automation"
+                                                        >
+                                                            🔄 Retry
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => updateStatus(req.id, 'added')}
                                                         className="p-2 bg-green-500/20 text-green-400 rounded-lg hover:bg-green-500/30 transition-all"
@@ -575,6 +667,16 @@ export default function RequestsPage() {
                                                         📝 Review
                                                     </button>
                                                 </>
+                                            )}
+                                            {/* Automation error tooltip */}
+                                            {req.automation_error && (
+                                                <button
+                                                    onClick={() => setShowAutomationLog(showAutomationLog === req.id ? null : req.id)}
+                                                    className="p-2 bg-amber-500/10 text-amber-400 rounded-lg hover:bg-amber-500/20 transition-all"
+                                                    title={req.automation_error}
+                                                >
+                                                    📋
+                                                </button>
                                             )}
                                             <button
                                                 onClick={() => deleteRequest(req.id)}

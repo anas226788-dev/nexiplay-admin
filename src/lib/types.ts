@@ -300,6 +300,22 @@ export interface ContentRequest {
     has_account?: boolean;
     type?: string | null;
     notes?: string | null;
+    // Agentic Pipeline Fields
+    processing_status?: 'idle' | 'processing' | 'completed' | 'failed' | 'no_match' | 'duplicate' | 'skipped' | null;
+    processing_attempts?: number;
+    last_processing_at?: string | null;
+    automation_error?: string | null;
+    matched_source?: string | null;
+    matched_source_url?: string | null;
+    confidence_score?: number | null;
+    suggested_categories?: string[] | null;
+    automation_log?: Array<{
+        timestamp: string;
+        attempt: number;
+        action: string;
+        result: string;
+        details?: Record<string, unknown>;
+    }>;
 }
 
 export interface ContactMessage {

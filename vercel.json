@@ -1,4 +1,10 @@
 {
+    "crons": [
+        {
+            "path": "/api/cron/process-requests",
+            "schedule": "*/15 * * * *"
+        }
+    ],
     "redirects": [
         {
             "source": "/.git/(.*)",
