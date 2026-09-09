@@ -30,7 +30,7 @@ export default function NovelsAdminPage() {
         id: '',
         title: '',
         slug: '',
-        author: 'Romantic Golpo',
+        author: 'Nexiplay',
         genre: 'Romantic',
         cover_url: '',
         description: '',
@@ -121,7 +121,7 @@ export default function NovelsAdminPage() {
 
         setIsEditing(false);
         setFormData({
-            id: '', title: '', slug: '', author: 'Romantic Golpo', genre: 'Romantic', 
+            id: '', title: '', slug: '', author: 'Nexiplay', genre: 'Romantic', 
             cover_url: '', description: '', blogger_label: '', status: 'completed'
         });
         await fetchNovels();
@@ -250,7 +250,7 @@ export default function NovelsAdminPage() {
                                 {novels.length} Books
                             </span>
                         </div>
-                        <p className="text-gray-400 text-xs mt-1">Romantic Golpo catalogue & chapter manager with full cover images</p>
+                        <p className="text-gray-400 text-xs mt-1">Nexiplay Novels catalogue & chapter manager</p>
                     </div>
 
                     <div className="flex flex-wrap gap-3 w-full sm:w-auto">
@@ -269,7 +269,7 @@ export default function NovelsAdminPage() {
                             onClick={() => {
                                 setIsEditing(false);
                                 setFormData({
-                                    id: '', title: '', slug: '', author: 'Romantic Golpo', genre: 'Romantic', 
+                                    id: '', title: '', slug: '', author: 'Nexiplay', genre: 'Romantic', 
                                     cover_url: '', description: '', blogger_label: '', status: 'completed'
                                 });
                             }}
@@ -333,7 +333,7 @@ export default function NovelsAdminPage() {
                                 <button onClick={() => {
                                     setIsEditing(false);
                                     setFormData({
-                                        id: '', title: '', slug: '', author: 'Romantic Golpo', genre: 'Romantic', 
+                                        id: '', title: '', slug: '', author: 'Nexiplay', genre: 'Romantic', 
                                         cover_url: '', description: '', blogger_label: '', status: 'completed'
                                     });
                                 }} className="text-xs text-gray-400 hover:text-white underline">
@@ -452,7 +452,7 @@ export default function NovelsAdminPage() {
                                             <td className="p-3.5">
                                                 <div className="w-12 h-16 bg-dark-800 rounded-lg flex items-center justify-center overflow-hidden relative shadow border border-white/10">
                                                     {novel.cover_url ? (
-                                                        <img src={novel.cover_url} alt="" loading="lazy" className="object-cover w-full h-full" onError={(e: any) => { e.target.src = 'https://romanticgolpo.com/wp-content/uploads/2026/05/368.webp'; }} />
+                                                        <img src={novel.cover_url} alt="" loading="lazy" className="object-cover w-full h-full" onError={(e: any) => { e.target.src = 'https://nexiplay.vercel.app/novel-covers/cover-1.jpg'; }} />
                                                     ) : (
                                                         <span className="text-xs">No img</span>
                                                     )}
@@ -500,7 +500,7 @@ export default function NovelsAdminPage() {
                                 <div key={novel.id} className="bg-dark-900 border border-white/5 rounded-2xl p-4 space-y-3">
                                     <div className="flex gap-3">
                                         <div className="w-14 h-20 bg-dark-800 rounded-lg overflow-hidden border border-white/10 flex-shrink-0">
-                                            <img src={novel.cover_url || 'https://romanticgolpo.com/wp-content/uploads/2026/05/368.webp'} alt="" loading="lazy" className="w-full h-full object-cover" onError={(e: any) => { e.target.src = 'https://romanticgolpo.com/wp-content/uploads/2026/05/368.webp'; }} />
+                                            <img src={novel.cover_url || 'https://nexiplay.vercel.app/novel-covers/cover-1.jpg'} alt="" loading="lazy" className="w-full h-full object-cover" onError={(e: any) => { e.target.src = 'https://nexiplay.vercel.app/novel-covers/cover-1.jpg'; }} />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-2">
