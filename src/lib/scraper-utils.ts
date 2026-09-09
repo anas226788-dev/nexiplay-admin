@@ -131,9 +131,11 @@ function maskRareAnimesAttributes(html: string): string {
 
 function findRareAnimesHindiDubMarker(html: string): { index: number; length: number } | null {
     const subSeparator = String.raw`[\s:\u2013\u2014\-/\\|,\[\]\(\)\{\}]*`;
+    const tagOrSpace = String.raw`(?:<[^>]*>|\s)*`;
     const candidates = [
-        /\bHindi\s*(?:DUB|Dubbed)\b/i,
-        new RegExp(String.raw`\bHindi\b(?!${subSeparator}(?:SUB|Subbed|Subtitle|Subtitles)\b)`, 'i'),
+        /\bHindi\s*(?:DUB|Dubbed|Audio)\b/i,
+        new RegExp(String.raw`\bHindi\b(?!${subSeparator}${tagOrSpace}(?:SUB|Subbed|Subtitle|Subtitles)\b)`, 'i'),
+        /\bDual\s*Audio\s*(?:\([^)]*Hindi[^)]*\)|Hindi)/i,
     ];
 
     let best: { index: number; length: number } | null = null;
@@ -142,7 +144,7 @@ function findRareAnimesHindiDubMarker(html: string): { index: number; length: nu
         if (!match || match.index < 0) continue;
 
         const context = html
-            .substring(match.index, match.index + 120)
+            .substring(match.index, match.index + 150)
             .replace(/<[^>]*>/g, ' ')
             .replace(/\s+/g, ' ');
         if (new RegExp(String.raw`\bHindi${subSeparator}(?:SUB|Subbed|Subtitle|Subtitles)\b`, 'i').test(context)) {
@@ -195,11 +197,11 @@ function extractRareAnimesEpisodes(html: string): {
             : `Episode ${ep.num}`;
         const cleanTitle = epTitle.replace(/\s+/g, ' ').trim();
 
-        const megaLinkRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*Mega(?:<\/[^>]+>)*<\/a>/i;
-        const watchMultiRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*WatchMultQuality(?:<\/[^>]+>)*<\/a>/i;
-        const streamBetaRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*StreamBeta(?:<\/[^>]+>)*<\/a>/i;
+        const megaLinkRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>(?:<[^>]+>|\s)*Mega(?:\.nz)?(?:<\/[^>]+>|\s)*<\/a>/i;
+        const watchMultiRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>(?:<[^>]+>|\s)*WatchMult(?:y|i)?Quality(?:<\/[^>]+>|\s)*<\/a>/i;
+        const streamBetaRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>(?:<[^>]+>|\s)*StreamBeta(?:<\/[^>]+>|\s)*<\/a>/i;
 
-        // Find only clearly labelled Hindi DUB and Hindi Sub sections.
+        // Find Hindi DUB / plain Hindi sections (excluding Hindi Sub)
         const dubMarker = findRareAnimesHindiDubMarker(markerSearchSlice);
         if (dubMarker && !seenDub.has(ep.num)) {
             const dubIndex = dubMarker.index;
@@ -209,7 +211,7 @@ function extractRareAnimesEpisodes(html: string): {
             const nextLangSearchStart = dubMarker.length;
             const nextLangMatch = maskedDubSlice
                 .substring(nextLangSearchStart)
-                .search(/\b(?:Hindi\s*(?:Sub|Subbed|Subtitle|Subtitles)|English|Japanese|Tamil|Telugu|Malayalam|Kannada|Bengali|Urdu|Arabic)\b/i);
+                .search(/\b(?:Hindi[\s:\u2013\u2014\-/\\|,\[\]\(\)\{\}]*(?:<[^>]*>|\s)*(?:Sub|Subbed|Subtitle|Subtitles)|English|Japanese|Tamil|Telugu|Malayalam|Kannada|Bengali|Urdu|Arabic)\b/i);
             const nextLangCut = nextLangMatch >= 0 ? nextLangSearchStart + nextLangMatch : -1;
             const dubSearchArea = nextLangCut > 0 ? dubSlice.substring(0, nextLangCut) : dubSlice;
             
@@ -241,7 +243,7 @@ function extractRareAnimesEpisodes(html: string): {
                 seenSub.add(ep.num);
             }
         }
-        // No fallback import here. RareAnimes should import only clearly labelled Hindi DUB or Hindi Sub rows.
+        // No fallback import here. RareAnimes should import only clearly labelled Hindi (DUB or plain) or Hindi Sub rows.
     }
 
     const sortFn = (a: { title: string }, b: { title: string }) => {
@@ -288,11 +290,11 @@ function extractRareAnimesStreamingEpisodes(html: string): { title: string; stre
             const dubSlice = searchSlice.substring(dubIndex, dubIndex + 1500);
             const maskedDubSlice = markerSearchSlice.substring(dubIndex, dubIndex + 1500);
             
-            const nextLangMatch = maskedDubSlice.substring(dubMarker.length).search(/\b(?:Hindi\s*(?:Sub|Subbed|Subtitle|Subtitles)|English|Japanese|Tamil|Telugu|Malayalam|Kannada|Bengali|Urdu|Arabic)\b/i);
+            const nextLangMatch = maskedDubSlice.substring(dubMarker.length).search(/\b(?:Hindi[\s:\u2013\u2014\-/\\|,\[\]\(\)\{\}]*(?:<[^>]*>|\s)*(?:Sub|Subbed|Subtitle|Subtitles)|English|Japanese|Tamil|Telugu|Malayalam|Kannada|Bengali|Urdu|Arabic)\b/i);
             const nextLangCut = nextLangMatch >= 0 ? dubMarker.length + nextLangMatch : -1;
             const dubSearchArea = nextLangCut > 0 ? dubSlice.substring(0, nextLangCut) : dubSlice;
 
-            const watchMultiRegex = /<a[^>]+href="([^"]+)"[^>]*>(?:<[^>]+>)*WatchMultQuality(?:<\/[^>]+>)*<\/a>/i;
+            const watchMultiRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>(?:<[^>]+>|\s)*WatchMult(?:y|i)?Quality(?:<\/[^>]+>|\s)*<\/a>/i;
 
             const watchMultiMatch = watchMultiRegex.exec(dubSearchArea);
             
