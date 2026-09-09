@@ -109,7 +109,7 @@ export async function POST(req: Request) {
                 title,
                 slug: novelSlug,
                 blogger_label: bloggerLabel,
-                cover_url: coverUrl || '',
+                cover_url: `https://nexiplay.vercel.app/api/novel-cover?title=${encodeURIComponent(title)}&author=Romantic%20Golpo&genre=Romantic&slug=${encodeURIComponent(novelSlug)}`,
                 description: `${title} - একটি জনপ্রিয় রোমান্টিক ভালোবাসার উপন্যাস। সর্বমোট ${chaptersData.length} টি পর্ব রয়েছে।`,
                 status: 'completed',
                 chapterCount: chaptersData.length
