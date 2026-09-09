@@ -450,11 +450,11 @@ export default function NovelsAdminPage() {
                                     {paginatedNovels.map(novel => (
                                         <tr key={novel.id} className="hover:bg-white/[0.02] transition-colors">
                                             <td className="p-3.5">
-                                                <div className="w-12 h-16 bg-dark-800 rounded-lg flex items-center justify-center overflow-hidden relative shadow border border-white/10">
+                                                <div className="w-12 h-16 bg-dark-800 rounded-lg flex items-center justify-center overflow-hidden relative shadow border border-white/10 bg-black/40">
                                                     {novel.cover_url ? (
-                                                        <img src={novel.cover_url} alt="" loading="lazy" className="object-cover w-full h-full" onError={(e: any) => { e.target.src = 'https://nexiplay.vercel.app/novel-covers/cover-1.jpg'; }} />
+                                                        <img src={novel.cover_url} alt="" loading="lazy" className="object-cover w-full h-full" onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
                                                     ) : (
-                                                        <span className="text-xs">No img</span>
+                                                        <span className="text-[10px] text-gray-500 font-medium">No cover</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -499,8 +499,15 @@ export default function NovelsAdminPage() {
                             {paginatedNovels.map(novel => (
                                 <div key={novel.id} className="bg-dark-900 border border-white/5 rounded-2xl p-4 space-y-3">
                                     <div className="flex gap-3">
-                                        <div className="w-14 h-20 bg-dark-800 rounded-lg overflow-hidden border border-white/10 flex-shrink-0">
-                                            <img src={novel.cover_url || 'https://nexiplay.vercel.app/novel-covers/cover-1.jpg'} alt="" loading="lazy" className="w-full h-full object-cover" onError={(e: any) => { e.target.src = 'https://nexiplay.vercel.app/novel-covers/cover-1.jpg'; }} />
+                                        <div className="w-14 h-20 bg-dark-800 rounded-lg overflow-hidden border border-white/10 flex-shrink-0 flex items-center justify-center bg-black/40">
+                                            {novel.cover_url ? (
+                                                <img src={novel.cover_url} alt="" loading="lazy" className="w-full h-full object-cover" onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
+                                            ) : (
+                                                <div className="w-full h-full flex flex-col items-center justify-center text-[9px] text-gray-500">
+                                                    <span>📖</span>
+                                                    <span>No cover</span>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-2">

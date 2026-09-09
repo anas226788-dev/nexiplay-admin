@@ -102,16 +102,6 @@ export async function POST(req: Request) {
                 console.error(`Failed to scrape chapter ${chapter.url}`, err);
             }
         }
-
-        function getCoverNumber(slug: string) {
-            let hash = 0;
-            const s = slug || 'nexiplay-novel';
-            for (let i = 0; i < s.length; i++) {
-                hash = (hash * 31 + s.charCodeAt(i)) & 0xffffffff;
-            }
-            return (Math.abs(hash) % 9) + 1;
-        }
-
         // 3. Return JSON instead of XML
         return NextResponse.json({
             novel: {
@@ -119,7 +109,7 @@ export async function POST(req: Request) {
                 slug: novelSlug,
                 author: 'Nexiplay',
                 blogger_label: bloggerLabel,
-                cover_url: `https://nexiplay.vercel.app/novel-covers/cover-${getCoverNumber(novelSlug)}.jpg`,
+                cover_url: '',
                 description: `${title} - একটি জনপ্রিয় রোমান্টিক ভালোবাসার উপন্যাস। সর্বমোট ${chaptersData.length} টি পর্ব রয়েছে।`,
                 status: 'completed',
                 chapterCount: chaptersData.length
