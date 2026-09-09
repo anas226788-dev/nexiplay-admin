@@ -138,15 +138,15 @@ export async function GET(req: NextRequest) {
                             marginTop: '12px',
                         }}
                     >
-                        <span style={{ color: palette.accent, fontSize: '12px' }}>★</span>
-                        <span style={{ color: palette.accent, fontSize: '12px' }}>★</span>
-                        <span style={{ color: palette.accent, fontSize: '12px' }}>★</span>
-                        <span style={{ color: palette.accent, fontSize: '12px' }}>★</span>
-                        <span style={{ color: palette.accent, fontSize: '12px' }}>★</span>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                            <svg key={s} viewBox="0 0 24 24" width="13" height="13" fill={palette.accent}>
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                        ))}
                     </div>
                 </div>
 
-                {/* ── CENTER SECTION ── */}
+                {/* ── CENTER SECTION: ORNAMENT + TITLE ── */}
                 <div
                     style={{
                         display: 'flex',
@@ -159,6 +159,7 @@ export async function GET(req: NextRequest) {
                         padding: '0 10px',
                     }}
                 >
+                    {/* Book Ornament Icon */}
                     <div
                         style={{
                             width: '68px',
@@ -173,9 +174,12 @@ export async function GET(req: NextRequest) {
                             boxShadow: `0 0 30px ${palette.glow}`,
                         }}
                     >
-                        <span style={{ fontSize: '32px' }}>📖</span>
+                        <svg viewBox="0 0 24 24" width="34" height="34" fill="#ffffff">
+                            <path d="M18 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 4h5v8l-2.5-1.5L6 12V4z"/>
+                        </svg>
                     </div>
 
+                    {/* Novel Title */}
                     <h1
                         style={{
                             fontSize: `${titleFontSize}px`,
@@ -194,6 +198,7 @@ export async function GET(req: NextRequest) {
                         {title}
                     </h1>
 
+                    {/* Decorative Divider */}
                     <div
                         style={{
                             display: 'flex',
@@ -205,7 +210,7 @@ export async function GET(req: NextRequest) {
                         }}
                     >
                         <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, transparent, ${palette.accent})` }} />
-                        <span style={{ color: palette.accent, fontSize: '14px' }}>✦</span>
+                        <div style={{ width: '8px', height: '8px', background: palette.accent, transform: 'rotate(45deg)' }} />
                         <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${palette.accent}, transparent)` }} />
                     </div>
 
