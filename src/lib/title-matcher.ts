@@ -11,12 +11,37 @@ export function normalizeTitle(raw: string): string {
         .replace(/[""]/g, '"')
         .replace(/&amp;/g, '&')
         .replace(/&#\d+;/g, ' ')
-        .replace(/\b(download|watch|online|free|hd|dual\s*audio|hindi|english|multi|subs?|dubbed?|x264|x265|hevc|aac|esubs?|bluray|webrip|web-?dl|hdrip|dvdrip|brrip)\b/gi, ' ')
+        .replace(/\b(download|watch|online|free|hd|dual\s*audio|hindi|english|japanese|korean|chinese|tamil|telugu|multi|subs?|dubbed?|x264|x265|hevc|aac|esubs?|bluray|webrip|web-?dl|hdrip|dvdrip|brrip|movie|film|series|web\s*series|all\s*episodes|season\s*\d+|episode\s*\d+|added|pre-?hdrip|pre-?dvd|camrip|imax|bcore|remastered|extended|unrated|msubs?|anime|animation|tv|show)\b/gi, ' ')
         .replace(/\b(480p|720p|1080p|2160p|4k)\b/gi, ' ')
         .replace(/\(?\d{4}\)?/g, ' ') // strip years like (2024)
         .replace(/[[\](){}<>|•·–—:;,!?@#$%^&*+=~`\\/]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
+}
+
+/**
+ * Generate primary and fallback search queries for WordPress search.
+ * e.g. "Spider-Man: Brand New Day" -> ["Spider-Man Brand New Day", "Spider-Man", "Spider-Man: Brand New Day"]
+ */
+export function generateSearchQueries(raw: string): string[] {
+    const queries = new Set<string>();
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+
+    // 1. Clean query with punctuation removed (best for WordPress search)
+    const clean = trimmed.replace(/[:;/\\|]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (clean) queries.add(clean);
+
+    // 2. Main title before subtitle separator (if subtitle present)
+    const subMatch = trimmed.match(/^([^:\-|]+)[:\-]/);
+    if (subMatch && subMatch[1].trim().length >= 3) {
+        queries.add(subMatch[1].trim());
+    }
+
+    // 3. Original trimmed query
+    queries.add(trimmed);
+
+    return Array.from(queries);
 }
 
 /** Extract year from a title string */
@@ -83,16 +108,17 @@ export function scoreTitleMatch(requestedTitle: string, candidate: MatchCandidat
     const fullSim = stringSimilarity(normReq, normCand);
     reasons.push(`full_similarity=${fullSim.toFixed(3)}`);
 
-    // 2. Token overlap (Jaccard similarity) (weight: 0.35)
+    // 2. Token overlap: Jaccard + Request Coverage (weight: 0.40)
     const reqTokens = new Set(tokenize(normReq));
     const candTokens = new Set(tokenize(normCand));
     const intersection = new Set([...reqTokens].filter(t => candTokens.has(t)));
     const union = new Set([...reqTokens, ...candTokens]);
     const jaccard = union.size > 0 ? intersection.size / union.size : 0;
-    reasons.push(`token_jaccard=${jaccard.toFixed(3)} (${intersection.size}/${union.size})`);
+    const reqCoverage = reqTokens.size > 0 ? intersection.size / reqTokens.size : 0;
+    reasons.push(`token_jaccard=${jaccard.toFixed(3)} (${intersection.size}/${union.size}) coverage=${reqCoverage.toFixed(2)}`);
 
     // 3. Exact containment bonus (weight: 0.15)
-    const containment = normCand.includes(normReq) || normReq.includes(normCand) ? 1 : 0;
+    const containment = normCand.includes(normReq) || normReq.includes(normCand) || reqCoverage === 1 ? 1 : 0;
     if (containment) reasons.push('exact_containment=true');
 
     // 4. Year match bonus (weight: 0.10)
@@ -101,7 +127,7 @@ export function scoreTitleMatch(requestedTitle: string, candidate: MatchCandidat
     const yearBonus = reqYear && candYear && reqYear === candYear ? 1 : (!reqYear ? 0.5 : 0);
     if (reqYear && candYear) reasons.push(`year_match=${reqYear === candYear}`);
 
-    const confidence = Math.min(1, (fullSim * 0.40) + (jaccard * 0.35) + (containment * 0.15) + (yearBonus * 0.10));
+    const confidence = Math.min(1, (fullSim * 0.35) + (jaccard * 0.20) + (reqCoverage * 0.20) + (containment * 0.15) + (yearBonus * 0.10));
     reasons.push(`final_confidence=${confidence.toFixed(3)}`);
 
     return { candidate, confidence, reasons };

@@ -26,9 +26,12 @@ interface CategoryRow {
     slug: string;
 }
 
-/** Try TMDB movie search first, then TV search */
-export async function enrichFromTMDB(title: string, year?: number | null): Promise<EnrichedMetadata | null> {
-    const apiKey = process.env.TMDB_API_KEY;
+export async function enrichFromTMDB(
+    title: string,
+    year?: number | null,
+    overrideApiKey?: string | null
+): Promise<EnrichedMetadata | null> {
+    const apiKey = overrideApiKey || process.env.TMDB_API_KEY;
     if (!apiKey) {
         console.warn('[Enrichment] TMDB_API_KEY not set, skipping TMDB enrichment');
         return null;
@@ -68,7 +71,21 @@ async function tmdbSearch(
     if (!res.ok) return null;
 
     const data = await res.json();
-    const results = data.results;
+    let results = data.results;
+    if ((!results || results.length === 0) && year) {
+        params.delete(mediaType === 'movie' ? 'year' : 'first_air_date_year');
+        try {
+            const fallbackRes = await fetch(`${TMDB_BASE}/search/${mediaType}?${params}`, { signal });
+            if (fallbackRes.ok) {
+                const fallbackData = await fallbackRes.json();
+                if (fallbackData.results?.length > 0) {
+                    results = fallbackData.results;
+                }
+            }
+        } catch {
+            // Ignore fallback network error
+        }
+    }
     if (!results || results.length === 0) return null;
 
     const best = results[0];
@@ -136,7 +153,8 @@ export async function enrichFromJikan(title: string): Promise<EnrichedMetadata |
 export async function enrichMetadata(
     title: string,
     detectedType?: 'movie' | 'series' | 'anime',
-    year?: number | null
+    year?: number | null,
+    overrideApiKey?: string | null
 ): Promise<EnrichedMetadata | null> {
     // For anime, try Jikan first (better anime metadata)
     if (detectedType === 'anime') {
@@ -145,7 +163,7 @@ export async function enrichMetadata(
     }
 
     // Try TMDB for everything
-    const tmdbResult = await enrichFromTMDB(title, year);
+    const tmdbResult = await enrichFromTMDB(title, year, overrideApiKey);
     if (tmdbResult) return tmdbResult;
 
     // Last resort for anime: try Jikan even if not detected as anime

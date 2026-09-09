@@ -1430,11 +1430,129 @@ export async function searchWordPressSite(
 }
 
 /**
+ * Resolves an intermediate BollyFlix link:
+ * - fastdlserver.site / redirector -> 302 Location header (gdflix or drive.google.com)
+ * - linksmod.top / linksmd -> extracts direct filehost links (gofile, 1fichier, megaup, etc.)
+ */
+export async function resolveBollyflixIntermediateLink(
+    rawUrl: string,
+    referer = 'https://bollyflix.af/'
+): Promise<string> {
+    if (!rawUrl) return '';
+    const cleanUrl = rawUrl.replace(/&amp;/g, '&').trim();
+
+    // 1. Direct link already
+    if (/gdflix|drive\.google\.com|gdtot|driveseed|mega\.nz/i.test(cleanUrl)) {
+        return cleanUrl;
+    }
+
+    // 2. FastDLServer / FastDL redirector -> 302 location
+    if (/fastdl|fastdlserver/i.test(cleanUrl)) {
+        try {
+            const res = await fetch(cleanUrl, {
+                headers: { ...HEADERS, Referer: referer },
+                redirect: 'manual',
+                signal: AbortSignal.timeout(12000),
+            });
+            const location = res.headers.get('location');
+            if (location) return location.trim();
+
+            const html = await res.text();
+            const match = html.match(/https?:\/\/[^\s"'<>]*(?:gdflix|drive\.google|gdtot)[^\s"'<>]*/i);
+            if (match) return match[0];
+        } catch (e: any) {
+            console.warn(`[FastDL] Resolve failed for ${cleanUrl}:`, e?.message);
+        }
+        return cleanUrl;
+    }
+
+    // 3. LinksMod / LinksMD / download protector -> extract filehost mirrors
+    if (/linksmod|linksmd/i.test(cleanUrl)) {
+        try {
+            const res = await fetch(cleanUrl, {
+                headers: { ...HEADERS, Referer: referer },
+                signal: AbortSignal.timeout(12000),
+            });
+            const html = await res.text();
+            const hostMatches = html.match(/https?:\/\/(?:www\.)?(?:gofile\.io\/d\/[^\s"'<>]+|megaup\.net\/[^\s"'<>]+|1fichier\.com\/\?[^\s"'<>]+|mixdrop\.[a-z]+\/f\/[^\s"'<>]+|multiup\.[a-z]+\/[^\s"'<>]+)/gi);
+            if (hostMatches && hostMatches.length > 0) {
+                const gofile = hostMatches.find(h => h.includes('gofile.io'));
+                if (gofile) return gofile;
+                const oneFichier = hostMatches.find(h => h.includes('1fichier.com'));
+                if (oneFichier) return oneFichier;
+                return hostMatches[0];
+            }
+        } catch (e: any) {
+            console.warn(`[LinksMod] Resolve failed for ${cleanUrl}:`, e?.message);
+        }
+        return cleanUrl;
+    }
+
+    return cleanUrl;
+}
+
+/**
+ * Scrape all episodes from an FXLinks / elinks series hub.
+ * Concurrently resolves each episode's Google Drive link to GDFlix.
+ */
+export async function scrapeFxlinksHub(
+    hubUrl: string,
+    referer = 'https://bollyflix.af/'
+): Promise<ScrapedEpisode[]> {
+    try {
+        const res = await fetch(hubUrl, {
+            headers: { ...HEADERS, Referer: referer },
+            signal: AbortSignal.timeout(15000),
+        });
+        if (!res.ok) return [];
+        const html = await res.text();
+
+        const linkRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+        let match: RegExpExecArray | null;
+        const candidates: { num: number; text: string; href: string }[] = [];
+
+        while ((match = linkRegex.exec(html)) !== null) {
+            const href = match[1].replace(/&amp;/g, '&').trim();
+            const text = match[2].replace(/<[^>]*>/g, '').trim();
+
+            if (/(?:episode|ep)[\s._-]*\d+/i.test(text) || (href.includes('fastdl') && /(?:episode|ep)[\s._-]*\d+/i.test(text))) {
+                const epNumMatch = text.match(/\d+/);
+                const num = epNumMatch ? parseInt(epNumMatch[0], 10) : candidates.length + 1;
+                candidates.push({ num, text, href });
+            }
+        }
+
+        if (candidates.length === 0) return [];
+
+        // Concurrently resolve in chunks of 5 to avoid socket exhaustion
+        const results: ScrapedEpisode[] = [];
+        const chunkSize = 5;
+        for (let i = 0; i < candidates.length; i += chunkSize) {
+            const chunk = candidates.slice(i, i + chunkSize);
+            const chunkResolved = await Promise.all(
+                chunk.map(async (c) => {
+                    const resolvedLink = await resolveBollyflixIntermediateLink(c.href, hubUrl);
+                    return {
+                        number: c.num,
+                        title: c.text,
+                        link: resolvedLink,
+                    };
+                })
+            );
+            results.push(...chunkResolved);
+        }
+
+        return results;
+    } catch (e: any) {
+        console.warn(`[scrapeFxlinksHub] Error for ${hubUrl}:`, e?.message);
+        return [];
+    }
+}
+
+/**
  * Scrape BollyFlix movie/series page.
- * Strategy: Find quality headings (e.g. "480p [550MB]"), then extract only the
- * Google Drive link immediately following each heading. All redirect/ad links
- * (fastdlserver.site, linksmd.top, etc.) are filtered based on anchor text,
- * capturing only those that are Google Drive buttons (or direct drive.google.com / gdflix / etc links).
+ * Uses Cheerio DOM parsing to extract quality sections and resolves intermediate links
+ * (Google Drive button -> 302 -> gdflix.dev, elinks hub -> episodes -> gdflix.dev, or LinksMod filehosts).
  */
 export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
     const response = await fetch(url, {
@@ -1445,87 +1563,26 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
         throw new Error(`Failed to fetch BollyFlix page: HTTP ${response.status}`);
     }
     const html = await response.text();
+    const $ = cheerio.load(html);
 
-    // Extract page title
-    let pageTitle = '';
-    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-    if (titleMatch) {
-        pageTitle = titleMatch[1]
-            .replace(/&#8211;/g, '-')
-            .replace(/&amp;/g, '&')
-            .replace(/&#038;/g, '&')
-            .trim();
+    // Extract title
+    let pageTitle = $('h1.entry-title, h1.title').first().text().trim();
+    if (!pageTitle) {
+        const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+        if (titleMatch) pageTitle = titleMatch[1].trim();
     }
-    const schemaMatch = html.match(/"headline"\s*:\s*"([^"]+)"/);
-    if (schemaMatch) {
-        pageTitle = schemaMatch[1].replace(/\\"/g, '"').replace(/\\\//g, '/').trim();
-    }
-
-    // Narrow to post content area only
-    let contentHtml = html;
-    const contentMatch =
-        html.match(/<div[^>]*class="[^"]*(?:entry-content|post-content|single-content)[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<!--/i) ||
-        html.match(/<div[^>]*class="[^"]*(?:entry-content|post-content|single-content)[^"]*"[^>]*>([\s\S]*?)<\/div>/i) ||
-        html.match(/<article[^>]*>([\s\S]*?)<\/article>/i);
-    if (contentMatch) {
-        contentHtml = contentMatch[1];
-    }
+    pageTitle = pageTitle.replace(/&#8211;/g, '-').replace(/&amp;/g, '&').replace(/&#038;/g, '&').trim();
 
     const resolution = detectResolution(html);
     const episodes: ScrapedEpisode[] = [];
     const warnings: string[] = [];
-    let idx = 1;
-
-    interface QualitySection {
-        resolution: string;
-        size: string;
-        headingEnd: number;
-    }
-
-    const sections: QualitySection[] = [];
-
-    // Match headings, paragraphs, strong tags that contain resolution info
-    const headingPattern = /<(?:p|h[2-6]|strong|span)[^>]*>([\s\S]*?)<\/(?:p|h[2-6]|strong|span)>/gi;
-    let hMatch: RegExpExecArray | null;
-
-    while ((hMatch = headingPattern.exec(contentHtml)) !== null) {
-        const rawText = hMatch[1].replace(/<[^>]*>/g, '').trim();
-        // Must contain a resolution keyword
-        const resMatch = rawText.match(/\b(480p|720p|1080p|2160p|4[Kk])\b/i);
-        if (!resMatch) continue;
-
-        // Skip headers that are just intro descriptions of the page, e.g. "available in 1080p, 720p & 480p Qualities"
-        if (rawText.toLowerCase().includes('qualities') || rawText.toLowerCase().includes('super quality') || rawText.toLowerCase().includes('available in')) {
-            continue;
-        }
-
-        const res = resMatch[1].toLowerCase() === '4k' ? '2160p' : resMatch[1].toLowerCase();
-        const sizeMatch = rawText.match(/\[?\s*(\d+(?:\.\d+)?\s*(?:MB|GB))\s*\]?/i);
-        const size = sizeMatch ? sizeMatch[1].trim() : '';
-
-        sections.push({
-            resolution: res,
-            size,
-            headingEnd: hMatch.index + hMatch[0].length,
-        });
-    }
-
-    // Anchor pattern: href and link text/html
-    const anchorPattern = /<a\s+[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-
-    const getAnchorText = (anchorHtml: string) =>
-        anchorHtml
-            .replace(/<[^>]*>/g, '')
-            .replace(/&amp;/g, '&')
-            .replace(/&#038;/g, '&')
-            .replace(/\s+/g, ' ')
-            .trim();
 
     const isNoiseLink = (textLower: string, hrefLower: string) =>
         textLower.includes('how to download') ||
         textLower.includes('join us') ||
         textLower.includes('telegram') ||
         textLower.includes('watch online') ||
+        textLower.includes('1xbetflix') ||
         hrefLower.includes('t.me/') ||
         hrefLower.includes('telegram');
 
@@ -1533,7 +1590,6 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
         const textLower = text.toLowerCase();
         const hrefLower = href.toLowerCase();
         if (isNoiseLink(textLower, hrefLower)) return false;
-
         return (
             textLower.includes('google drive') ||
             textLower.includes('g-drive') ||
@@ -1541,10 +1597,9 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
             textLower.includes('drive') ||
             hrefLower.includes('drive.google.com') ||
             hrefLower.includes('gdflix') ||
+            hrefLower.includes('fastdl') ||
             hrefLower.includes('gdtot') ||
-            hrefLower.includes('gdbot') ||
-            hrefLower.includes('driveseed') ||
-            hrefLower.includes('drivebot')
+            hrefLower.includes('driveseed')
         );
     };
 
@@ -1552,105 +1607,195 @@ export async function scrapeBollyflix(url: string): Promise<ScrapedResult> {
         const textLower = text.toLowerCase();
         const hrefLower = href.toLowerCase();
         if (isNoiseLink(textLower, hrefLower)) return false;
-
         return (
             textLower.includes('download links') ||
             textLower.includes('direct links') ||
             textLower.includes('download now') ||
             /^download(?:\s+link)?s?$/i.test(text) ||
             hrefLower.includes('/elinks/') ||
-            hrefLower.includes('/download/') ||
-            hrefLower.includes('/downloads/') ||
-            hrefLower.includes('/links/')
+            hrefLower.includes('/view/') ||
+            hrefLower.includes('linksmod')
         );
     };
 
-    for (let i = 0; i < sections.length; i++) {
-        const section = sections[i];
-        const endIndex =
-            i + 1 < sections.length
-                ? sections[i + 1].headingEnd
-                : Math.min(section.headingEnd + 3000, contentHtml.length);
-
-        const slice = contentHtml.substring(section.headingEnd, endIndex);
-        
-        anchorPattern.lastIndex = 0; // reset
-        let aMatch: RegExpExecArray | null;
-        const gdriveForSection: { href: string; text: string }[] = [];
-        const downloadForSection: { href: string; text: string }[] = [];
-
-        while ((aMatch = anchorPattern.exec(slice)) !== null) {
-            const href = aMatch[1];
-            const text = getAnchorText(aMatch[2]);
-
-            if (isGoogleDriveCandidate(href, text)) {
-                gdriveForSection.push({ href, text });
-            } else if (isDownloadCandidate(href, text)) {
-                downloadForSection.push({ href, text });
-            }
-        }
-
-        const foundForSection = gdriveForSection.length > 0 ? gdriveForSection : downloadForSection;
-        if (foundForSection.length > 0) {
-            if (gdriveForSection.length === 0) {
-                warnings.push(`Used fallback download link for ${section.resolution}${section.size ? ' [' + section.size + ']' : ''}`);
-            }
-
-            foundForSection.forEach((item, fIdx) => {
-                const label = section.size
-                    ? `${section.resolution} [${section.size}]` + (foundForSection.length > 1 ? ` - Link ${fIdx + 1}` : '')
-                    : section.resolution + (foundForSection.length > 1 ? ` - Link ${fIdx + 1}` : '');
-                
-                episodes.push({
-                    number: idx++,
-                    title: label,
-                    link: item.href,
-                });
-            });
-        } else {
-            warnings.push(`No Google Drive or fallback download link found for ${section.resolution}${section.size ? ' [' + section.size + ']' : ''}`);
-        }
+    const content = $('.entry-content, .post-content, .single-content, article').first();
+    interface BollyQualitySection {
+        seasonNumber: number;
+        resolution: string;
+        size: string;
+        headingText: string;
+        gdriveLinks: { href: string; text: string }[];
+        downloadLinks: { href: string; text: string }[];
     }
+    const sections: BollyQualitySection[] = [];
 
-    // Fallback directly from content HTML if no sections matched
-    if (episodes.length === 0) {
-        anchorPattern.lastIndex = 0;
-        let aMatch: RegExpExecArray | null;
+    // Identify quality sections using Cheerio DOM
+    content.find('h1, h2, h3, h4, h5, h6, p').each((_, el) => {
+        const text = $(el).text().trim();
+        const resMatch = text.match(/\b(480p|720p|1080p|2160p|4k)\b/i);
+        if (!resMatch) return;
+        if (text.toLowerCase().includes('qualities') || text.toLowerCase().includes('available in')) return;
+
+        const res = resMatch[1].toLowerCase() === '4k' ? '2160p' : resMatch[1].toLowerCase();
+        const sizeMatch = text.match(/\[?\s*(\d+(?:\.\d+)?\s*(?:MB|GB)(?:\/E)?)\s*\]?/i);
+        const size = sizeMatch ? sizeMatch[1].trim() : '';
+
+        const seasonMatch = text.match(/\b(?:Season|S)\s*(\d{1,2})\b/i);
+        let seasonNumber = seasonMatch ? parseInt(seasonMatch[1], 10) : 1;
+        if (!seasonMatch) {
+            const pageSeasonMatch = pageTitle.match(/\b(?:Season|S)\s*(\d{1,2})\b/i);
+            if (pageSeasonMatch) seasonNumber = parseInt(pageSeasonMatch[1], 10);
+        }
+
         const gdriveLinks: { href: string; text: string }[] = [];
         const downloadLinks: { href: string; text: string }[] = [];
 
-        while ((aMatch = anchorPattern.exec(contentHtml)) !== null) {
-            const href = aMatch[1];
-            const text = getAnchorText(aMatch[2]);
+        let curr = $(el).next();
+        let limit = 0;
+        while (curr.length && limit < 15) {
+            limit++;
+            const currText = curr.text().trim();
+            if (curr.is('h1, h2, h3, h4, h5, h6') && /\b(480p|720p|1080p|2160p|4k)\b/i.test(currText) && !currText.toLowerCase().includes('qualities')) {
+                break;
+            }
 
-            if (isGoogleDriveCandidate(href, text)) {
-                gdriveLinks.push({ href, text });
-            } else if (isDownloadCandidate(href, text)) {
-                downloadLinks.push({ href, text });
+            curr.find('a').each((__, a) => {
+                const href = $(a).attr('href');
+                const linkText = $(a).text().trim();
+                if (href && !href.startsWith('#') && !href.startsWith('javascript')) {
+                    const cleanHref = href.replace(/&amp;/g, '&');
+                    if (isGoogleDriveCandidate(cleanHref, linkText)) {
+                        gdriveLinks.push({ href: cleanHref, text: linkText });
+                    } else if (isDownloadCandidate(cleanHref, linkText)) {
+                        downloadLinks.push({ href: cleanHref, text: linkText });
+                    }
+                }
+            });
+            curr = curr.next();
+        }
+
+        if (gdriveLinks.length > 0 || downloadLinks.length > 0) {
+            sections.push({
+                seasonNumber,
+                resolution: res,
+                size,
+                headingText: text,
+                gdriveLinks,
+                downloadLinks,
+            });
+        }
+    });
+
+    // Check if this post is a TV/Series/Anime with elinks hubs
+    const allSectionsWithElinks = sections.filter(s =>
+        [...s.gdriveLinks, ...s.downloadLinks].some(l => l.href.includes('/elinks/'))
+    );
+    const hasElinksHub = allSectionsWithElinks.length > 0;
+
+    if (hasElinksHub) {
+        // Group sections by seasonNumber so multi-season series scrape every season
+        const seasonsMap = new Map<number, BollyQualitySection[]>();
+        for (const section of sections) {
+            const sNum = section.seasonNumber;
+            if (!seasonsMap.has(sNum)) {
+                seasonsMap.set(sNum, []);
+            }
+            seasonsMap.get(sNum)!.push(section);
+        }
+
+        const sortedSeasonNums = Array.from(seasonsMap.keys()).sort((a, b) => a - b);
+        const priority: Record<string, number> = { '720p': 1, '1080p': 2, '480p': 3, '2160p': 4 };
+
+        for (const sNum of sortedSeasonNums) {
+            const seasonSections = seasonsMap.get(sNum) || [];
+            seasonSections.sort((a, b) => (priority[a.resolution] || 9) - (priority[b.resolution] || 9));
+
+            // Scrape the primary resolution elinks hub for this season
+            for (const section of seasonSections) {
+                const allLinks = [...section.gdriveLinks, ...section.downloadLinks];
+                const elinksLink = allLinks.find(l => l.href.includes('/elinks/'));
+                if (elinksLink) {
+                    const hubEpisodes = await scrapeFxlinksHub(elinksLink.href, url);
+                    if (hubEpisodes.length > 0) {
+                        hubEpisodes.forEach(ep => {
+                            episodes.push({
+                                number: ep.number,
+                                season: sNum,
+                                title: `S${String(sNum).padStart(2, '0')}E${String(ep.number).padStart(2, '0')} ${ep.title} (${section.resolution}${section.size ? ' [' + section.size + ']' : ''})`,
+                                link: ep.link,
+                            });
+                        });
+                        break; // Move to next season once this season's episodes are scraped
+                    }
+                }
             }
         }
+    }
 
-        const selectedLinks = gdriveLinks.length > 0 ? gdriveLinks : downloadLinks;
-        if (gdriveLinks.length === 0 && selectedLinks.length > 0) {
-            warnings.push('No Google Drive links found. Used fallback download links.');
+    // If not a series with elinks hubs, process as movie downloads
+    if (!hasElinksHub && sections.length > 0) {
+        for (const section of sections) {
+            // Prioritize Google Drive button; fallback to Download Links
+            const targetLinks = section.gdriveLinks.length > 0 ? section.gdriveLinks : section.downloadLinks;
+            if (section.gdriveLinks.length === 0 && section.downloadLinks.length > 0) {
+                warnings.push(`Used fallback download link for ${section.resolution}${section.size ? ' [' + section.size + ']' : ''}`);
+            }
+
+            for (let fIdx = 0; fIdx < targetLinks.length; fIdx++) {
+                const item = targetLinks[fIdx];
+                const resolvedLink = await resolveBollyflixIntermediateLink(item.href, url);
+                const label = section.size
+                    ? `${section.resolution} [${section.size}]` + (targetLinks.length > 1 ? ` - Link ${fIdx + 1}` : '')
+                    : section.resolution + (targetLinks.length > 1 ? ` - Link ${fIdx + 1}` : '');
+
+                episodes.push({
+                    number: episodes.length + 1,
+                    title: label,
+                    link: resolvedLink,
+                });
+            }
         }
+    }
 
-        selectedLinks.forEach(item => {
-            episodes.push({
-                number: idx++,
-                title: `${gdriveLinks.length > 0 ? 'Google Drive' : 'Download'} Link ${idx - 1} (${resolution})`,
-                link: item.href,
-            });
+    // Fallback if no sections were parsed
+    if (episodes.length === 0) {
+        const allAnchors: { href: string; text: string; type: 'gdrive' | 'download' }[] = [];
+        content.find('a').each((_, a) => {
+            const href = $(a).attr('href');
+            const text = $(a).text().trim();
+            if (href && !href.startsWith('#') && !href.startsWith('javascript')) {
+                const cleanHref = href.replace(/&amp;/g, '&');
+                if (isGoogleDriveCandidate(cleanHref, text)) {
+                    allAnchors.push({ href: cleanHref, text, type: 'gdrive' });
+                } else if (isDownloadCandidate(cleanHref, text)) {
+                    allAnchors.push({ href: cleanHref, text, type: 'download' });
+                }
+            }
         });
 
-        if (episodes.length === 0) {
-            throw new Error('No Google Drive or fallback download links found on this BollyFlix page.');
+        for (const item of allAnchors) {
+            if (item.href.includes('/elinks/')) {
+                const hubEpisodes = await scrapeFxlinksHub(item.href, url);
+                episodes.push(...hubEpisodes);
+                if (episodes.length > 0) break;
+            } else {
+                const resolved = await resolveBollyflixIntermediateLink(item.href, url);
+                episodes.push({
+                    number: episodes.length + 1,
+                    title: `${item.text || 'Download Link'} (${resolution})`,
+                    link: resolved,
+                });
+            }
         }
+    }
+
+    if (episodes.length === 0) {
+        throw new Error('No Google Drive or fallback download links found on this BollyFlix page.');
     }
 
     return {
         pageTitle,
-        resolution,
+        resolution: sections[0]?.resolution || resolution || '720p',
         seasonZipLink: null,
         episodes,
         warnings,

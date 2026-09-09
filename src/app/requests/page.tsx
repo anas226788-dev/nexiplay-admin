@@ -35,11 +35,17 @@ export default function RequestsPage() {
     const [activeReviewRequest, setActiveReviewRequest] = useState<ContentRequest | null>(null);
     const [reviewData, setReviewData] = useState<any>(null);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [activeSeasonTab, setActiveSeasonTab] = useState(0);
     const [approving, setApproving] = useState(false);
 
     // Automation
     const [processingAll, setProcessingAll] = useState(false);
+    const [autoProcessingId, setAutoProcessingId] = useState<string | null>(null);
     const [showAutomationLog, setShowAutomationLog] = useState<string | null>(null);
+    const [processResultsModal, setProcessResultsModal] = useState<{
+        title: string;
+        results: { id: string; name: string; outcome: string; message: string; matched_source?: string | null; confidence?: number }[];
+    } | null>(null);
 
     // Messages
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -110,7 +116,9 @@ export default function RequestsPage() {
         } finally {
             setSavingSettings(false);
         }
-    };    const updateStatus = async (id: string, status: 'added' | 'rejected') => {
+    };
+
+    const updateStatus = async (id: string, status: ContentRequest['status']) => {
         const { error } = await supabase
             .from('content_requests')
             .update({ status })
@@ -124,6 +132,33 @@ export default function RequestsPage() {
         }
     };
 
+    // Trigger automated processing of a single request
+    const handleAutoProcessSingle = async (req: ContentRequest) => {
+        setAutoProcessingId(req.id);
+        try {
+            const res = await fetch(`/api/cron/process-requests?request_id=${req.id}`, { cache: 'no-store' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Automation failed');
+            const firstResult = (data.results || [])[0];
+            if (firstResult) {
+                if (firstResult.outcome === 'review_ready') {
+                    showMessage('success', `🎉 ${firstResult.message}`);
+                } else if (firstResult.outcome === 'no_match') {
+                    showMessage('error', `🔍 "${req.content_name}": ${firstResult.message}`);
+                } else if (firstResult.outcome === 'duplicate') {
+                    showMessage('error', `📋 "${req.content_name}": ${firstResult.message}`);
+                } else {
+                    showMessage('error', `⚠️ "${req.content_name}": ${firstResult.message || firstResult.outcome}`);
+                }
+            }
+            await fetchRequests();
+        } catch (e: any) {
+            showMessage('error', `Automation error: ${e.message}`);
+        } finally {
+            setAutoProcessingId(null);
+        }
+    };
+
     // Trigger automated processing of all pending requests
     const handleProcessAll = async () => {
         setProcessingAll(true);
@@ -131,7 +166,14 @@ export default function RequestsPage() {
             const res = await fetch('/api/cron/process-requests', { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Processing failed');
-            showMessage('success', `🤖 Processed ${data.processed || 0} request(s). ${(data.results || []).map((r: any) => `${r.name}: ${r.outcome}`).join(', ')}`);
+            if (data.results && data.results.length > 0) {
+                setProcessResultsModal({
+                    title: `Agentic Pipeline: Processed ${data.processed || 0} Request(s)`,
+                    results: data.results,
+                });
+            } else {
+                showMessage('success', data.message || 'No pending requests needed processing.');
+            }
             await fetchRequests();
         } catch (e: any) {
             showMessage('error', e.message);
@@ -236,6 +278,7 @@ export default function RequestsPage() {
     const handleStartReview = (req: ContentRequest) => {
         setActiveReviewRequest(req);
         setReviewData(req.scraped_data);
+        setActiveSeasonTab(0);
         // Pre-select categories suggested by the automation pipeline
         setSelectedCategories(req.suggested_categories || []);
     };
@@ -624,11 +667,24 @@ export default function RequestsPage() {
                                             {req.status === 'pending' && (
                                                 <>
                                                     <button
+                                                        onClick={() => handleAutoProcessSingle(req)}
+                                                        disabled={autoProcessingId === req.id}
+                                                        className="px-2.5 py-1.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 rounded-lg hover:from-amber-500/30 hover:to-orange-500/30 transition-all flex items-center gap-1.5 text-xs font-bold shadow-sm disabled:opacity-50"
+                                                        title="Auto-Process with Agentic Pipeline (Search, Resolve GDFlix & Stage)"
+                                                    >
+                                                        {autoProcessingId === req.id ? (
+                                                            <span className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+                                                        ) : (
+                                                            <span>⚡</span>
+                                                        )}
+                                                        <span>Auto</span>
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleStartAgentImport(req)}
                                                         className="p-2 bg-purple-500/20 text-purple-400 rounded-lg hover:bg-purple-500/30 transition-all flex items-center gap-1.5 text-xs font-bold"
                                                         title="Find and Import with Agent"
                                                     >
-                                                        🤖 Agent Scrape
+                                                        🤖 Scrape
                                                     </button>
                                                     {(req.processing_status === 'failed' || req.processing_status === 'no_match' || req.processing_status === 'skipped') && (
                                                         <button
@@ -741,10 +797,22 @@ export default function RequestsPage() {
                                     {req.status === 'pending' && (
                                         <>
                                             <button
+                                                onClick={() => handleAutoProcessSingle(req)}
+                                                disabled={autoProcessingId === req.id}
+                                                className="py-2 px-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-bold hover:from-amber-500/30 hover:to-orange-500/30 transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                                            >
+                                                {autoProcessingId === req.id ? (
+                                                    <span className="w-3.5 h-3.5 border-2 border-amber-400/30 border-t-amber-400 rounded-full animate-spin" />
+                                                ) : (
+                                                    '⚡'
+                                                )}
+                                                Auto
+                                            </button>
+                                            <button
                                                 onClick={() => handleStartAgentImport(req)}
                                                 className="flex-1 py-2 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold hover:bg-purple-500/30 transition-colors"
                                             >
-                                                🤖 Agent Scrape
+                                                🤖 Scrape
                                             </button>
                                             <button
                                                 onClick={() => updateStatus(req.id, 'added')}
@@ -1045,9 +1113,37 @@ export default function RequestsPage() {
 
                                 {/* Content specific downloads / episodes */}
                                 <div className="space-y-4 pt-6 border-t border-white/5">
-                                    <h4 className="font-black text-white uppercase tracking-wider text-sm flex items-center gap-2">
-                                        <span>💾</span> Download Options ({reviewData.type === 'movie' ? reviewData.downloads?.length || 0 : reviewData.seasons?.[0]?.episodes?.length || 0})
-                                    </h4>
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-black text-white uppercase tracking-wider text-sm flex items-center gap-2">
+                                            {reviewData.type === 'movie' ? (
+                                                <>
+                                                    <span>💾</span> Download Options ({reviewData.downloads?.length || 0})
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>📺</span> Seasons &amp; Episodes ({reviewData.seasons?.length || 0} {reviewData.seasons?.length === 1 ? 'Season' : 'Seasons'}, {(reviewData.seasons || []).reduce((acc: number, s: any) => acc + (s.episodes?.length || 0), 0)} Total Episodes)
+                                                </>
+                                            )}
+                                        </h4>
+                                        {reviewData.type !== 'movie' && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const seasons = [...(reviewData.seasons || [])];
+                                                    const nextNum = seasons.length > 0 ? Math.max(...seasons.map((s: any) => s.season_number || 1)) + 1 : 1;
+                                                    seasons.push({
+                                                        season_number: nextNum,
+                                                        episodes: []
+                                                    });
+                                                    setReviewData({ ...reviewData, seasons });
+                                                    setActiveSeasonTab(seasons.length - 1);
+                                                }}
+                                                className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                                            >
+                                                <span>➕</span> Add Season
+                                            </button>
+                                        )}
+                                    </div>
 
                                     {/* Movie Downloads view */}
                                     {reviewData.type === 'movie' ? (
@@ -1121,69 +1217,242 @@ export default function RequestsPage() {
                                             </button>
                                         </div>
                                     ) : (
-                                        /* Series/Anime Episodes view */
+                                        /* Series/Anime Episodes view with Multi-Season Tabs */
                                         <div className="space-y-4 bg-dark-900/30 p-4 rounded-xl border border-white/5">
-                                            {reviewData.seasons?.[0]?.episodes && reviewData.seasons[0].episodes.length > 0 ? (
-                                                <div className="max-h-[30vh] overflow-y-auto space-y-3 pr-2">
-                                                    {reviewData.seasons[0].episodes.map((ep: any, idx: number) => (
-                                                        <div key={idx} className="p-3 bg-dark-900/60 border border-white/5 rounded-lg space-y-2">
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-xs font-bold text-gray-400">Episode {ep.episode_number}</span>
-                                                                <input
-                                                                    type="text"
-                                                                    value={ep.episode_title || ''}
-                                                                    onChange={(e) => {
-                                                                        const copy = { ...reviewData };
-                                                                        copy.seasons[0].episodes[idx].episode_title = e.target.value;
-                                                                        setReviewData(copy);
-                                                                    }}
-                                                                    className="w-2/3 bg-dark-900 border border-white/5 rounded px-2 py-1 text-white text-xs"
-                                                                    placeholder="Episode Title"
-                                                                />
-                                                            </div>
-                                                            {ep.download_links && ep.download_links.map((link: any, lIdx: number) => (
-                                                                <div key={lIdx} className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-1.5 border-t border-white/5">
-                                                                    <div>
-                                                                        <input
-                                                                            type="text"
-                                                                            value={link.resolution}
-                                                                            onChange={(e) => {
-                                                                                const copy = { ...reviewData };
-                                                                                copy.seasons[0].episodes[idx].download_links[lIdx].resolution = e.target.value;
-                                                                                setReviewData(copy);
-                                                                            }}
-                                                                            className="w-full bg-dark-900 border border-white/5 rounded px-2 py-1 text-white text-xs font-bold"
-                                                                            placeholder="Quality (720p)"
-                                                                        />
-                                                                    </div>
-                                                                    <div className="md:col-span-3">
-                                                                        <input
-                                                                            type="text"
-                                                                            value={link.mega_link || link.gdrive_link || ''}
-                                                                            onChange={(e) => {
-                                                                                const val = e.target.value;
-                                                                                const copy = { ...reviewData };
-                                                                                const isMega = val.includes('mega.nz');
-                                                                                if (isMega) {
-                                                                                    copy.seasons[0].episodes[idx].download_links[lIdx].mega_link = val;
-                                                                                    copy.seasons[0].episodes[idx].download_links[lIdx].gdrive_link = undefined;
-                                                                                } else {
-                                                                                    copy.seasons[0].episodes[idx].download_links[lIdx].gdrive_link = val;
-                                                                                    copy.seasons[0].episodes[idx].download_links[lIdx].mega_link = undefined;
+                                            {/* Season navigation tabs */}
+                                            {reviewData.seasons && reviewData.seasons.length > 0 ? (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/5">
+                                                        {reviewData.seasons.map((season: any, sIdx: number) => {
+                                                            const isActive = (activeSeasonTab >= reviewData.seasons.length ? 0 : activeSeasonTab) === sIdx;
+                                                            return (
+                                                                <div key={sIdx} className="flex items-center gap-1">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setActiveSeasonTab(sIdx)}
+                                                                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border ${
+                                                                            isActive
+                                                                                ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20'
+                                                                                : 'bg-dark-900 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
+                                                                        }`}
+                                                                    >
+                                                                        <span>Season {season.season_number}</span>
+                                                                        <span className={`px-1.5 py-0.5 text-[10px] rounded-full font-mono ${
+                                                                            isActive ? 'bg-white/20 text-white' : 'bg-white/5 text-gray-400'
+                                                                        }`}>
+                                                                            {season.episodes?.length || 0} eps
+                                                                        </span>
+                                                                    </button>
+                                                                    {reviewData.seasons.length > 1 && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (confirm(`Delete Season ${season.season_number}? All its episodes will be removed.`)) {
+                                                                                    const newSeasons = reviewData.seasons.filter((_: any, i: number) => i !== sIdx);
+                                                                                    setReviewData({ ...reviewData, seasons: newSeasons });
+                                                                                    setActiveSeasonTab(Math.max(0, sIdx - 1));
                                                                                 }
+                                                                            }}
+                                                                            className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded transition-colors text-xs"
+                                                                            title={`Delete Season ${season.season_number}`}
+                                                                        >
+                                                                            ✕
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+
+                                                    {/* Active Season Episodes container */}
+                                                    {(() => {
+                                                        const currentSeasonIdx = Math.min(activeSeasonTab, reviewData.seasons.length - 1);
+                                                        const currentSeason = reviewData.seasons[currentSeasonIdx];
+                                                        if (!currentSeason) return null;
+
+                                                        return (
+                                                            <div className="space-y-3">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                                        Season {currentSeason.season_number} Episodes ({currentSeason.episodes?.length || 0})
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            const copy = { ...reviewData };
+                                                                            const eps = copy.seasons[currentSeasonIdx].episodes || [];
+                                                                            const nextEpNum = eps.length > 0 ? Math.max(...eps.map((e: any) => e.episode_number || 1)) + 1 : 1;
+                                                                            eps.push({
+                                                                                episode_number: nextEpNum,
+                                                                                episode_title: `Episode ${nextEpNum}`,
+                                                                                download_links: [{ resolution: '720p', gdrive_link: '' }]
+                                                                            });
+                                                                            copy.seasons[currentSeasonIdx].episodes = eps;
+                                                                            setReviewData(copy);
+                                                                        }}
+                                                                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-white rounded text-xs font-bold border border-white/5 flex items-center gap-1 transition-all"
+                                                                    >
+                                                                        <span>➕</span> Add Episode
+                                                                    </button>
+                                                                </div>
+
+                                                                {currentSeason.episodes && currentSeason.episodes.length > 0 ? (
+                                                                    <div className="max-h-[35vh] overflow-y-auto space-y-3 pr-2">
+                                                                        {currentSeason.episodes.map((ep: any, idx: number) => (
+                                                                            <div key={idx} className="p-3 bg-dark-900/60 border border-white/5 rounded-lg space-y-2">
+                                                                                <div className="flex items-center justify-between gap-2">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <span className="px-2 py-0.5 bg-red-600/20 text-red-400 border border-red-500/20 rounded text-[11px] font-mono font-bold whitespace-nowrap">
+                                                                                            S{currentSeason.season_number} E{ep.episode_number}
+                                                                                        </span>
+                                                                                        <input
+                                                                                            type="number"
+                                                                                            value={ep.episode_number}
+                                                                                            onChange={(e) => {
+                                                                                                const copy = { ...reviewData };
+                                                                                                copy.seasons[currentSeasonIdx].episodes[idx].episode_number = parseInt(e.target.value) || 1;
+                                                                                                setReviewData(copy);
+                                                                                            }}
+                                                                                            className="w-16 bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs font-mono text-center"
+                                                                                            title="Episode Number"
+                                                                                        />
+                                                                                    </div>
+                                                                                    <input
+                                                                                        type="text"
+                                                                                        value={ep.episode_title || ''}
+                                                                                        onChange={(e) => {
+                                                                                            const copy = { ...reviewData };
+                                                                                            copy.seasons[currentSeasonIdx].episodes[idx].episode_title = e.target.value;
+                                                                                            setReviewData(copy);
+                                                                                        }}
+                                                                                        className="flex-1 bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                                                                                        placeholder="Episode Title"
+                                                                                    />
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            const copy = { ...reviewData };
+                                                                                            copy.seasons[currentSeasonIdx].episodes = copy.seasons[currentSeasonIdx].episodes.filter((_: any, i: number) => i !== idx);
+                                                                                            setReviewData(copy);
+                                                                                        }}
+                                                                                        className="p-1.5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded transition-colors text-xs"
+                                                                                        title="Delete Episode"
+                                                                                    >
+                                                                                        🗑️
+                                                                                    </button>
+                                                                                </div>
+
+                                                                                {/* Episode Download Links */}
+                                                                                {ep.download_links && ep.download_links.map((link: any, lIdx: number) => (
+                                                                                    <div key={lIdx} className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-1.5 border-t border-white/5 items-center">
+                                                                                        <div>
+                                                                                            <select
+                                                                                                value={link.resolution || '720p'}
+                                                                                                onChange={(e) => {
+                                                                                                    const copy = { ...reviewData };
+                                                                                                    copy.seasons[currentSeasonIdx].episodes[idx].download_links[lIdx].resolution = e.target.value;
+                                                                                                    setReviewData(copy);
+                                                                                                }}
+                                                                                                className="w-full bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs font-semibold"
+                                                                                            >
+                                                                                                <option value="480p">480p</option>
+                                                                                                <option value="720p">720p</option>
+                                                                                                <option value="1080p">1080p</option>
+                                                                                            </select>
+                                                                                        </div>
+                                                                                        <div className="md:col-span-3 flex gap-2">
+                                                                                            <input
+                                                                                                type="text"
+                                                                                                value={link.mega_link || link.gdrive_link || ''}
+                                                                                                onChange={(e) => {
+                                                                                                    const val = e.target.value;
+                                                                                                    const copy = { ...reviewData };
+                                                                                                    const isMega = val.includes('mega.nz');
+                                                                                                    if (isMega) {
+                                                                                                        copy.seasons[currentSeasonIdx].episodes[idx].download_links[lIdx].mega_link = val;
+                                                                                                        copy.seasons[currentSeasonIdx].episodes[idx].download_links[lIdx].gdrive_link = undefined;
+                                                                                                    } else {
+                                                                                                        copy.seasons[currentSeasonIdx].episodes[idx].download_links[lIdx].gdrive_link = val;
+                                                                                                        copy.seasons[currentSeasonIdx].episodes[idx].download_links[lIdx].mega_link = undefined;
+                                                                                                    }
+                                                                                                    setReviewData(copy);
+                                                                                                }}
+                                                                                                className="flex-1 bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-xs font-mono"
+                                                                                                placeholder="GDFlix or Mega Download Link"
+                                                                                            />
+                                                                                            {ep.download_links.length > 1 && (
+                                                                                                <button
+                                                                                                    type="button"
+                                                                                                    onClick={() => {
+                                                                                                        const copy = { ...reviewData };
+                                                                                                        copy.seasons[currentSeasonIdx].episodes[idx].download_links = copy.seasons[currentSeasonIdx].episodes[idx].download_links.filter((_: any, i: number) => i !== lIdx);
+                                                                                                        setReviewData(copy);
+                                                                                                    }}
+                                                                                                    className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded text-xs"
+                                                                                                    title="Remove Link"
+                                                                                                >
+                                                                                                    ✕
+                                                                                                </button>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                                {(!ep.download_links || ep.download_links.length === 0) && (
+                                                                                    <button
+                                                                                        type="button"
+                                                                                        onClick={() => {
+                                                                                            const copy = { ...reviewData };
+                                                                                            copy.seasons[currentSeasonIdx].episodes[idx].download_links = [{ resolution: '720p', gdrive_link: '' }];
+                                                                                            setReviewData(copy);
+                                                                                        }}
+                                                                                        className="w-full py-1 bg-white/5 hover:bg-white/10 border border-dashed border-white/10 text-gray-400 hover:text-white rounded text-[11px] font-bold"
+                                                                                    >
+                                                                                        + Add Download Link
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-center py-6 border border-dashed border-white/10 rounded-lg">
+                                                                        <p className="text-gray-500 text-xs">No episodes in Season {currentSeason.season_number}.</p>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                const copy = { ...reviewData };
+                                                                                copy.seasons[currentSeasonIdx].episodes = [
+                                                                                    { episode_number: 1, episode_title: 'Episode 1', download_links: [{ resolution: '720p', gdrive_link: '' }] }
+                                                                                ];
                                                                                 setReviewData(copy);
                                                                             }}
-                                                                            className="w-full bg-dark-900 border border-white/5 rounded px-2 py-1 text-white text-xs font-mono"
-                                                                            placeholder="Mega or G-Drive Link"
-                                                                        />
+                                                                            className="mt-2 px-3 py-1 bg-white/5 hover:bg-white/10 text-white rounded text-xs font-bold"
+                                                                        >
+                                                                            + Add First Episode
+                                                                        </button>
                                                                     </div>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    ))}
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             ) : (
-                                                <p className="text-gray-500 text-xs py-4 text-center">No episodes found</p>
+                                                <div className="text-center py-6 border border-dashed border-white/10 rounded-lg">
+                                                    <p className="text-gray-500 text-xs">No seasons found for this content.</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setReviewData({
+                                                                ...reviewData,
+                                                                seasons: [{ season_number: 1, episodes: [] }]
+                                                            });
+                                                            setActiveSeasonTab(0);
+                                                        }}
+                                                        className="mt-2 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/20 rounded-lg text-xs font-bold"
+                                                    >
+                                                        + Create Season 1
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     )}
@@ -1214,6 +1483,167 @@ export default function RequestsPage() {
                                     )}
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                )}
+                {/* MODAL 3: Process Results Summary */}
+                {processResultsModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="w-full max-w-2xl bg-dark-800 border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        <span>⚡</span> {processResultsModal.title}
+                                    </h3>
+                                    <p className="text-xs text-gray-400 mt-1">Automatic Search across BollyFlix & RareAnimes</p>
+                                </div>
+                                <button
+                                    onClick={() => setProcessResultsModal(null)}
+                                    className="p-1 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
+                                {processResultsModal.results.map((r, i) => (
+                                    <div key={i} className="p-4 rounded-xl bg-white/[0.03] border border-white/5 flex flex-col gap-2">
+                                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                                            <span className="font-bold text-white text-sm">{r.name}</span>
+                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase ${
+                                                r.outcome === 'review_ready' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                                                r.outcome === 'duplicate' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                                                r.outcome === 'no_match' ? 'bg-gray-500/20 text-gray-300 border border-gray-500/30' :
+                                                'bg-red-500/20 text-red-300 border border-red-500/30'
+                                            }`}>
+                                                {r.outcome === 'review_ready' ? '✅ Ready for Review' :
+                                                 r.outcome === 'duplicate' ? '📋 Duplicate' :
+                                                 r.outcome === 'no_match' ? '🔍 Not Found' :
+                                                 '⚠️ Failed'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-300">{r.message}</p>
+                                        {r.outcome === 'review_ready' && (
+                                            <div className="pt-2 flex justify-end">
+                                                <button
+                                                    onClick={() => {
+                                                        const matchedReq = requests.find(req => req.id === r.id);
+                                                        setProcessResultsModal(null);
+                                                        if (matchedReq) handleStartReview(matchedReq);
+                                                    }}
+                                                    className="px-3 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 text-xs font-bold rounded-lg transition-colors border border-yellow-500/30"
+                                                >
+                                                    📝 Review Now
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="p-4 border-t border-white/5 flex justify-end">
+                                <button
+                                    onClick={() => setProcessResultsModal(null)}
+                                    className="px-5 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl transition-colors"
+                                >
+                                    Done
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* MODAL 4: Automation Log Details */}
+                {showAutomationLog && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="w-full max-w-2xl bg-dark-800 border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                            {(() => {
+                                const logReq = requests.find(r => r.id === showAutomationLog);
+                                if (!logReq) return null;
+                                const logs = (logReq.automation_log || []) as any[];
+
+                                return (
+                                    <>
+                                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                                            <div>
+                                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                                    <span>📋</span> Pipeline Automation Log
+                                                </h3>
+                                                <p className="text-xs text-gray-400 mt-1">{logReq.content_name}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => setShowAutomationLog(null)}
+                                                className="p-1 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+
+                                        <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+                                            {/* Status Header */}
+                                            <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/5 flex items-center justify-between text-xs">
+                                                <div>
+                                                    <span className="text-gray-400">Processing Status: </span>
+                                                    <span className="font-bold text-white capitalize">{logReq.processing_status || 'idle'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-400">Attempts: </span>
+                                                    <span className="font-bold text-white">{logReq.processing_attempts || 0}</span>
+                                                </div>
+                                                {typeof logReq.confidence_score === 'number' && (
+                                                    <div>
+                                                        <span className="text-gray-400">Confidence: </span>
+                                                        <span className="font-bold text-emerald-400">{Math.round(logReq.confidence_score * 100)}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Error Message banner */}
+                                            {logReq.automation_error && (
+                                                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
+                                                    <span className="text-sm">⚠️</span>
+                                                    <div>
+                                                        <div className="font-bold">Latest Note</div>
+                                                        <div>{logReq.automation_error}</div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Log Entries Timeline */}
+                                            <div className="space-y-2">
+                                                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Step Timeline ({logs.length})</div>
+                                                {logs.length === 0 ? (
+                                                    <div className="text-xs text-gray-500 italic">No detailed step logs recorded yet.</div>
+                                                ) : (
+                                                    logs.map((item, idx) => (
+                                                        <div key={idx} className="p-3 rounded-lg bg-white/[0.02] border border-white/5 text-xs font-mono">
+                                                            <div className="flex items-center justify-between text-gray-400 mb-1">
+                                                                <span className="text-amber-400 font-bold">[{item.action}]</span>
+                                                                <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
+                                                            </div>
+                                                            <div className="text-gray-200">{item.result}</div>
+                                                            {item.details && Object.keys(item.details).length > 0 && (
+                                                                <pre className="mt-1.5 p-2 bg-black/40 rounded text-[11px] text-gray-400 overflow-x-auto">
+                                                                    {JSON.stringify(item.details, null, 2)}
+                                                                </pre>
+                                                            )}
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="p-4 border-t border-white/5 flex justify-end">
+                                            <button
+                                                onClick={() => setShowAutomationLog(null)}
+                                                className="px-5 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl transition-colors"
+                                            >
+                                                Close
+                                            </button>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
                     </div>
                 )}

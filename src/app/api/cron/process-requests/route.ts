@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase-admin';
-import { normalizeTitle, selectBestCandidate, extractYear } from '@/lib/title-matcher';
+import { normalizeTitle, selectBestCandidate, extractYear, generateSearchQueries } from '@/lib/title-matcher';
 import { enrichMetadata, mapGenresToCategories } from '@/lib/metadata-enrichment';
 import { checkDuplicate } from '@/lib/duplicate-detector';
 import { isScraperSource, normalizeScrapedData, normalizeSearchResults, type ScraperSource } from '@/lib/agent-import';
@@ -49,54 +49,74 @@ export async function GET(request: NextRequest) {
 
     const startedAt = Date.now();
     const supabase = getAdminSupabase();
-    const results: { id: string; name: string; outcome: string }[] = [];
+    const results: { id: string; name: string; outcome: string; message: string; matched_source?: string | null; confidence?: number }[] = [];
 
     try {
-        // 1. Fetch pending requests that need processing
-        const { data: pendingRequests, error: fetchError } = await supabase
-            .from('content_requests')
-            .select('*')
-            .eq('status', 'pending')
-            .in('processing_status', ['idle', 'failed'])
-            .lt('processing_attempts', MAX_ATTEMPTS)
-            .order('created_at', { ascending: true })
-            .limit(BATCH_SIZE * 2); // Fetch extra to account for backoff skips
+        const { searchParams } = new URL(request.url);
+        const targetRequestId = searchParams.get('request_id');
+        const limitParam = parseInt(searchParams.get('limit') || '0', 10);
+        const effectiveBatchSize = limitParam > 0 ? limitParam : BATCH_SIZE;
 
-        if (fetchError) throw fetchError;
-        if (!pendingRequests || pendingRequests.length === 0) {
-            return NextResponse.json({
-                success: true,
-                message: 'No pending requests to process',
-                processed: 0,
-                duration_ms: Date.now() - startedAt,
-            });
-        }
+        let eligible: any[] = [];
 
-        // Filter out requests in backoff period
-        const eligible = pendingRequests
-            .filter(r => !shouldSkipForBackoff(r.processing_attempts || 0, r.last_processing_at))
-            .slice(0, BATCH_SIZE);
+        if (targetRequestId) {
+            // Direct targeted execution for a single request
+            const { data: specificReq, error: specificErr } = await supabase
+                .from('content_requests')
+                .select('*')
+                .eq('id', targetRequestId)
+                .single();
+            if (specificErr || !specificReq) {
+                return NextResponse.json({ error: 'Request not found' }, { status: 404 });
+            }
+            eligible = [specificReq];
+        } else {
+            // 1. Fetch pending requests that need processing
+            const { data: pendingRequests, error: fetchError } = await supabase
+                .from('content_requests')
+                .select('*')
+                .eq('status', 'pending')
+                .in('processing_status', ['idle', 'failed', 'no_match'])
+                .lt('processing_attempts', MAX_ATTEMPTS)
+                .order('created_at', { ascending: true })
+                .limit(effectiveBatchSize * 2); // Fetch extra to account for backoff skips
 
-        if (eligible.length === 0) {
-            return NextResponse.json({
-                success: true,
-                message: 'All pending requests are in backoff period',
-                processed: 0,
-                duration_ms: Date.now() - startedAt,
-            });
+            if (fetchError) throw fetchError;
+            if (!pendingRequests || pendingRequests.length === 0) {
+                return NextResponse.json({
+                    success: true,
+                    message: 'No pending requests to process',
+                    processed: 0,
+                    duration_ms: Date.now() - startedAt,
+                });
+            }
+
+            // Filter out requests in backoff period
+            eligible = pendingRequests
+                .filter(r => !shouldSkipForBackoff(r.processing_attempts || 0, r.last_processing_at))
+                .slice(0, effectiveBatchSize);
+
+            if (eligible.length === 0) {
+                return NextResponse.json({
+                    success: true,
+                    message: 'All pending requests are in backoff period',
+                    processed: 0,
+                    duration_ms: Date.now() - startedAt,
+                });
+            }
         }
 
         // 2. Fetch scraper domain settings
         const { data: settings } = await supabase
             .from('app_settings')
-            .select('rareanimes_url, bollyflix_url, movielink_url')
+            .select('rareanimes_url, bollyflix_url, movielink_url, tmdb_api_key')
             .eq('id', 1)
             .single();
 
         const sourceUrls: Record<ScraperSource, string> = {
-            bollyflix: settings?.bollyflix_url || 'https://bollyflix.free',
+            bollyflix: settings?.bollyflix_url || 'https://bollyflix.af',
             rareanimes: settings?.rareanimes_url || 'https://rareanimes.mov',
-            movielink: settings?.movielink_url || 'https://movielinkbd.li',
+            movielink: settings?.movielink_url || 'https://vg4rru.movielinkbd.li',
         };
 
         // 3. Fetch categories for genre mapping
@@ -127,6 +147,7 @@ export async function GET(request: NextRequest) {
                 // A. Duplicate check first
                 const dupResult = await checkDuplicate(supabase, contentName);
                 if (dupResult.isDuplicate) {
+                    const dupMsg = `Duplicate: "${dupResult.existingTitle}" already exists in catalog (${dupResult.matchType})`;
                     logs.push(logEntry(attempt, 'duplicate_check', 'duplicate_found', {
                         existing_id: dupResult.existingId,
                         existing_title: dupResult.existingTitle,
@@ -137,86 +158,97 @@ export async function GET(request: NextRequest) {
                         .from('content_requests')
                         .update({
                             processing_status: 'duplicate',
-                            automation_error: `Duplicate: "${dupResult.existingTitle}" already exists (${dupResult.matchType})`,
+                            automation_error: dupMsg,
                             matched_source_url: dupResult.existingSlug ? `/movie/${dupResult.existingSlug}` : null,
                             automation_log: logs,
                         })
                         .eq('id', req.id);
 
-                    results.push({ id: req.id, name: contentName, outcome: 'duplicate' });
+                    results.push({ id: req.id, name: contentName, outcome: 'duplicate', message: dupMsg });
                     continue;
                 }
                 logs.push(logEntry(attempt, 'duplicate_check', 'no_duplicate'));
 
-                // B. Search across sources in priority order
+                // B. Search across sources in priority order with query fallbacks
                 let bestMatch: { source: ScraperSource; url: string; confidence: number; title: string; reasons: string[] } | null = null;
+                const searchQueries = generateSearchQueries(contentName);
 
                 for (const source of SOURCE_PRIORITY) {
                     const baseUrl = sourceUrls[source];
                     if (!baseUrl) continue;
 
-                    try {
-                        logs.push(logEntry(attempt, `search_${source}`, 'searching', { base_url: baseUrl, query: contentName }));
+                    let rawResults: { title: string; url: string }[] = [];
 
-                        const rawResults = await searchWordPressSite(baseUrl, contentName);
-                        const normalized = normalizeSearchResults(rawResults);
-
-                        logs.push(logEntry(attempt, `search_${source}`, `found_${normalized.length}_results`));
-
-                        if (normalized.length === 0) continue;
-
-                        const matchResult = selectBestCandidate(
-                            contentName,
-                            normalized.map(r => ({ title: r.title, url: r.url, source })),
-                            MIN_CONFIDENCE
-                        );
-
-                        if (matchResult) {
-                            logs.push(logEntry(attempt, `match_${source}`, 'candidate_found', {
-                                title: matchResult.candidate.title,
-                                confidence: matchResult.confidence,
-                                reasons: matchResult.reasons,
-                            }));
-
-                            if (!bestMatch || matchResult.confidence > bestMatch.confidence) {
-                                bestMatch = {
-                                    source,
-                                    url: matchResult.candidate.url,
-                                    confidence: matchResult.confidence,
-                                    title: matchResult.candidate.title,
-                                    reasons: matchResult.reasons,
-                                };
+                    for (const q of searchQueries) {
+                        try {
+                            logs.push(logEntry(attempt, `search_${source}`, 'searching', { base_url: baseUrl, query: q }));
+                            const searchRes = await searchWordPressSite(baseUrl, q);
+                            if (searchRes.length > 0) {
+                                rawResults = searchRes;
+                                logs.push(logEntry(attempt, `search_${source}`, `found_${searchRes.length}_results`, { query: q }));
+                                break;
                             }
-
-                            // If very high confidence, skip other sources
-                            if (matchResult.confidence >= 0.85) break;
-                        } else {
-                            logs.push(logEntry(attempt, `match_${source}`, 'no_match_above_threshold'));
+                        } catch (searchErr: any) {
+                            const errMsg = searchErr instanceof Error ? searchErr.message : String(searchErr);
+                            logs.push(logEntry(attempt, `search_${source}`, 'error', { query: q, error: errMsg }));
                         }
-                    } catch (searchErr) {
-                        const errMsg = searchErr instanceof Error ? searchErr.message : String(searchErr);
-                        logs.push(logEntry(attempt, `search_${source}`, 'error', { error: errMsg }));
-                        console.warn(`[ProcessRequests] Search error for "${contentName}" on ${source}:`, errMsg);
+                    }
+
+                    const normalized = normalizeSearchResults(rawResults);
+                    if (normalized.length === 0) continue;
+
+                    const matchResult = selectBestCandidate(
+                        contentName,
+                        normalized.map(r => ({ title: r.title, url: r.url, source })),
+                        MIN_CONFIDENCE
+                    );
+
+                    if (matchResult) {
+                        logs.push(logEntry(attempt, `match_${source}`, 'candidate_found', {
+                            title: matchResult.candidate.title,
+                            confidence: matchResult.confidence,
+                            reasons: matchResult.reasons,
+                        }));
+
+                        if (!bestMatch || matchResult.confidence > bestMatch.confidence) {
+                            bestMatch = {
+                                source,
+                                url: matchResult.candidate.url,
+                                confidence: matchResult.confidence,
+                                title: matchResult.candidate.title,
+                                reasons: matchResult.reasons,
+                            };
+                        }
+
+                        // High confidence match found, no need to check other sources
+                        if (matchResult.confidence >= 0.85) break;
+                    } else {
+                        logs.push(logEntry(attempt, `match_${source}`, 'no_match_above_threshold'));
                     }
                 }
 
-                // C. No match found
+                // C. No match found across sources
                 if (!bestMatch) {
-                    logs.push(logEntry(attempt, 'final', 'no_match_found'));
+                    const searchedSourcesList = SOURCE_PRIORITY
+                        .map(s => `${s === 'bollyflix' ? 'BollyFlix' : 'RareAnimes'} (${new URL(sourceUrls[s]).host})`)
+                        .join(' or ');
+                    const noMatchMsg = `Not found on ${searchedSourcesList}`;
+                    logs.push(logEntry(attempt, 'final', 'no_match_found', { tried_queries: searchQueries }));
+
                     await supabase
                         .from('content_requests')
                         .update({
                             processing_status: attempt >= MAX_ATTEMPTS ? 'skipped' : 'no_match',
-                            automation_error: 'No matching content found on any source',
+                            automation_error: noMatchMsg,
                             automation_log: logs,
                         })
                         .eq('id', req.id);
 
-                    results.push({ id: req.id, name: contentName, outcome: 'no_match' });
+                    results.push({ id: req.id, name: contentName, outcome: 'no_match', message: noMatchMsg, matched_source: null });
                     continue;
                 }
 
-                // D. Import the best match using existing scrapeSource + normalizeScrapedData
+                // D. Import the best match using scrapeSource + normalizeScrapedData
                 logs.push(logEntry(attempt, 'import', 'starting', {
                     source: bestMatch.source,
                     url: bestMatch.url,
@@ -256,7 +288,13 @@ export async function GET(request: NextRequest) {
                         })
                         .eq('id', req.id);
 
-                    results.push({ id: req.id, name: contentName, outcome: 'import_failed' });
+                    results.push({
+                        id: req.id,
+                        name: contentName,
+                        outcome: 'import_failed',
+                        message: `Import failed: ${errMsg}`,
+                        matched_source: bestMatch.source,
+                    });
                     continue;
                 }
 
@@ -266,7 +304,8 @@ export async function GET(request: NextRequest) {
                     const enriched = await enrichMetadata(
                         scrapedData.title,
                         scrapedData.type,
-                        scrapedData.release_year
+                        scrapedData.release_year,
+                        settings?.tmdb_api_key
                     );
 
                     if (enriched) {
@@ -323,7 +362,18 @@ export async function GET(request: NextRequest) {
                     })
                     .eq('id', req.id);
 
-                results.push({ id: req.id, name: contentName, outcome: 'review_ready' });
+                const sourceDisplayName = bestMatch.source === 'bollyflix' ? 'BollyFlix' : 'RareAnimes';
+                const totalLinks = (scrapedData.downloads?.length || 0) + 
+                    (scrapedData.seasons?.reduce((acc, s) => acc + s.episodes.reduce((eAcc, ep) => eAcc + ep.download_links.length, 0), 0) || 0);
+
+                results.push({
+                    id: req.id,
+                    name: contentName,
+                    outcome: 'review_ready',
+                    matched_source: bestMatch.source,
+                    confidence: bestMatch.confidence,
+                    message: `Matched on ${sourceDisplayName} (${Math.round(bestMatch.confidence * 100)}% match) - ${totalLinks} GDFlix/Download links resolved. Staged for review.`,
+                });
 
             } catch (reqErr) {
                 const errMsg = reqErr instanceof Error ? reqErr.message : String(reqErr);
@@ -339,7 +389,7 @@ export async function GET(request: NextRequest) {
                     .eq('id', req.id)
                     .then(() => {});
 
-                results.push({ id: req.id, name: contentName, outcome: 'error' });
+                results.push({ id: req.id, name: contentName, outcome: 'error', message: errMsg, matched_source: null });
             }
         }
 
@@ -359,3 +409,5 @@ export async function GET(request: NextRequest) {
         }, { status: 500 });
     }
 }
+
+export const POST = GET;

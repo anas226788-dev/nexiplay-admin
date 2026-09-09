@@ -95,8 +95,9 @@ function stripTitleNoise(title: string): string {
     const cleaned = cleanText(title)
         .replace(/\b(19[89]\d|20[0-2]\d|2030)\b/g, ' ')
         .replace(/[\(\[\{][^\)\]\}]*[\)\]\}]/g, ' ')
-        .replace(/\b(download|watch|online|dual|audio|hindi|english|multi|subs?|dubbed?)\b/gi, ' ')
-        .replace(/\b(480p|720p|1080p|2160p|4k)\b/gi, ' ');
+        .replace(/\b(download|watch|online|dual|audio|hindi|english|japanese|korean|chinese|tamil|telugu|multi|subs?|dubbed?|movie|film|bollyflix|rareanimes|pre-?hdrip|pre-?dvd|camrip|web-?dl|webrip|bluray|esub|esubs?|msubs?|anime|series|web\s*series|tv\s*show|tv|season\s*\d+|s\d+)\b/gi, ' ')
+        .replace(/\b(480p|720p|1080p|2160p|4k)\b/gi, ' ')
+        .replace(/[,\-–:;•·|]+/g, ' ');
     return cleanText(cleaned) || cleanText(title) || 'Unknown Title';
 }
 
@@ -129,23 +130,56 @@ function parseEpisodeIdentity(episode: ScrapedEpisode, fallbackIndex: number) {
             .replace(/\bSeason\s*\d{1,2}\b/i, '')
             .replace(/\b(?:Episode|Ep\.?|EP)\s*[-_. ]*\d{1,4}\b/i, '')
             .replace(/\b(360p|480p|720p|1080p|2160p|4k)\b/gi, '')
+            .replace(/[\(\[\{][^\)\]\}]*[\)\]\}]/g, '')
+            .replace(/^[\s\-–:()]+|[\s\-–:()]+$/g, '')
     );
-    return { season: Math.max(1, season || 1), number: Math.max(1, number || fallbackIndex + 1), title };
+    const cleanEpTitle = title && !/^[-–_:()\s]+$/.test(title) ? title : `Episode ${number}`;
+    return { season: Math.max(1, season || 1), number: Math.max(1, number || fallbackIndex + 1), title: cleanEpTitle };
 }
 
 function hostLinks(url: string) {
     const lower = url.toLowerCase();
+    const isMega = lower.includes('mega.nz');
+    const isGdrive =
+        lower.includes('drive.google.com') ||
+        lower.includes('gdrive') ||
+        lower.includes('gdflix') ||
+        lower.includes('gdtot') ||
+        lower.includes('driveseed') ||
+        lower.includes('fastdl');
     return {
-        mega_link: lower.includes('mega.nz') ? url : undefined,
-        gdrive_link: lower.includes('drive.google.com') || lower.includes('gdrive') ? url : undefined,
+        mega_link: isMega ? url : undefined,
+        gdrive_link: isGdrive || !isMega ? url : undefined,
     };
 }
 
 function inferType(source: ScraperSource, selectedType: ImportType, pageTitle: string, episodes: ScrapedEpisode[]): ContentType {
     if (selectedType !== 'auto') return selectedType;
     if (source === 'rareanimes') return 'anime';
-    if (/\b(movie|film)\b/i.test(pageTitle) && episodes.length <= 1) return 'movie';
-    if (/\b(season|series|episode|episode\s*\d+|s\d+e?\d*)\b/i.test(pageTitle) || episodes.length > 1) return 'series';
+
+    const hasSeriesKeyword = /\b(season\s*\d+|web\s*series|series|tv\s*show|all\s*episodes)\b/i.test(pageTitle);
+    const hasMovieKeyword = /\b(movie|film)\b/i.test(pageTitle);
+    const hasActualEpisodeNames = episodes.some(ep => /\b(episode|ep\.?)\s*\d+\b/i.test(ep.title));
+
+    // If explicit series markers are found in title or episode names, it is a series or anime
+    if (hasSeriesKeyword || hasActualEpisodeNames) {
+        if (/\banime\b/i.test(pageTitle)) return 'anime';
+        return 'series';
+    }
+
+    // If explicit movie markers are present and no episode markers, it is a movie
+    if (hasMovieKeyword) return 'movie';
+
+    // If the episodes are quality variants (e.g. 480p, 720p, 1080p) of a single file, it is a movie
+    const isQualityVariants = episodes.length > 0 && episodes.every(ep =>
+        /\b(360p|480p|720p|1080p|2160p|4k)\b/i.test(ep.title) || /link\s*\d+/i.test(ep.title)
+    );
+    if (isQualityVariants) return 'movie';
+
+    if (episodes.length > 1) {
+        if (/\banime\b/i.test(pageTitle)) return 'anime';
+        return 'series';
+    }
     return 'movie';
 }
 
