@@ -32,12 +32,22 @@ export async function POST(req: Request) {
             title = parts[parts.length - 1].replace(/-/g, ' ').toUpperCase();
         }
 
-        const novelSlug = url.split('/').filter(Boolean).pop() || 'novel';
+        const decodedUrl = decodeURIComponent(url);
+        const novelSlug = decodedUrl.split('/').filter(Boolean).pop() || 'novel';
         const bloggerLabel = `novel-${novelSlug}`;
         
-        // Extract Chapter Links (Assuming they are inside h2.entry-title or h3.entry-title)
+        // Extract Cover Image from category page
+        let coverUrl = '';
+        $cat('article img, .td_module_wrap img, .post img, img').each((_, im) => {
+            const src = $cat(im).attr('data-src') || $cat(im).attr('data-lazy-src') || $cat(im).attr('src');
+            if (src && !src.startsWith('data:') && !coverUrl && src.includes('/wp-content/uploads/') && !src.includes('logo')) {
+                coverUrl = src.replace(/-\d+x\d+(\.[a-zA-Z0-9]+)$/, '$1');
+            }
+        });
+
+        // Extract Chapter Links
         const chapterLinks: { title: string, url: string }[] = [];
-        $cat('h2.entry-title a, h3.entry-title a, h3 a').each((i, el) => {
+        $cat('h2.entry-title a, h3.entry-title a, .td-module-title a, h3 a').each((i, el) => {
             const href = $cat(el).attr('href');
             const cTitle = $cat(el).text().trim();
             if (href && href.includes('romanticgolpo.com') && !chapterLinks.some(c => c.url === href)) {
@@ -99,9 +109,9 @@ export async function POST(req: Request) {
                 title,
                 slug: novelSlug,
                 blogger_label: bloggerLabel,
-                cover_url: '', // Add manual cover later
-                description: '',
-                status: 'ongoing',
+                cover_url: coverUrl || '',
+                description: `${title} - একটি জনপ্রিয় রোমান্টিক ভালোবাসার উপন্যাস। সর্বমোট ${chaptersData.length} টি পর্ব রয়েছে।`,
+                status: 'completed',
                 chapterCount: chaptersData.length
             },
             chapters: chaptersData.map((chap, i) => ({
