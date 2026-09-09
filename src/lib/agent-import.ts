@@ -111,12 +111,12 @@ function extractFileSize(text: string): string {
     return text.match(/\b\d+(?:\.\d+)?\s*(?:MB|GB|TB)\b/i)?.[0] || '';
 }
 
-function parseEpisodeIdentity(episode: ScrapedEpisode, fallbackIndex: number) {
+function parseEpisodeIdentity(episode: ScrapedEpisode, fallbackIndex: number, fallbackSeason: number = 1): { season: number; number: number; title: string } {
     const text = episode.title || '';
     const seasonEpisode = text.match(/\bS(?:eason\s*)?(\d{1,2})\s*[-_. ]*E(?:pisode\s*)?(\d{1,4})\b/i);
     const seasonWord = text.match(/\bSeason\s*(\d{1,2})\b/i);
     const episodeWord = text.match(/\b(?:Episode|Ep\.?|EP)\s*[-_. ]*(\d{1,4})\b/i);
-    const season = episode.season ?? (seasonEpisode ? Number(seasonEpisode[1]) : seasonWord ? Number(seasonWord[1]) : 1);
+    const season = episode.season ?? (seasonEpisode ? Number(seasonEpisode[1]) : seasonWord ? Number(seasonWord[1]) : fallbackSeason);
     const number = Number.isFinite(episode.number) && episode.number > 0
         ? episode.number
         : seasonEpisode
@@ -219,9 +219,11 @@ function buildMovieDownloads(result: ScrapedResult): NormalizedScrapedData['down
 
 function buildSeasons(result: ScrapedResult): NormalizedScrapedData['seasons'] {
     const seasons = new Map<number, Map<number, NormalizedScrapedData['seasons'][number]['episodes'][number]>>();
+    const pageSeasonMatch = (result.pageTitle || '').match(/\bSeason\s*(\d{1,2})\b/i);
+    const fallbackSeason = pageSeasonMatch ? Number(pageSeasonMatch[1]) : 1;
     getImportEpisodes(result).forEach((episode, index) => {
         if (!episode.link?.trim()) return;
-        const identity = parseEpisodeIdentity(episode, index);
+        const identity = parseEpisodeIdentity(episode, index, fallbackSeason);
         const season = seasons.get(identity.season) || new Map();
         const existing = season.get(identity.number);
         const resolution = detectQuality(episode.title, result.resolution || '720p');

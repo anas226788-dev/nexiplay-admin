@@ -171,9 +171,14 @@ export async function GET(request: NextRequest) {
 
                 // B. Search across sources in priority order with query fallbacks
                 let bestMatch: { source: ScraperSource; url: string; confidence: number; title: string; reasons: string[] } | null = null;
+                const isAnimeHint = (req as any).type === 'anime' || /\b(anime|manga|dubbed|naruto|slime|dragon\s*ball|bleach|one\s*piece|jujutsu|demon\s*slayer)\b/i.test(contentName);
+                const currentSourcePriority: ScraperSource[] = isAnimeHint
+                    ? ['rareanimes', 'bollyflix']
+                    : SOURCE_PRIORITY;
+
                 const searchQueries = generateSearchQueries(contentName);
 
-                for (const source of SOURCE_PRIORITY) {
+                for (const source of currentSourcePriority) {
                     const baseUrl = sourceUrls[source];
                     if (!baseUrl) continue;
 

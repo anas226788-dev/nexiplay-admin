@@ -600,7 +600,7 @@ async function resolveZipperToMegaStrict(zipperUrl: string): Promise<ResolvedZip
 
     const buildStep2Url = (targetUrl: string) => {
         const url = new URL(targetUrl);
-        url.searchParams.set('ad_step', '2');
+        url.searchParams.set('ad_done', '1');
         return url.href;
     };
 
@@ -908,42 +908,56 @@ export async function scrapeSource(
         const selectedEpisodes = useSubFallback ? rawSubEpisodes : rawDubEpisodes;
         const languageLabel = useSubFallback ? 'SUB' : 'DUB';
 
-        for (const ep of selectedEpisodes) {
-            try {
-                const resolved = await resolveZipperToMegaStrict(ep.zipperUrl);
-                const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
-                let resolvedStreamingUrl = ep.streamingUrl;
-                if (ep.streamingUrl) {
-                    resolvedStreamingUrl = await resolveStreamingEmbed(ep.streamingUrl);
+        // Extract season from pageTitle or URL (e.g. "Season 4")
+        const pageSeasonMatch = (pageTitle + ' ' + url).match(/\bSeason\s*(\d{1,2})\b/i);
+        const seasonNum = pageSeasonMatch ? Number(pageSeasonMatch[1]) : 1;
+
+        // Concurrently resolve Mega links in batches of 4 for speed
+        const BATCH_SIZE = 4;
+        for (let i = 0; i < selectedEpisodes.length; i += BATCH_SIZE) {
+            const batch = selectedEpisodes.slice(i, i + BATCH_SIZE);
+            await Promise.all(batch.map(async (ep) => {
+                try {
+                    const resolved = await resolveZipperToMegaStrict(ep.zipperUrl);
+                    const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
+                    let resolvedStreamingUrl = ep.streamingUrl;
+                    if (ep.streamingUrl) {
+                        resolvedStreamingUrl = await resolveStreamingEmbed(ep.streamingUrl);
+                    }
+                    if (!resolved.resolvedToMega || !isFinalMegaUrl(resolved.link)) {
+                        warnings.push(`${languageLabel} ${ep.title}: Mega link could not be resolved`);
+                        return;
+                    }
+                    if (useSubFallback) {
+                        pendingSubEpisodes.push({
+                            season: seasonNum,
+                            number: epNum,
+                            title: ep.title,
+                            link: resolved.link,
+                            languageType: 'sub',
+                            streamingUrl: resolvedStreamingUrl,
+                        });
+                    } else {
+                        episodes.push({
+                            season: seasonNum,
+                            number: epNum,
+                            title: ep.title,
+                            link: resolved.link,
+                            streamingUrl: resolvedStreamingUrl,
+                            languageType: 'dub',
+                        });
+                        resolvedCount++;
+                    }
+                } catch (err: any) {
+                    warnings.push(`${languageLabel} ${ep.title}: ${err.message}`);
                 }
-                if (!resolved.resolvedToMega || !isFinalMegaUrl(resolved.link)) {
-                    warnings.push(`${languageLabel} ${ep.title}: Mega link could not be resolved; skipping intermediary Codedew URL`);
-                    continue;
-                }
-                if (useSubFallback) {
-                    // Sub fallback remains approval-gated and is never treated
-                    // as an auto-imported DUB episode.
-                    pendingSubEpisodes.push({
-                        number: epNum,
-                        title: ep.title,
-                        link: resolved.link,
-                        languageType: 'sub',
-                    });
-                } else {
-                    episodes.push({
-                        number: epNum,
-                        title: ep.title,
-                        link: resolved.link,
-                        streamingUrl: resolvedStreamingUrl,
-                        languageType: 'dub',
-                    });
-                    resolvedCount++;
-                }
-            } catch (err: any) {
-                warnings.push(`${languageLabel} ${ep.title}: ${err.message}`);
-            }
-            await new Promise(r => setTimeout(r, 400));
+            }));
         }
+
+        // Keep episodes strictly sorted in chronological order
+        episodes.sort((a, b) => a.number - b.number);
+        pendingSubEpisodes.sort((a, b) => a.number - b.number);
+
         if (episodes.length === 0 && pendingSubEpisodes.length === 0) {
             throw new Error(`No importable episode links found. Errors: ${warnings.join('; ')}`);
         }
