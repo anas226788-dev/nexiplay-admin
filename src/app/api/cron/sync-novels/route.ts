@@ -68,22 +68,29 @@ export async function GET(request: NextRequest) {
         // 2. Obtain session cookies from Golponir
         const headers = await getGolponirSession();
 
-        // 3. Fetch books updated today from Golponir
-        const updatedRes = await fetch('https://golponir.com/api/books/updated-today', {
+        // 3. Fetch books updated today from Golponir (/api/books sorted by latest updates)
+        const updatedRes = await fetch('https://golponir.com/api/books', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ page: 1, per_page: 30 }),
+            body: JSON.stringify({ page: 1, per_page: 30, completion_status: 'all' }),
             cache: 'no-store'
         });
+
+        if (!updatedRes.ok) {
+            const errText = await updatedRes.text();
+            throw new Error(`Golponir books API returned HTTP ${updatedRes.status}: ${errText.substring(0, 150)}`);
+        }
+
         const updatedJson = await updatedRes.json();
         const updatedBooks: any[] = updatedJson.data || [];
 
-        console.log(`[Cron Sync Novels] Found ${updatedBooks.length} books updated today on Golponir.`);
+        console.log(`[Cron Sync Novels] Found ${updatedBooks.length} books checked on Golponir.`);
 
         // 4. Fetch all existing novels in Supabase for quick matching
         const { data: supaNovels, error: supaErr } = await supabaseNovels
             .from('novels')
-            .select('id, title, slug, cover_url');
+            .select('id, title, slug, cover_url')
+            .limit(2000);
 
         if (supaErr || !supaNovels) {
             throw new Error(`Failed to load Supabase novels: ${supaErr?.message}`);
@@ -150,6 +157,7 @@ export async function GET(request: NextRequest) {
                 body: JSON.stringify({ page: 1, per_page: 100 }),
                 cache: 'no-store'
             });
+            if (!epRes.ok) continue;
             const epJson = await epRes.json();
             const episodes: any[] = epJson.data || [];
 
@@ -181,6 +189,7 @@ export async function GET(request: NextRequest) {
                         body: JSON.stringify({}),
                         cache: 'no-store'
                     });
+                    if (!detailRes.ok) continue;
                     const detailJson = await detailRes.json();
                     const content = detailJson.data?.content || '';
                     const title = detailJson.data?.title || ep.name || `Chapter ${epNum}`;
