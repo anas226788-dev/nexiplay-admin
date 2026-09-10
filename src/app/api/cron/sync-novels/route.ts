@@ -65,14 +65,16 @@ export async function GET(request: NextRequest) {
     try {
         console.log('[Cron Sync Novels] Starting automatic synchronization with Golponir...');
 
+        const MAX_TIME_MS = 22000; // 22-second safety deadline to avoid cron-job.org 30s timeout
+
         // 2. Obtain session cookies from Golponir
         const headers = await getGolponirSession();
 
-        // 3. Fetch books updated today from Golponir (/api/books sorted by latest updates)
+        // 3. Fetch latest updated books from Golponir (/api/books)
         const updatedRes = await fetch('https://golponir.com/api/books', {
             method: 'POST',
             headers,
-            body: JSON.stringify({ page: 1, per_page: 30, completion_status: 'all' }),
+            body: JSON.stringify({ page: 1, per_page: 25, completion_status: 'all' }),
             cache: 'no-store'
         });
 
@@ -103,11 +105,40 @@ export async function GET(request: NextRequest) {
             if (n.title) supaByTitle.set(n.title.toLowerCase().trim(), n);
         }
 
+        // 5. Batch-fetch existing chapters for all matched novels in ONE single query
+        const matchedNovelIds = Array.from(new Set(
+            updatedBooks.map(b => {
+                const sKey = (b.slug || '').toLowerCase().trim();
+                const tKey = (b.name || '').toLowerCase().trim();
+                return (supaBySlug.get(sKey) || supaByTitle.get(tKey))?.id;
+            }).filter(Boolean)
+        ));
+
+        const existingChaptersMap = new Map<string, Set<number>>();
+        if (matchedNovelIds.length > 0) {
+            const { data: allChapterRows } = await supabaseNovels
+                .from('novel_chapters')
+                .select('novel_id, chapter_number')
+                .in('novel_id', matchedNovelIds);
+
+            for (const row of allChapterRows || []) {
+                if (!existingChaptersMap.has(row.novel_id)) {
+                    existingChaptersMap.set(row.novel_id, new Set<number>());
+                }
+                existingChaptersMap.get(row.novel_id)!.add(row.chapter_number);
+            }
+        }
+
         let totalNewChaptersAdded = 0;
         const syncDetails: Array<{ novel: string; chaptersAdded: number; chapterNumbers: number[] }> = [];
 
-        // 5. Process each updated book
+        // 6. Process each book with fast skipping and time-budget protection
         for (const book of updatedBooks) {
+            if (Date.now() - startTime > MAX_TIME_MS) {
+                console.warn(`[Cron Sync Novels] Time threshold reached (${Date.now() - startTime}ms), completing response gracefully.`);
+                break;
+            }
+
             const slugKey = (book.slug || '').toLowerCase().trim();
             const titleKey = (book.name || '').toLowerCase().trim();
             let novel = supaBySlug.get(slugKey) || supaByTitle.get(titleKey);
@@ -136,21 +167,23 @@ export async function GET(request: NextRequest) {
                 novel = newNovelData;
                 supaBySlug.set(slugKey, novel);
                 supaByTitle.set(titleKey, novel);
+                existingChaptersMap.set(novelId, new Set<number>());
                 console.log(`[Cron Sync Novels] Created new novel "${book.name}" (ID: ${novelId})`);
             } else if (book.image && (!novel.cover_url || novel.cover_url.trim() === '')) {
                 // Update cover if blank
                 await supabaseNovels.from('novels').update({ cover_url: book.image }).eq('id', novelId);
             }
 
-            // 6. Fetch existing chapter numbers for this novel from Supabase
-            const { data: existingChapters } = await supabaseNovels
-                .from('novel_chapters')
-                .select('chapter_number')
-                .eq('novel_id', novelId);
+            // Check existing chapters against Golponir's episode_count
+            const existingNums = existingChaptersMap.get(novelId) || new Set<number>();
+            const targetCount = book.episode_count || 0;
 
-            const existingNums = new Set((existingChapters || []).map((c: any) => c.chapter_number));
+            // FAST SKIP: If database already has full chapters, skip network calls entirely!
+            if (existingNums.size >= targetCount && targetCount > 0) {
+                continue;
+            }
 
-            // 7. Fetch episodes from Golponir
+            // 7. Fetch episodes from Golponir only when chapters are actually missing
             const epRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episodes`, {
                 method: 'POST',
                 headers,
@@ -176,58 +209,64 @@ export async function GET(request: NextRequest) {
             const addedNumbers: number[] = [];
             const supaRowsToInsert: any[] = [];
 
-            // 8. Fetch content for each missing episode, upload to Cloudflare R2, save to Supabase
-            for (const ep of missingEpisodes) {
-                const epNum = ep.episode_number || (episodes.indexOf(ep) + 1);
-                const chapterId = crypto.randomUUID();
-                const chapterSlug = `chapter-${epNum}`;
+            // 8. Fetch content for missing episodes concurrently in chunks of 5
+            const CHUNK_SIZE = 5;
+            for (let i = 0; i < missingEpisodes.length; i += CHUNK_SIZE) {
+                if (Date.now() - startTime > MAX_TIME_MS) break;
 
-                try {
-                    const detailRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episode/${ep.id}`, {
-                        method: 'POST',
-                        headers,
-                        body: JSON.stringify({}),
-                        cache: 'no-store'
-                    });
-                    if (!detailRes.ok) continue;
-                    const detailJson = await detailRes.json();
-                    const content = detailJson.data?.content || '';
-                    const title = detailJson.data?.title || ep.name || `Chapter ${epNum}`;
+                const chunk = missingEpisodes.slice(i, i + CHUNK_SIZE);
+                await Promise.all(chunk.map(async (ep: any) => {
+                    const epNum = ep.episode_number || (episodes.indexOf(ep) + 1);
+                    const chapterId = crypto.randomUUID();
+                    const chapterSlug = `chapter-${epNum}`;
 
-                    // Upload to Cloudflare R2
-                    const r2Key = `chapters/${novelId}/${epNum}.json`;
-                    const r2Payload = {
-                        id: chapterId,
-                        novel_id: novelId,
-                        chapter_number: epNum,
-                        title,
-                        slug: chapterSlug,
-                        content
-                    };
+                    try {
+                        const detailRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episode/${ep.id}`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({}),
+                            cache: 'no-store'
+                        });
+                        if (!detailRes.ok) return;
+                        const detailJson = await detailRes.json();
+                        const content = detailJson.data?.content || '';
+                        const title = detailJson.data?.title || ep.name || `Chapter ${epNum}`;
 
-                    const cmd = new PutObjectCommand({
-                        Bucket: R2_BUCKET,
-                        Key: r2Key,
-                        Body: JSON.stringify(r2Payload),
-                        ContentType: 'application/json'
-                    });
-                    await s3.send(cmd);
+                        // Upload to Cloudflare R2
+                        const r2Key = `chapters/${novelId}/${epNum}.json`;
+                        const r2Payload = {
+                            id: chapterId,
+                            novel_id: novelId,
+                            chapter_number: epNum,
+                            title,
+                            slug: chapterSlug,
+                            content
+                        };
 
-                    // Lightweight record for Supabase
-                    supaRowsToInsert.push({
-                        id: chapterId,
-                        novel_id: novelId,
-                        chapter_number: epNum,
-                        title,
-                        slug: chapterSlug,
-                        content: '', // Zero heavy content in Supabase!
-                        created_at: new Date().toISOString()
-                    });
+                        const cmd = new PutObjectCommand({
+                            Bucket: R2_BUCKET,
+                            Key: r2Key,
+                            Body: JSON.stringify(r2Payload),
+                            ContentType: 'application/json'
+                        });
+                        await s3.send(cmd);
 
-                    addedNumbers.push(epNum);
-                } catch (chErr: any) {
-                    console.error(`[Cron Sync Novels] Error on chapter ${epNum} of "${book.name}":`, chErr.message);
-                }
+                        // Lightweight record for Supabase
+                        supaRowsToInsert.push({
+                            id: chapterId,
+                            novel_id: novelId,
+                            chapter_number: epNum,
+                            title,
+                            slug: chapterSlug,
+                            content: '', // Zero heavy content in Supabase!
+                            created_at: new Date().toISOString()
+                        });
+
+                        addedNumbers.push(epNum);
+                    } catch (chErr: any) {
+                        console.error(`[Cron Sync Novels] Error on chapter ${epNum} of "${book.name}":`, chErr.message);
+                    }
+                }));
             }
 
             // Batch insert lightweight chapter records into Supabase
