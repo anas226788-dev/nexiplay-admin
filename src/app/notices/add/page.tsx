@@ -49,6 +49,8 @@ export default function AddNoticePage() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [successMsg, setSuccessMsg] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // App config info from Supabase
@@ -202,6 +204,48 @@ export default function AddNoticePage() {
         }
     };
 
+    // ── Smart Replace APK Links inside Message Content ──
+    const replaceDownloadLinksInContent = () => {
+        if (!btnUrl || !btnUrl.trim()) {
+            setErrorMsg('Please enter a valid APK Download Link first.');
+            return;
+        }
+
+        const newUrl = btnUrl.trim();
+        let updated = false;
+        let newContent = formData.content;
+
+        // Target links with apk extension or download keywords
+        const apkHrefRegex = /href=["']([^"']*(?:\.apk|releases\/download|drive\.google\.com)[^"']*)["']/gi;
+        if (apkHrefRegex.test(newContent)) {
+            newContent = newContent.replace(apkHrefRegex, `href="${newUrl}"`);
+            updated = true;
+        }
+
+        const btnTagRegex = /(<a\s+[^>]*class=["'][^"']*(?:np-download|notice-app-btn)[^"']*["'][^>]*href=["'])([^"']*)(["'][^>]*>)/gi;
+        if (btnTagRegex.test(newContent)) {
+            newContent = newContent.replace(btnTagRegex, `$1${newUrl}$3`);
+            updated = true;
+        }
+
+        if (!updated) {
+            const anyLinkRegex = /(<a\s+[^>]*href=["'])([^"']*)(["'][^>]*>)/i;
+            if (anyLinkRegex.test(newContent)) {
+                newContent = newContent.replace(anyLinkRegex, `$1${newUrl}$3`);
+                updated = true;
+            }
+        }
+
+        if (updated) {
+            setFormData(prev => ({ ...prev, content: newContent }));
+            setSuccessMsg('✅ Successfully replaced download link in message content!');
+            setTimeout(() => setSuccessMsg(null), 4000);
+        } else {
+            setErrorMsg('No existing link found in content to replace. Click "Append New Button" instead.');
+            setTimeout(() => setErrorMsg(null), 5000);
+        }
+    };
+
     // ── Insert Download Button into Message Content ──
     const insertDownloadButton = () => {
         const downloadLink = btnUrl || '/api/download/apk';
@@ -213,41 +257,57 @@ export default function AddNoticePage() {
             ...prev,
             content: prev.content ? `${prev.content}${buttonHtml}` : buttonHtml.trim()
         }));
+        setSuccessMsg('Appended download button to message content.');
+        setTimeout(() => setSuccessMsg(null), 3000);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setErrorMsg(null);
+        setSuccessMsg(null);
 
-        const payload = {
-            content: formData.content,
-            type: formData.type,
-            pages: formData.pages,
-            bg_color: formData.bg_color,
-            text_color: formData.text_color,
-            is_active: formData.is_active,
-            image_url: formData.image_url || null,
-            video_url: formData.video_url || null,
-            platform: formData.platform,
-            movie_id: formData.pages === 'specific' && formData.movie_id ? formData.movie_id : null
-        };
+        try {
+            const payload = {
+                content: formData.content,
+                type: formData.type,
+                pages: formData.pages,
+                bg_color: formData.bg_color,
+                text_color: formData.text_color,
+                is_active: formData.is_active,
+                image_url: formData.image_url || null,
+                video_url: formData.video_url || null,
+                platform: formData.platform,
+                movie_id: formData.pages === 'specific' && formData.movie_id ? formData.movie_id : null
+            };
 
-        if (formData.pages === 'specific' && !payload.movie_id) {
-            alert('Please select a targeted content title.');
+            if (formData.pages === 'specific' && !payload.movie_id) {
+                setErrorMsg('Please select a targeted content title.');
+                setLoading(false);
+                return;
+            }
+
+            const res = await fetch('/api/admin/notices', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await res.json();
+            if (!res.ok || !result.ok) {
+                throw new Error(result.error || `Failed to create notice (${res.status})`);
+            }
+
+            setSuccessMsg('✅ Notice created successfully! Redirecting...');
+            setTimeout(() => {
+                router.push('/notices');
+            }, 800);
+        } catch (err: any) {
+            console.error('Error creating notice:', err);
+            setErrorMsg(err.message || 'An unexpected error occurred while creating notice.');
+        } finally {
             setLoading(false);
-            return;
         }
-
-        const { error } = await supabase
-            .from('notices')
-            .insert([payload]);
-
-        if (error) {
-            alert(error.message);
-        } else {
-            router.push('/notices');
-        }
-        setLoading(false);
     };
 
     const filteredMovies = movies.filter(m =>
@@ -270,6 +330,28 @@ export default function AddNoticePage() {
                     ← Back to Notices
                 </Link>
             </div>
+
+            {errorMsg && (
+                <div className="p-4 bg-red-950/90 border border-red-500/50 rounded-xl text-red-200 text-sm flex items-start gap-3 shadow-lg">
+                    <span className="text-xl">⚠️</span>
+                    <div className="flex-1">
+                        <p className="font-bold text-red-100">Notice Creation Failed</p>
+                        <p className="text-xs text-red-300 mt-0.5 font-mono">{errorMsg}</p>
+                    </div>
+                    <button type="button" onClick={() => setErrorMsg(null)} className="text-xs text-red-400 hover:text-white px-1">✕</button>
+                </div>
+            )}
+
+            {successMsg && (
+                <div className="p-4 bg-green-950/90 border border-green-500/50 rounded-xl text-green-200 text-sm flex items-start gap-3 shadow-lg">
+                    <span className="text-xl">✅</span>
+                    <div className="flex-1">
+                        <p className="font-bold text-green-100">Success</p>
+                        <p className="text-xs text-green-300 mt-0.5">{successMsg}</p>
+                    </div>
+                    <button type="button" onClick={() => setSuccessMsg(null)} className="text-xs text-green-400 hover:text-white px-1">✕</button>
+                </div>
+            )}
 
             {/* ── 1-Click App Download Promo Templates ── */}
             <div className="p-6 bg-gradient-to-r from-red-950/40 via-dark-800 to-dark-800 rounded-2xl border border-red-500/20 shadow-xl space-y-4">
@@ -400,13 +482,23 @@ export default function AddNoticePage() {
                             </button>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={insertDownloadButton}
-                            className="px-4 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center gap-1.5"
-                        >
-                            <span>➕</span> Insert Download Button into Message
-                        </button>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                onClick={replaceDownloadLinksInContent}
+                                className="px-3.5 py-2 bg-amber-600/20 hover:bg-amber-600/40 text-amber-300 hover:text-white border border-amber-500/40 text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5"
+                                title="Scans current HTML content for any APK download link and replaces it with the link above"
+                            >
+                                <span>🔄</span> Replace Link in HTML Content
+                            </button>
+                            <button
+                                type="button"
+                                onClick={insertDownloadButton}
+                                className="px-3.5 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center gap-1.5"
+                            >
+                                <span>➕</span> Append New Button
+                            </button>
+                        </div>
                     </div>
                 </div>
 

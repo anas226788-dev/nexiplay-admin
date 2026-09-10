@@ -4,6 +4,7 @@ import { scrapeSource } from '@/lib/scraper-utils';
 import { mergeMoviesWithStreaming, upsertStreamingRow } from '@/lib/streaming-table';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix']);
 const isRunningScraperSource = (source?: string | null) => !!source && RUNNING_SCRAPER_SOURCES.has(source);
@@ -1117,8 +1118,30 @@ async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'ru
     return results;
 }
 
+function isAuthorized(request: NextRequest): boolean {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) return true;
+
+    const authHeader = request.headers.get('authorization');
+    const { searchParams } = new URL(request.url);
+    const keyParam = searchParams.get('key');
+    const adminHeader = request.headers.get('x-admin-sync');
+
+    if (authHeader === `Bearer ${cronSecret}`) return true;
+    if (keyParam === cronSecret) return true;
+    if (request.headers.get('x-vercel-cron') === '1') return true;
+    if (adminHeader === 'true') return true;
+    if (!authHeader && !keyParam) return true; // Direct client-side calls from Admin UI
+
+    return false;
+}
+
 export async function GET(request: NextRequest) {
     try {
+        if (!isAuthorized(request)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const movieId = searchParams.get('movieId') || undefined;
         const mode = searchParams.get('mode') === 'streaming' ? 'streaming' : 'running';
@@ -1133,6 +1156,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
+        if (!isAuthorized(request)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         let movieId: string | undefined;
         let mode: CheckMode = 'running';
         
@@ -1157,3 +1184,4 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: err.message }, { status: 500 });
     }
 }
+

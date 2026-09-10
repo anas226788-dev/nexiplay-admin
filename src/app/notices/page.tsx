@@ -8,39 +8,70 @@ import { useEffect, useState } from 'react';
 export default function NoticePage() {
     const [notices, setNotices] = useState<Notice[]>([]);
     const [loading, setLoading] = useState(true);
+    const [actionError, setActionError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchNotices();
     }, []);
 
     async function fetchNotices() {
-        const { data } = await supabase
-            .from('notices')
-            .select('*')
-            .order('created_at', { ascending: false });
-
-        if (data) setNotices(data);
-        setLoading(false);
+        try {
+            const res = await fetch('/api/admin/notices');
+            const result = await res.json();
+            if (res.ok && result.ok && result.data) {
+                setNotices(result.data);
+            } else {
+                // Fallback to client supabase
+                const { data } = await supabase
+                    .from('notices')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+                if (data) setNotices(data);
+            }
+        } catch (err: any) {
+            console.error('Error fetching notices:', err);
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function toggleStatus(id: string, currentStatus: boolean) {
-        const { error } = await supabase
-            .from('notices')
-            .update({ is_active: !currentStatus })
-            .eq('id', id);
-
-        if (!error) fetchNotices();
+        setActionError(null);
+        try {
+            const res = await fetch('/api/admin/notices', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, is_active: !currentStatus })
+            });
+            const result = await res.json();
+            if (!res.ok || !result.ok) {
+                throw new Error(result.error || 'Failed to update notice status');
+            }
+            // Update local state immediately
+            setNotices(prev => prev.map(n => n.id === id ? { ...n, is_active: !currentStatus } : n));
+        } catch (err: any) {
+            console.error('Error toggling status:', err);
+            setActionError(`Failed to update status: ${err.message}`);
+        }
     }
 
     async function deleteNotice(id: string) {
         if (!confirm('Are you sure you want to delete this notice?')) return;
+        setActionError(null);
 
-        const { error } = await supabase
-            .from('notices')
-            .delete()
-            .eq('id', id);
-
-        if (!error) setNotices(notices.filter(n => n.id !== id));
+        try {
+            const res = await fetch(`/api/admin/notices?id=${encodeURIComponent(id)}`, {
+                method: 'DELETE'
+            });
+            const result = await res.json();
+            if (!res.ok || !result.ok) {
+                throw new Error(result.error || 'Failed to delete notice');
+            }
+            setNotices(prev => prev.filter(n => n.id !== id));
+        } catch (err: any) {
+            console.error('Error deleting notice:', err);
+            setActionError(`Failed to delete notice: ${err.message}`);
+        }
     }
 
     if (loading) return <div className="p-8 text-white">Loading...</div>;
@@ -59,6 +90,16 @@ export default function NoticePage() {
                     Create Notice
                 </Link>
             </div>
+
+            {actionError && (
+                <div className="mb-6 p-4 bg-red-950/90 border border-red-500/50 rounded-xl text-red-200 text-sm flex items-center justify-between shadow-lg">
+                    <div className="flex items-center gap-2">
+                        <span>⚠️</span>
+                        <span>{actionError}</span>
+                    </div>
+                    <button onClick={() => setActionError(null)} className="text-red-400 hover:text-white px-2">✕</button>
+                </div>
+            )}
 
             <div className="bg-dark-800 rounded-xl border border-white/5 overflow-hidden shadow-xl">
                 <table className="w-full text-left border-collapse">

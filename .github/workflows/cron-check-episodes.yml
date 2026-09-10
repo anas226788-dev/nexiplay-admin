@@ -1,0 +1,18 @@
+name: Trigger Check Episodes Cron
+
+on:
+  schedule:
+    # Runs every 2 hours
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  trigger-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Next.js Check Episodes Cron Endpoint
+        run: |
+          curl -s -X POST "${{ secrets.NEXT_PUBLIC_ADMIN_URL || 'https://nexiplay-admin.vercel.app' }}/api/cron/check-episodes" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" \
+            -d '{"mode":"running"}'

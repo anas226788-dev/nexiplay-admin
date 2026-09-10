@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Call Next.js Cron Endpoint
         run: |
-          curl -s -X POST "${{ secrets.NEXT_PUBLIC_ADMIN_URL || 'https://your-admin-domain.vercel.app' }}/api/cron/process-requests" \
+          curl -s -X POST "${{ secrets.NEXT_PUBLIC_ADMIN_URL || 'https://nexiplay-admin.vercel.app' }}/api/cron/process-requests" \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json"
