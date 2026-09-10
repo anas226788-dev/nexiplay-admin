@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
             const existingNums = new Set((existingChapters || []).map((c: any) => c.chapter_number));
 
             // 7. Fetch episodes from Golponir
-            const epRes = await fetch(`https://golponir.com/api/books/${book.slug}/episodes`, {
+            const epRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episodes`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({ page: 1, per_page: 100 }),
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
                 const chapterSlug = `chapter-${epNum}`;
 
                 try {
-                    const detailRes = await fetch(`https://golponir.com/api/books/${book.slug}/episode/${ep.id}`, {
+                    const detailRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episode/${ep.id}`, {
                         method: 'POST',
                         headers,
                         body: JSON.stringify({}),
