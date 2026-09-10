@@ -155,6 +155,20 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ ok: false, error: 'Notice not found or update failed (0 rows affected).' }, { status: 404 });
         }
 
+        // Optionally sync APK download link into global app_config table
+        if (updates.sync_app_config && updates.apk_url && typeof updates.apk_url === 'string') {
+            try {
+                await db.from('app_config')
+                    .update({
+                        apk_url: updates.apk_url.trim(),
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', 'app_update');
+            } catch (cfgErr) {
+                console.warn('[API notices PUT] Failed to sync app_config apk_url:', cfgErr);
+            }
+        }
+
         return NextResponse.json({ ok: true, notice: data[0] });
     } catch (error: any) {
         console.error('[API notices PUT] Error:', error);

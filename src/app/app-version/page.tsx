@@ -66,11 +66,16 @@ export default function AppVersionPage() {
                 updated_at: new Date().toISOString(),
             };
 
-            // Atomic upsert
-            const { error } = await supabase
-                .from('app_config')
-                .upsert({ id: 'app_update', ...payload }, { onConflict: 'id' });
-            if (error) throw error;
+            // Server-side upsert using admin credentials to bypass RLS
+            const res = await fetch('/api/admin/app-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await res.json();
+            if (!res.ok || !result.ok) {
+                throw new Error(result.error || 'Failed to save app configuration');
+            }
 
             setMessage({ type: 'success', text: 'App version config updated successfully!' });
             fetchConfig();

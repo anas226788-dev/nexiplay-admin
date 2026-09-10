@@ -84,6 +84,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
     const [btnText, setBtnText] = useState('📥 Download App APK');
     const [btnUrl, setBtnUrl] = useState('');
     const [btnStyle, setBtnStyle] = useState<'white' | 'large' | 'neon'>('white');
+    const [syncAppConfig, setSyncAppConfig] = useState(true);
 
     useEffect(() => {
         async function fetchInitialData() {
@@ -103,11 +104,11 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                     .eq('id', 'app_update')
                     .single();
 
+                let defaultUrl = '';
                 if (configData) {
                     setAppConfig(configData);
-                    const defaultUrl = configData.apk_url || '';
+                    defaultUrl = configData.apk_url || '';
                     const defaultVer = configData.latest_version_name || '1.0.3';
-                    setBtnUrl(defaultUrl);
                     setBtnText(`📥 Download APK (v${defaultVer})`);
                 }
 
@@ -135,6 +136,14 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                     // Detect matching preset
                     const presetIndex = STYLE_PRESETS.findIndex(p => p.bg === noticeData.bg_color && p.text === noticeData.text_color);
                     setSelectedPreset(presetIndex !== -1 ? presetIndex.toString() : 'custom');
+
+                    // Extract actual link from notice content first so we don't clobber it with default
+                    const hrefMatch = noticeData.content?.match(/<a\b[\s\S]*?\bhref=["']([^"']+)["']/i);
+                    if (hrefMatch && hrefMatch[1]) {
+                        setBtnUrl(hrefMatch[1]);
+                    } else if (defaultUrl) {
+                        setBtnUrl(defaultUrl);
+                    }
                 }
             } catch (err) {
                 console.error('Error fetching notice data:', err);
@@ -234,45 +243,45 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
     };
 
     // ── Smart Replace APK Links inside Message Content ──
+    const replaceAllLinksInContent = (content: string, newUrl: string): { updatedContent: string; replacedCount: number } => {
+        if (!newUrl || !newUrl.trim()) return { updatedContent: content, replacedCount: 0 };
+        const trimmed = newUrl.trim();
+        let count = 0;
+
+        // Matches any <a ... href="..." ...> across multiple lines
+        const aRegex = /<a\b([\s\S]*?)\bhref=["']([^"']*)["']([\s\S]*?)>/gi;
+        const updatedContent = content.replace(aRegex, (match, before, oldHref, after) => {
+            count++;
+            return `<a${before}href="${trimmed}"${after}>`;
+        });
+
+        return { updatedContent, replacedCount: count };
+    };
+
+    // Auto sync when user edits the download URL input
+    const handleBtnUrlChange = (newUrl: string) => {
+        setBtnUrl(newUrl);
+        if (newUrl.trim()) {
+            const { updatedContent, replacedCount } = replaceAllLinksInContent(formData.content, newUrl.trim());
+            if (replacedCount > 0) {
+                setFormData(prev => ({ ...prev, content: updatedContent }));
+            }
+        }
+    };
+
     const replaceDownloadLinksInContent = () => {
         if (!btnUrl || !btnUrl.trim()) {
             setErrorMsg('Please enter a valid APK Download Link first.');
             return;
         }
 
-        const newUrl = btnUrl.trim();
-        let updated = false;
-        let newContent = formData.content;
-
-        // 1. Target links with .apk extension, releases download, or drive download
-        const apkHrefRegex = /href=["']([^"']*(?:\.apk|releases\/download|drive\.google\.com)[^"']*)["']/gi;
-        if (apkHrefRegex.test(newContent)) {
-            newContent = newContent.replace(apkHrefRegex, `href="${newUrl}"`);
-            updated = true;
-        }
-
-        // 2. Also target any <a ... href="..." with class containing "np-download" or "notice-app-btn"
-        const btnTagRegex = /(<a\s+[^>]*class=["'][^"']*(?:np-download|notice-app-btn)[^"']*["'][^>]*href=["'])([^"']*)(["'][^>]*>)/gi;
-        if (btnTagRegex.test(newContent)) {
-            newContent = newContent.replace(btnTagRegex, `$1${newUrl}$3`);
-            updated = true;
-        }
-
-        // 3. Fallback: if there's any <a> tag in content
-        if (!updated) {
-            const anyLinkRegex = /(<a\s+[^>]*href=["'])([^"']*)(["'][^>]*>)/i;
-            if (anyLinkRegex.test(newContent)) {
-                newContent = newContent.replace(anyLinkRegex, `$1${newUrl}$3`);
-                updated = true;
-            }
-        }
-
-        if (updated) {
-            setFormData(prev => ({ ...prev, content: newContent }));
-            setSuccessMsg('✅ Successfully replaced download link in message content!');
+        const { updatedContent, replacedCount } = replaceAllLinksInContent(formData.content, btnUrl.trim());
+        if (replacedCount > 0) {
+            setFormData(prev => ({ ...prev, content: updatedContent }));
+            setSuccessMsg(`✅ Successfully updated ${replacedCount} download link(s) in message HTML!`);
             setTimeout(() => setSuccessMsg(null), 4000);
         } else {
-            setErrorMsg('No existing link found in content to replace. Click "Append New Button" instead.');
+            setErrorMsg('No <a> links found in content to replace. Click "Append New Button" instead.');
             setTimeout(() => setErrorMsg(null), 5000);
         }
     };
@@ -299,9 +308,16 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
         setSuccessMsg(null);
 
         try {
+            // Guarantee that if btnUrl is present, it is synced into HTML content
+            let contentToSave = formData.content;
+            if (btnUrl && btnUrl.trim()) {
+                const { updatedContent } = replaceAllLinksInContent(contentToSave, btnUrl.trim());
+                contentToSave = updatedContent;
+            }
+
             const payload = {
                 id,
-                content: formData.content,
+                content: contentToSave,
                 type: formData.type,
                 pages: formData.pages,
                 bg_color: formData.bg_color,
@@ -310,7 +326,9 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                 image_url: formData.image_url || null,
                 video_url: formData.video_url || null,
                 platform: formData.platform,
-                movie_id: formData.pages === 'specific' && formData.movie_id ? formData.movie_id : null
+                movie_id: formData.pages === 'specific' && formData.movie_id ? formData.movie_id : null,
+                sync_app_config: syncAppConfig,
+                apk_url: btnUrl.trim()
             };
 
             if (formData.pages === 'specific' && !payload.movie_id) {
@@ -331,7 +349,7 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                 throw new Error(result.error || `Failed to save notice (${res.status})`);
             }
 
-            setSuccessMsg('✅ Notice changes saved successfully! Redirecting...');
+            setSuccessMsg('✅ Notice changes and download link saved successfully! Redirecting...');
             setTimeout(() => {
                 router.push('/notices');
             }, 800);
@@ -481,14 +499,34 @@ export default function EditNoticePage({ params }: { params: Promise<{ id: strin
                         </div>
 
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1">APK Download Link (Google Drive / S3 / Direct)</label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-xs font-semibold text-gray-300">
+                                    APK Download Link (Google Drive / S3 / Direct)
+                                </label>
+                                {formData.content?.includes('<a') && (
+                                    <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                                        <span>⚡</span> Live syncs to HTML
+                                    </span>
+                                )}
+                            </div>
                             <input
                                 type="url"
-                                className="w-full bg-dark-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-red-600"
+                                className="w-full bg-dark-900 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-red-600 font-mono"
                                 value={btnUrl}
-                                onChange={(e) => setBtnUrl(e.target.value)}
+                                onChange={(e) => handleBtnUrlChange(e.target.value)}
                                 placeholder="https://drive.google.com/uc?export=download&id=..."
                             />
+                            <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={syncAppConfig}
+                                    onChange={(e) => setSyncAppConfig(e.target.checked)}
+                                    className="rounded bg-dark-900 border-white/20 text-red-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+                                />
+                                <span className="text-[11px] text-gray-400 hover:text-gray-300 transition-colors">
+                                    Also sync this link as global default APK link (<code className="text-gray-300">app_config</code>)
+                                </span>
+                            </label>
                         </div>
                     </div>
 
