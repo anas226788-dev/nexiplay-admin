@@ -18,6 +18,14 @@ export default function NovelsAdminPage() {
     // Toast message
     const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
+    // Golponir Auto-Sync State
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncSummary, setSyncSummary] = useState<{
+        newChaptersAdded: number;
+        booksChecked: number;
+        details?: Array<{ novel: string; chaptersAdded: number; chapterNumbers: number[] }>;
+    } | null>(null);
+
     // Scraper State
     const [showScraper, setShowScraper] = useState(false);
     const [scrapeUrl, setScrapeUrl] = useState('');
@@ -207,6 +215,47 @@ export default function NovelsAdminPage() {
         setScrapeMessage('');
     };
 
+    const handleSyncGolponir = async () => {
+        if (isSyncing) return;
+        setIsSyncing(true);
+        setSyncSummary(null);
+        showToast('Connecting to Golponir & checking for updated chapters...', 'info');
+
+        try {
+            const res = await fetch('/api/cron/sync-novels?key=nexiplay_novel_sync_2026', {
+                method: 'POST',
+                headers: {
+                    'x-admin-sync': 'true'
+                }
+            });
+
+            const result = await res.json();
+
+            if (!res.ok || !result.success) {
+                showToast(`Sync failed: ${result.error || 'Unknown server error'}`, 'error');
+                setIsSyncing(false);
+                return;
+            }
+
+            setSyncSummary({
+                newChaptersAdded: result.newChaptersAdded || 0,
+                booksChecked: result.booksChecked || 0,
+                details: result.details || []
+            });
+
+            if (result.newChaptersAdded > 0) {
+                showToast(`✅ Synced ${result.newChaptersAdded} new chapter(s) directly to Cloudflare R2!`, 'success');
+                await fetchNovels();
+            } else {
+                showToast(`Checked ${result.booksChecked || 0} updated books on Golponir. All chapters are already up to date!`, 'info');
+            }
+        } catch (err: any) {
+            showToast(`Sync error: ${err.message}`, 'error');
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     // Filter & Paginate
     const filteredNovels = useMemo(() => {
         return novels.filter(n => {
@@ -241,6 +290,39 @@ export default function NovelsAdminPage() {
                     </div>
                 )}
 
+                {/* Sync Summary Banner */}
+                {syncSummary && (
+                    <div className="bg-dark-900/90 border border-emerald-500/30 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fade-in">
+                        <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg flex-shrink-0">
+                                ✓
+                            </div>
+                            <div>
+                                <p className="text-white font-bold text-sm">
+                                    {syncSummary.newChaptersAdded > 0 
+                                        ? `Golponir Sync Complete: ${syncSummary.newChaptersAdded} New Chapters Uploaded to Cloudflare R2`
+                                        : `Golponir Sync Complete: Checked ${syncSummary.booksChecked} books. All chapters up to date!`}
+                                </p>
+                                {syncSummary.details && syncSummary.details.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-1.5">
+                                        {syncSummary.details.map((d, i) => (
+                                            <span key={i} className="text-[11px] bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                                                {d.novel}: +{d.chaptersAdded} ch ({d.chapterNumbers.join(', ')})
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setSyncSummary(null)}
+                            className="text-gray-400 hover:text-white text-xs px-2.5 py-1 bg-white/5 hover:bg-white/10 rounded-lg font-medium self-end sm:self-center transition-colors"
+                        >
+                            Dismiss
+                        </button>
+                    </div>
+                )}
+
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-dark-900/60 p-5 rounded-2xl border border-white/5 backdrop-blur-md">
                     <div>
@@ -254,6 +336,24 @@ export default function NovelsAdminPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+                        <button 
+                            onClick={handleSyncGolponir}
+                            disabled={isSyncing}
+                            className="flex-1 sm:flex-initial bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/30 text-sm"
+                            title="Automatically detect ongoing updates from Golponir and upload chapters to Cloudflare R2"
+                        >
+                            {isSyncing ? (
+                                <>
+                                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    <span>Syncing Updates...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                    <span>Sync Golponir</span>
+                                </>
+                            )}
+                        </button>
                         <button 
                             onClick={() => {
                                 setScrapeUrl('');
