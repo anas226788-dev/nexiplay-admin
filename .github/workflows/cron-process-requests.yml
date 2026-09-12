@@ -12,6 +12,14 @@ jobs:
     steps:
       - name: Call Next.js Cron Endpoint
         run: |
-          curl -s -X POST "${{ secrets.NEXT_PUBLIC_ADMIN_URL || 'https://nexiplay-admin.vercel.app' }}/api/cron/process-requests" \
-            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+          ADMIN_URL="${{ secrets.NEXT_PUBLIC_ADMIN_URL }}"
+          if [ -z "$ADMIN_URL" ]; then
+            ADMIN_URL="https://nexiplay-admin.vercel.app"
+          fi
+          CRON_SECRET="${{ secrets.CRON_SECRET }}"
+          if [ -z "$CRON_SECRET" ]; then
+            CRON_SECRET="nexiplay_novel_sync_2026"
+          fi
+          curl -s -X POST "$ADMIN_URL/api/cron/process-requests" \
+            -H "Authorization: Bearer $CRON_SECRET" \
             -H "Content-Type: application/json"
