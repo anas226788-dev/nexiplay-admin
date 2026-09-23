@@ -6,8 +6,13 @@ import { mergeMoviesWithStreaming, upsertStreamingRow } from '@/lib/streaming-ta
  * Smart Supabase client for episode-checker.
  * Prefers service_role key (bypasses RLS) over anon key.
  * Checks multiple env var names to work in both Vercel and GitHub Actions.
+ * Uses lazy initialization to allow env vars to be loaded first.
  */
-function getSupabaseClient(): SupabaseClient {
+let _supabaseClient: SupabaseClient | null = null;
+
+function getSupabase(): SupabaseClient {
+    if (_supabaseClient) return _supabaseClient;
+
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     // Check both env var names — GitHub Actions uses SUPABASE_SERVICE_ROLE_KEY,
     // Vercel/.env.local may use NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
@@ -24,16 +29,24 @@ function getSupabaseClient(): SupabaseClient {
     }
     if (serviceKey) {
         console.log('[episode-checker] Using service_role key (full DB access)');
-    } else {
+    } else if (anonKey) {
         console.warn('[episode-checker] WARNING: Using anon key — DB writes may fail due to RLS!');
     }
 
-    return createClient(url, key, {
+    _supabaseClient = createClient(url, key, {
         auth: { autoRefreshToken: false, persistSession: false },
     });
+    return _supabaseClient;
 }
 
-const supabase = getSupabaseClient();
+// Lazy-initialized module-level variable.
+// All existing code uses `supabase.from(...)` — this defers client creation
+// until first actual use, so env vars loaded by the runner script are available.
+const supabase = new Proxy({} as SupabaseClient, {
+    get(_target, prop) {
+        return (getSupabase() as any)[prop];
+    }
+});
 
 
 const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix']);

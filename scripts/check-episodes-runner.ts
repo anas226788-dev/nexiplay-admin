@@ -2,6 +2,31 @@
  * Standalone CLI runner for Running Series Auto-Checker.
  * Designed to run in GitHub Actions (no serverless timeout) or locally.
  */
+
+// Load .env file for local runs (Next.js does this automatically, but npx tsx doesn't)
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+const envFiles = ['.env.local', '.env'];
+for (const envFile of envFiles) {
+    const envPath = resolve(process.cwd(), envFile);
+    if (existsSync(envPath)) {
+        const content = readFileSync(envPath, 'utf-8');
+        for (const line of content.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) continue;
+            const eqIdx = trimmed.indexOf('=');
+            if (eqIdx === -1) continue;
+            const key = trimmed.substring(0, eqIdx).trim();
+            const value = trimmed.substring(eqIdx + 1).trim();
+            if (!process.env[key]) {
+                process.env[key] = value;
+            }
+        }
+        console.log(`📁 Loaded env from ${envFile}`);
+        break;
+    }
+}
+
 import { handleCheckEpisodes } from '../src/lib/episode-checker';
 
 async function run() {
