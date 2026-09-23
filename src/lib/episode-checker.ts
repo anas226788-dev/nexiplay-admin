@@ -1,6 +1,39 @@
-import { supabase } from '@/lib/supabase';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { scrapeSource } from '@/lib/scraper-utils';
 import { mergeMoviesWithStreaming, upsertStreamingRow } from '@/lib/streaming-table';
+
+/**
+ * Smart Supabase client for episode-checker.
+ * Prefers service_role key (bypasses RLS) over anon key.
+ * Checks multiple env var names to work in both Vercel and GitHub Actions.
+ */
+function getSupabaseClient(): SupabaseClient {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    // Check both env var names — GitHub Actions uses SUPABASE_SERVICE_ROLE_KEY,
+    // Vercel/.env.local may use NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
+    const serviceKey =
+        process.env.SUPABASE_SERVICE_ROLE_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY ||
+        '';
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+    const key = serviceKey || anonKey;
+
+    if (!url || !key) {
+        console.warn('[episode-checker] Supabase credentials missing! URL:', !!url, 'Key:', !!key);
+    }
+    if (serviceKey) {
+        console.log('[episode-checker] Using service_role key (full DB access)');
+    } else {
+        console.warn('[episode-checker] WARNING: Using anon key — DB writes may fail due to RLS!');
+    }
+
+    return createClient(url, key, {
+        auth: { autoRefreshToken: false, persistSession: false },
+    });
+}
+
+const supabase = getSupabaseClient();
 
 
 const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix']);
