@@ -1,0 +1,19 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/process-requests",
+            "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/cron/check-episodes",
+            "schedule": "0 0 * * *"
+        }
+    ],
+    "redirects": [
+        {
+            "source": "/.git/(.*)",
+            "destination": "/",
+            "permanent": true
+        }
+    ]
+}
