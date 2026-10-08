@@ -5,6 +5,21 @@ import { extractRRStream } from '@/lib/rrStreamExtractor';
 import { validateApiKeyAccess, recordApiKeyUsage } from '@/lib/streamApiKeyService';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+function getLiveOrigin(request: NextRequest): string {
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+    if (forwardedHost) {
+        return `${forwardedProto}://${forwardedHost}`;
+    }
+    const host = request.headers.get('host');
+    if (host) {
+        const proto = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+        return `${proto}://${host}`;
+    }
+    return request.nextUrl.origin;
+}
 
 function parseJsonStreams(urlStr: string | null | undefined): Record<string, string> {
     if (!urlStr) return {};
@@ -204,7 +219,7 @@ export async function GET(request: NextRequest) {
             expiresAt
         });
 
-        const origin = request.nextUrl.origin;
+        const origin = getLiveOrigin(request);
         const playbackUrl = `${origin}/api/v1/anime/playback?token=${encodeURIComponent(token)}`;
         const embedUrl = `${origin}/embed/rr?slug=${encodeURIComponent(movie.slug)}&season=${seasonNum}&episode=${epNum}`;
 

@@ -1009,49 +1009,50 @@ export default function StreamApiControlPage() {
                     )}
 
                     {/* Ready Snippets for Client */}
-                    {selectedKeyForCode && (
-                        <div className="space-y-3 pt-2">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <span className="text-xs font-black text-gray-300 flex items-center gap-1.5">
-                                    <span>📋</span>
-                                    <span>ক্লায়েন্ট ডেভেলপারকে দেওয়ার রেডি কোড:</span>
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => copyToClipboard(
-                                            `https://your-domain.com/api/v1/anime/stream?slug=${testSlug}&season=${testSeason}&episode=${testEpisode}&apiKey=${selectedKeyForCode.key}`,
-                                            'direct-url'
-                                        )}
-                                        className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-red-400 font-bold border border-white/5"
-                                    >
-                                        {copiedKey === 'direct-url' ? '✓ লিংক কপি হয়েছে' : '🔗 ডাইরেক্ট API URL কপি'}
-                                    </button>
+                    {selectedKeyForCode && (() => {
+                        const liveOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com';
+                        const liveUrl = `${liveOrigin}/api/v1/anime/stream?slug=${testSlug}&season=${testSeason}&episode=${testEpisode}&apiKey=${selectedKeyForCode.key}`;
+                        return (
+                            <div className="space-y-3 pt-2">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <span className="text-xs font-black text-gray-300 flex items-center gap-1.5">
+                                        <span>📋</span>
+                                        <span>ক্লায়েন্ট ডেভেলপারকে দেওয়ার রেডি কোড:</span>
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => copyToClipboard(liveUrl, 'direct-url')}
+                                            className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-red-400 font-bold border border-white/5"
+                                        >
+                                            {copiedKey === 'direct-url' ? '✓ লিংক কপি হয়েছে' : '🔗 ডাইরেক্ট API URL কপি'}
+                                        </button>
 
-                                    <button
-                                        type="button"
-                                        onClick={() => copyToClipboard(
-                                            `fetch('https://your-domain.com/api/v1/anime/stream?slug=${testSlug}&season=${testSeason}&episode=${testEpisode}&apiKey=${selectedKeyForCode.key}')\n  .then(res => res.json())\n  .then(data => {\n    if (data.success) {\n      console.log('Stream URL:', data.playbackUrl);\n    }\n  });`,
-                                            'js-code'
-                                        )}
-                                        className="text-[11px] px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold"
-                                    >
-                                        {copiedKey === 'js-code' ? '✓ কোড কপি হয়েছে' : '⚡ JS Code কপি'}
-                                    </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => copyToClipboard(
+                                                `fetch('${liveUrl}')\n  .then(res => res.json())\n  .then(data => {\n    if (data.success) {\n      console.log('Stream URL:', data.playbackUrl);\n    }\n  });`,
+                                                'js-code'
+                                            )}
+                                            className="text-[11px] px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold"
+                                        >
+                                            {copiedKey === 'js-code' ? '✓ কোড কপি হয়েছে' : '⚡ JS Code কপি'}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            <pre className="p-4 rounded-2xl bg-black/80 border border-white/10 font-mono text-xs text-blue-300 overflow-x-auto leading-relaxed">
+                                <pre className="p-4 rounded-2xl bg-black/80 border border-white/10 font-mono text-xs text-blue-300 overflow-x-auto leading-relaxed">
 {`// ক্লায়েন্ট তার ওয়েবসাইটে এই কোডটি দিয়ে অ্যানিমে স্ট্রিম প্লে করবে:
-const res = await fetch('https://your-domain.com/api/v1/anime/stream?slug=${testSlug}&season=${testSeason}&episode=${testEpisode}&apiKey=${selectedKeyForCode.key}');
+const res = await fetch('${liveUrl}');
 const data = await res.json();
 
 if (data.success) {
   // data.playbackUrl টি যেকোনো প্লেয়ারে (Video.js, HLS.js, Plyr ইত্যাদি) দিয়ে দিন
   console.log("HLS Video Stream URL:", data.playbackUrl);
 }`}
-                            </pre>
-                        </div>
-                    )}
+                                </pre>
+                            </div>
+                        );
+                    })()}
                 </div>
             </div>
 

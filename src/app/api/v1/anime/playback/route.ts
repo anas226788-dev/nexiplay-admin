@@ -4,6 +4,21 @@ import { extractRRStream } from '@/lib/rrStreamExtractor';
 import { getStreamApiSettings } from '@/lib/streamApiKeyService';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
+function getLiveOrigin(request: NextRequest): string {
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+    if (forwardedHost) {
+        return `${forwardedProto}://${forwardedHost}`;
+    }
+    const host = request.headers.get('host');
+    if (host) {
+        const proto = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
+        return `${proto}://${host}`;
+    }
+    return request.nextUrl.origin;
+}
 
 function makeAbsoluteUrl(relativeUrl: string, baseUrl: string): string {
     try {
@@ -41,7 +56,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
     const segUrl = searchParams.get('seg');
-    const origin = request.nextUrl.origin;
+    const origin = getLiveOrigin(request);
 
     const settings = await getStreamApiSettings();
     if (!settings.isEnabled) {

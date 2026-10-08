@@ -8,6 +8,23 @@
   },
   "keys": [
     {
+      "id": "754b06dc-86f8-4e41-970b-cd4a691c8b8b",
+      "name": "Moviebari",
+      "key": "nxp_test_fc43975b6310680483ce41ac88dcc3efbacf",
+      "type": "test",
+      "isActive": true,
+      "allowedOrigins": [
+        "*"
+      ],
+      "rateLimitPerDay": 0,
+      "totalRequests": 1,
+      "lastUsedAt": "2026-10-08T10:20:14.064Z",
+      "lastUsedIp": "::1",
+      "expiresAt": "2026-10-08T11:17:44.366Z",
+      "createdAt": "2026-10-08T10:17:44.385Z",
+      "updatedAt": "2026-10-08T10:17:44.385Z"
+    },
+    {
       "id": "demo-production-key-1",
       "name": "NexiPlay Web & Official Apps",
       "key": "nxp_live_nexiplay_official_core_prod",
@@ -17,9 +34,9 @@
         "*"
       ],
       "rateLimitPerDay": 0,
-      "totalRequests": 1,
-      "lastUsedAt": "2026-10-08T10:12:42.605Z",
-      "lastUsedIp": null,
+      "totalRequests": 2,
+      "lastUsedAt": "2026-10-08T10:15:33.054Z",
+      "lastUsedIp": "::1",
       "expiresAt": null,
       "createdAt": "2026-10-08T06:44:25.857Z",
       "updatedAt": "2026-10-08T06:44:25.857Z"

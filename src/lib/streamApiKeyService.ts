@@ -44,50 +44,55 @@ const DEFAULT_SETTINGS: StreamApiSettings = {
 const FALLBACK_DIR = path.join(process.cwd(), 'data');
 const FALLBACK_FILE = path.join(FALLBACK_DIR, 'stream_api_control.json');
 
+let memoryFallback: LocalStorageData | null = null;
+
 function ensureLocalFile(): LocalStorageData {
-    try {
-        if (!fs.existsSync(FALLBACK_DIR)) {
-            fs.mkdirSync(FALLBACK_DIR, { recursive: true });
-        }
-        if (!fs.existsSync(FALLBACK_FILE)) {
-            const initial: LocalStorageData = {
-                settings: DEFAULT_SETTINGS,
-                keys: [
-                    {
-                        id: 'demo-production-key-1',
-                        name: 'NexiPlay Web & Official Apps',
-                        key: 'nxp_live_nexiplay_official_core_prod',
-                        type: 'production',
-                        isActive: true,
-                        allowedOrigins: ['*'],
-                        rateLimitPerDay: 0,
-                        totalRequests: 0,
-                        lastUsedAt: null,
-                        lastUsedIp: null,
-                        expiresAt: null,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
-                    }
-                ]
-            };
-            fs.writeFileSync(FALLBACK_FILE, JSON.stringify(initial, null, 2), 'utf8');
-            return initial;
-        }
-        const raw = fs.readFileSync(FALLBACK_FILE, 'utf8');
-        return JSON.parse(raw);
-    } catch {
-        return { settings: DEFAULT_SETTINGS, keys: [] };
+    if (memoryFallback) {
+        return memoryFallback;
     }
+    try {
+        if (fs.existsSync(FALLBACK_FILE)) {
+            const raw = fs.readFileSync(FALLBACK_FILE, 'utf8');
+            memoryFallback = JSON.parse(raw);
+            return memoryFallback!;
+        }
+    } catch {
+        // Ignore read errors
+    }
+
+    const initial: LocalStorageData = {
+        settings: DEFAULT_SETTINGS,
+        keys: [
+            {
+                id: 'demo-production-key-1',
+                name: 'NexiPlay Web & Official Apps',
+                key: 'nxp_live_nexiplay_official_core_prod',
+                type: 'production',
+                isActive: true,
+                allowedOrigins: ['*'],
+                rateLimitPerDay: 0,
+                totalRequests: 0,
+                lastUsedAt: null,
+                lastUsedIp: null,
+                expiresAt: null,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        ]
+    };
+    memoryFallback = initial;
+    return initial;
 }
 
 function saveLocalFile(data: LocalStorageData): void {
+    memoryFallback = data;
     try {
         if (!fs.existsSync(FALLBACK_DIR)) {
             fs.mkdirSync(FALLBACK_DIR, { recursive: true });
         }
         fs.writeFileSync(FALLBACK_FILE, JSON.stringify(data, null, 2), 'utf8');
-    } catch (e: any) {
-        console.warn('[StreamApiKeyService] Fallback file save failed:', e.message);
+    } catch {
+        // Read-only environment like Vercel serverless runtime is expected
     }
 }
 
