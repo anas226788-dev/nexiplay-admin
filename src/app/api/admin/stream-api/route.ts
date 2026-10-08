@@ -39,13 +39,15 @@ export async function GET() {
 
         return NextResponse.json({
             ok: true,
+            success: true,
             settings,
             keys,
-            stats
+            stats,
+            metrics: stats
         });
     } catch (err: any) {
         console.error('[Admin Stream API GET error]:', err);
-        return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+        return NextResponse.json({ ok: false, success: false, error: err.message }, { status: 500 });
     }
 }
 
@@ -74,36 +76,36 @@ export async function POST(request: NextRequest) {
                 expiresAt: expiresAt || null
             });
 
-            return NextResponse.json({ ok: true, key: newKey });
+            return NextResponse.json({ ok: true, success: true, key: newKey });
         }
 
         // 2. Toggle Active / Disabled
         if (action === 'toggle_key') {
             const { id, isActive } = body;
             if (!id) {
-                return NextResponse.json({ ok: false, error: 'Key ID is required.' }, { status: 400 });
+                return NextResponse.json({ ok: false, success: false, error: 'Key ID is required.' }, { status: 400 });
             }
 
             const updated = await toggleStreamApiKey(id, Boolean(isActive));
-            return NextResponse.json({ ok: true, key: updated });
+            return NextResponse.json({ ok: true, success: true, key: updated });
         }
 
         // 3. Delete / Revoke Key
         if (action === 'delete_key') {
             const { id } = body;
             if (!id) {
-                return NextResponse.json({ ok: false, error: 'Key ID is required.' }, { status: 400 });
+                return NextResponse.json({ ok: false, success: false, error: 'Key ID is required.' }, { status: 400 });
             }
 
-            const success = await deleteStreamApiKey(id);
-            return NextResponse.json({ ok: true, success });
+            const isDeleted = await deleteStreamApiKey(id);
+            return NextResponse.json({ ok: true, success: isDeleted });
         }
 
         // 4. Update Settings (Master switch, Mode, TTL)
         if (action === 'update_settings') {
             const { settings } = body;
             if (!settings) {
-                return NextResponse.json({ ok: false, error: 'Settings payload is required.' }, { status: 400 });
+                return NextResponse.json({ ok: false, success: false, error: 'Settings payload is required.' }, { status: 400 });
             }
 
             const updatedSettings = await updateStreamApiSettings({
@@ -113,12 +115,12 @@ export async function POST(request: NextRequest) {
                 requireOriginMatch: Boolean(settings.requireOriginMatch)
             });
 
-            return NextResponse.json({ ok: true, settings: updatedSettings });
+            return NextResponse.json({ ok: true, success: true, settings: updatedSettings });
         }
 
-        return NextResponse.json({ ok: false, error: 'Unknown action.' }, { status: 400 });
+        return NextResponse.json({ ok: false, success: false, error: 'Unknown action.' }, { status: 400 });
     } catch (err: any) {
         console.error('[Admin Stream API POST error]:', err);
-        return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+        return NextResponse.json({ ok: false, success: false, error: err.message }, { status: 500 });
     }
 }
