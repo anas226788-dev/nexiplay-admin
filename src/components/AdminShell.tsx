@@ -1,17 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
+const AdminShellContext = createContext<boolean>(false);
+
 export default function AdminShell({ children }: { children: React.ReactNode }) {
+    const isNested = useContext(AdminShellContext);
+    const pathname = usePathname();
+    const isEmbed = pathname?.startsWith('/embed');
+
+    if (isNested || isEmbed) {
+        return <>{children}</>;
+    }
+
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [runningAlerts, setRunningAlerts] = useState(0);
     const [pendingRequests, setPendingRequests] = useState(0);
-    const pathname = usePathname();
 
     useEffect(() => {
+        if (isEmbed) return;
+
         const fetchAlerts = async () => {
             const { data } = await supabase
                 .from('movies')
@@ -40,8 +51,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             }
         };
         fetchPendingRequests();
-        fetchPendingRequests();
-    }, [pathname]); // Refresh when navigating
+    }, [pathname, isEmbed]); // Refresh when navigating
+
+    if (isEmbed) {
+        return <>{children}</>;
+    }
 
     const menuItems = [
         { name: 'Dashboard', path: '/', icon: 'M4 6h16M4 12h16M4 18h16' },
@@ -69,7 +83,8 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     ];
 
     return (
-        <div className="flex min-h-screen bg-black">
+        <AdminShellContext.Provider value={true}>
+            <div className="flex min-h-screen bg-black">
             {/* Sidebar (Desktop Only) */}
             <aside className="
                 hidden md:flex flex-col fixed top-0 left-0 bottom-0 w-64
@@ -195,5 +210,6 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                 {children}
             </main>
         </div>
+        </AdminShellContext.Provider>
     );
 }

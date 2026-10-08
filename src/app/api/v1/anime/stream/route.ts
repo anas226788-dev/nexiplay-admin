@@ -221,7 +221,8 @@ export async function GET(request: NextRequest) {
 
         const origin = getLiveOrigin(request);
         const playbackUrl = `${origin}/api/v1/anime/playback?token=${encodeURIComponent(token)}`;
-        const embedUrl = `${origin}/embed/rr?slug=${encodeURIComponent(movie.slug)}&season=${seasonNum}&episode=${epNum}`;
+        const embedKeyParam = apiKey ? `&apiKey=${encodeURIComponent(apiKey)}` : '';
+        const embedUrl = `${origin}/embed/rr?slug=${encodeURIComponent(movie.slug)}&season=${seasonNum}&episode=${epNum}${embedKeyParam}`;
 
         return NextResponse.json(
             {

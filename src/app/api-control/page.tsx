@@ -1009,34 +1009,50 @@ export default function StreamApiControlPage() {
                     )}
 
                     {/* Live Video Player Preview when test succeeds */}
-                    {testResult?.ok && testResult.data?.embedUrl && (
-                        <div className="p-4 rounded-2xl bg-black/80 border border-emerald-500/30 space-y-3 animate-fade-in">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
-                                    <span>📺</span>
-                                    <span>লাইভ ভিডিও প্লেয়ার প্রিভিউ (এই কী দিয়ে সফলভাবে ভিডিও চলছে):</span>
-                                </span>
-                                <a
-                                    href={testResult.data.embedUrl}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="text-[11px] text-gray-400 hover:text-white font-bold underline"
-                                >
-                                    নতুন ট্যাবে ফুলস্ক্রিন খুলুন ↗
-                                </a>
+                    {testResult?.ok && testResult.data?.embedUrl && (() => {
+                        const rawEmbedUrl = testResult.data.embedUrl;
+                        const finalEmbedUrl = (selectedKeyForCode && !rawEmbedUrl.includes('apiKey=') && !rawEmbedUrl.includes('key='))
+                            ? `${rawEmbedUrl}${rawEmbedUrl.includes('?') ? '&' : '?'}apiKey=${encodeURIComponent(selectedKeyForCode.key)}`
+                            : rawEmbedUrl;
+
+                        return (
+                            <div className="p-4 rounded-2xl bg-black/80 border border-emerald-500/30 space-y-3 animate-fade-in">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                                        <span>📺</span>
+                                        <span>লাইভ ভিডিও প্লেয়ার প্রিভিউ (এই কী দিয়ে সফলভাবে ভিডিও লোড হয়েছে):</span>
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => copyToClipboard(finalEmbedUrl, 'প্লেয়ার Embed URL কপি হয়েছে!')}
+                                            className="text-[11px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white border border-white/10 font-bold transition-all"
+                                        >
+                                            📋 লিঙ্ক কপি
+                                        </button>
+                                        <a
+                                            href={finalEmbedUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30 border border-emerald-500/30 font-bold transition-all flex items-center gap-1"
+                                        >
+                                            নতুন ট্যাবে ফুলস্ক্রিন খুলুন ↗
+                                        </a>
+                                    </div>
+                                </div>
+                                <div className="aspect-video w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+                                    <iframe
+                                        src={finalEmbedUrl}
+                                        width="100%"
+                                        height="100%"
+                                        frameBorder="0"
+                                        allowFullScreen
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    />
+                                </div>
                             </div>
-                            <div className="aspect-video w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
-                                <iframe
-                                    src={testResult.data.embedUrl}
-                                    width="100%"
-                                    height="100%"
-                                    frameBorder="0"
-                                    allowFullScreen
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                />
-                            </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* Ready Snippets for Client */}
                     {selectedKeyForCode && (() => {

@@ -10,9 +10,13 @@ export default function RREmbedPlayerPage() {
     } | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [inputKey, setInputKey] = useState('');
     const videoRef = useRef<HTMLVideoElement>(null);
 
-    useEffect(() => {
+    const loadStream = (overrideKey?: string) => {
+        setLoading(true);
+        setError('');
+
         const params = new URLSearchParams(window.location.search);
         const slug = params.get('slug');
         const id = params.get('id');
@@ -25,7 +29,7 @@ export default function RREmbedPlayerPage() {
             return;
         }
 
-        const apiKey = params.get('apiKey') || params.get('key');
+        const apiKey = overrideKey || params.get('apiKey') || params.get('key');
         const keyParam = apiKey ? `&apiKey=${encodeURIComponent(apiKey)}` : '';
 
         const apiUrl = id
@@ -51,6 +55,10 @@ export default function RREmbedPlayerPage() {
             .finally(() => {
                 setLoading(false);
             });
+    };
+
+    useEffect(() => {
+        loadStream();
     }, []);
 
     // HLS video attachment if direct stream
@@ -103,6 +111,16 @@ export default function RREmbedPlayerPage() {
         }
     }, [streamData]);
 
+    const handleKeySubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmed = inputKey.trim();
+        if (!trimmed) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('apiKey', trimmed);
+        window.history.replaceState({}, '', url.toString());
+        loadStream(trimmed);
+    };
+
     return (
         <div className="w-screen h-screen bg-black flex items-center justify-center overflow-hidden m-0 p-0 select-none">
             {loading && (
@@ -113,17 +131,46 @@ export default function RREmbedPlayerPage() {
             )}
 
             {error && (
-                <div className="p-6 max-w-md bg-white/5 border border-red-500/20 rounded-2xl text-center text-white">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 text-xl font-bold">
+                <div className="p-6 max-w-md w-full mx-4 bg-[#111118] border border-red-500/30 rounded-2xl text-center text-white shadow-2xl">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-xl font-bold">
                         ✕
                     </div>
-                    <p className="text-sm font-medium text-red-300">{error}</p>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-500 text-xs font-bold rounded-xl transition-all"
-                    >
-                        Retry
-                    </button>
+                    <p className="text-xs font-bold text-red-400 mb-4">{error}</p>
+
+                    {error.toLowerCase().includes('api key') ? (
+                        <form onSubmit={handleKeySubmit} className="space-y-3">
+                            <input
+                                type="text"
+                                value={inputKey}
+                                onChange={(e) => setInputKey(e.target.value)}
+                                placeholder="আপনার API Key টি এখানে পেস্ট করুন..."
+                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/80 border border-white/20 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500 font-mono text-center"
+                                autoFocus
+                            />
+                            <div className="flex items-center justify-center gap-2">
+                                <button
+                                    type="submit"
+                                    className="px-5 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-xs font-black rounded-xl transition-all shadow-md active:scale-95"
+                                >
+                                    আনলক ও প্লে করুন ▶
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => window.location.reload()}
+                                    className="px-4 py-2 bg-white/5 hover:bg-white/10 text-xs font-bold rounded-xl transition-all border border-white/10"
+                                >
+                                    রিলোড
+                                </button>
+                            </div>
+                        </form>
+                    ) : (
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="mt-2 px-5 py-2 bg-red-600 hover:bg-red-500 text-xs font-bold rounded-xl transition-all"
+                        >
+                            Retry
+                        </button>
+                    )}
                 </div>
             )}
 
@@ -133,6 +180,7 @@ export default function RREmbedPlayerPage() {
                         ref={videoRef}
                         controls
                         playsInline
+                        autoPlay
                         className="w-full h-full object-contain bg-black"
                     />
                 </div>

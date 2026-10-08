@@ -14,7 +14,8 @@ const nextConfig = {
     async headers() {
         return [
             {
-                source: '/:path*',
+                // Global security headers for admin routes (exclude /embed and /api so iframe player and API work)
+                source: '/((?!embed|api).*)',
                 headers: [
                     {
                         key: 'X-Frame-Options',
@@ -31,6 +32,46 @@ const nextConfig = {
                     {
                         key: 'Permissions-Policy',
                         value: 'camera=(), microphone=(), geolocation=()',
+                    },
+                ],
+            },
+            {
+                // Embed Player Iframe headers - allowing embedding on any external domain & inside admin previews
+                source: '/embed/:path*',
+                headers: [
+                    {
+                        key: 'Content-Security-Policy',
+                        value: 'frame-ancestors *',
+                    },
+                    {
+                        key: 'Access-Control-Allow-Origin',
+                        value: '*',
+                    },
+                    {
+                        key: 'Access-Control-Allow-Methods',
+                        value: 'GET, HEAD, OPTIONS',
+                    },
+                ],
+            },
+            {
+                // Public Stream API endpoints
+                source: '/api/:path*',
+                headers: [
+                    {
+                        key: 'Access-Control-Allow-Origin',
+                        value: '*',
+                    },
+                    {
+                        key: 'Access-Control-Allow-Methods',
+                        value: 'GET, POST, HEAD, OPTIONS',
+                    },
+                    {
+                        key: 'Access-Control-Allow-Headers',
+                        value: 'Range, Origin, Referer, Content-Type, Authorization, x-api-key, apikey',
+                    },
+                    {
+                        key: 'Access-Control-Expose-Headers',
+                        value: 'Content-Length, Content-Range, Accept-Ranges',
                     },
                 ],
             },
