@@ -1,10 +1,10 @@
 {
   "settings": {
     "isEnabled": true,
-    "accessMode": "demo_allowed",
+    "accessMode": "strict",
     "defaultTtlSeconds": 7200,
     "requireOriginMatch": false,
-    "updatedAt": "2026-10-08T06:44:28.097Z"
+    "updatedAt": "2026-10-08T10:09:39.194Z"
   },
   "keys": [
     {
@@ -17,8 +17,8 @@
         "*"
       ],
       "rateLimitPerDay": 0,
-      "totalRequests": 0,
-      "lastUsedAt": null,
+      "totalRequests": 1,
+      "lastUsedAt": "2026-10-08T10:12:42.605Z",
       "lastUsedIp": null,
       "expiresAt": null,
       "createdAt": "2026-10-08T06:44:25.857Z",

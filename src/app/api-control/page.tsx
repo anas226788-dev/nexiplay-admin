@@ -363,12 +363,23 @@ export default function StreamApiControlPage() {
             // Target the public stream API endpoint
             const testUrl = `/api/v1/anime/stream?slug=${encodeURIComponent(testSlug.trim())}&season=${testSeason}&episode=${testEpisode}&apiKey=${encodeURIComponent(selected.key)}`;
             const res = await fetch(testUrl);
-            const data = await res.json();
+            const rawText = await res.text();
+            let data: any;
+            try {
+                data = JSON.parse(rawText);
+            } catch {
+                data = {
+                    success: false,
+                    error: res.status === 404
+                        ? 'Stream API রুট পাওয়া যায়নি (404 Not Found)'
+                        : `সার্ভার এরর (Status ${res.status}): ${rawText.substring(0, 200)}`
+                };
+            }
             const latency = Math.round(performance.now() - start);
 
             setTestResult({
                 status: res.status,
-                ok: res.ok,
+                ok: res.ok && data?.success !== false,
                 latency,
                 data
             });
