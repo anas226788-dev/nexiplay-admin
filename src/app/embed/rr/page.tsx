@@ -25,9 +25,12 @@ export default function RREmbedPlayerPage() {
             return;
         }
 
+        const apiKey = params.get('apiKey') || params.get('key');
+        const keyParam = apiKey ? `&apiKey=${encodeURIComponent(apiKey)}` : '';
+
         const apiUrl = id
-            ? `/api/v1/anime/stream?id=${encodeURIComponent(id)}&season=${season}&episode=${episode}`
-            : `/api/v1/anime/stream?slug=${encodeURIComponent(slug!)}&season=${season}&episode=${episode}`;
+            ? `/api/v1/anime/stream?id=${encodeURIComponent(id)}&season=${season}&episode=${episode}${keyParam}`
+            : `/api/v1/anime/stream?slug=${encodeURIComponent(slug!)}&season=${season}&episode=${episode}${keyParam}`;
 
         fetch(apiUrl)
             .then(res => res.json())

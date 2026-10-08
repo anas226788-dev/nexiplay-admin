@@ -1008,6 +1008,36 @@ export default function StreamApiControlPage() {
                         </div>
                     )}
 
+                    {/* Live Video Player Preview when test succeeds */}
+                    {testResult?.ok && testResult.data?.embedUrl && (
+                        <div className="p-4 rounded-2xl bg-black/80 border border-emerald-500/30 space-y-3 animate-fade-in">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs font-black text-emerald-400 flex items-center gap-1.5">
+                                    <span>📺</span>
+                                    <span>লাইভ ভিডিও প্লেয়ার প্রিভিউ (এই কী দিয়ে সফলভাবে ভিডিও চলছে):</span>
+                                </span>
+                                <a
+                                    href={testResult.data.embedUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[11px] text-gray-400 hover:text-white font-bold underline"
+                                >
+                                    নতুন ট্যাবে ফুলস্ক্রিন খুলুন ↗
+                                </a>
+                            </div>
+                            <div className="aspect-video w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
+                                <iframe
+                                    src={testResult.data.embedUrl}
+                                    width="100%"
+                                    height="100%"
+                                    frameBorder="0"
+                                    allowFullScreen
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Ready Snippets for Client */}
                     {selectedKeyForCode && (() => {
                         const liveOrigin = typeof window !== 'undefined' ? window.location.origin : 'https://your-domain.com';
