@@ -1,0 +1,28 @@
+{
+  "settings": {
+    "isEnabled": true,
+    "accessMode": "demo_allowed",
+    "defaultTtlSeconds": 7200,
+    "requireOriginMatch": false,
+    "updatedAt": "2026-10-08T06:44:28.097Z"
+  },
+  "keys": [
+    {
+      "id": "demo-production-key-1",
+      "name": "NexiPlay Web & Official Apps",
+      "key": "nxp_live_nexiplay_official_core_prod",
+      "type": "production",
+      "isActive": true,
+      "allowedOrigins": [
+        "*"
+      ],
+      "rateLimitPerDay": 0,
+      "totalRequests": 0,
+      "lastUsedAt": null,
+      "lastUsedIp": null,
+      "expiresAt": null,
+      "createdAt": "2026-10-08T06:44:25.857Z",
+      "updatedAt": "2026-10-08T06:44:25.857Z"
+    }
+  ]
+}
