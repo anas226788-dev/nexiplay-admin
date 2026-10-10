@@ -17,8 +17,8 @@
         "*"
       ],
       "rateLimitPerDay": 0,
-      "totalRequests": 2,
-      "lastUsedAt": "2026-10-08T10:47:07.267Z",
+      "totalRequests": 6,
+      "lastUsedAt": "2026-10-08T11:15:24.244Z",
       "lastUsedIp": "::1",
       "expiresAt": "2026-10-08T11:17:44.366Z",
       "createdAt": "2026-10-08T10:17:44.385Z",
