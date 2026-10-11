@@ -31,7 +31,21 @@ module.exports = {
                     base: 'var(--glass-base)',
                     border: 'var(--glass-border)',
                     highlight: 'var(--glass-highlight)',
-                }
+                },
+                // Shared NexiPlay brand tokens (admin uses colors only, no glass/clay effects)
+                np: {
+                    bg: '#0B0D16',
+                    surface: '#141625',
+                    'surface-2': '#1B1E31',
+                    primary: '#E51D48',
+                    'primary-dark': '#A70F35',
+                    text: '#F7F8FC',
+                    muted: '#A7AABD',
+                    success: '#28D391',
+                    gold: '#F6C453',
+                    error: '#EF4444',
+                    border: 'rgba(255, 255, 255, 0.10)',
+                },
             },
             fontFamily: {
                 sans: ['Inter', 'system-ui', 'sans-serif'],
