@@ -1006,7 +1006,7 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                                     type="button"
                                     onClick={() => handleDeleteSeason(season)}
                                     disabled={deletingSeason === season.id}
-                                    className="px-4 py-2 bg-red-600/15 text-red-400 text-sm font-bold rounded-lg hover:bg-red-600/30 disabled:opacity-50 transition-all flex items-center gap-2 border border-red-500/20 hover:border-red-500/40"
+                                    className="px-4 py-2 bg-violet-600/15 text-red-400 text-sm font-bold rounded-lg hover:bg-violet-600/30 disabled:opacity-50 transition-all flex items-center gap-2 border border-red-500/20 hover:border-red-500/40"
                                 >
                                     {deletingSeason === season.id ? (
                                         <>

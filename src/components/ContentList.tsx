@@ -141,7 +141,7 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                         placeholder="Search by title..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-dark-700 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all"
+                        className="w-full pl-11 pr-4 py-3 bg-dark-700 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-violet-400 transition-all"
                     />
                     {searchQuery && (
                         <button
@@ -166,7 +166,7 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                                     typeFilter === btn.value
                                         ? btn.value === 'pinned'
                                             ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
-                                            : 'bg-red-600 text-white shadow-lg shadow-red-900/30'
+                                            : 'bg-violet-600 text-white shadow-lg shadow-red-900/30'
                                         : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
                                 }`}
                             >
@@ -205,7 +205,7 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                                             )}
                                             <span className="text-white">{movie.title}</span>
                                             {movie.is_adult && (
-                                                <span className="px-1.5 py-0.5 text-[10px] font-black rounded bg-red-600 text-white uppercase tracking-wider shrink-0">18+</span>
+                                                <span className="px-1.5 py-0.5 text-[10px] font-black rounded bg-violet-600 text-white uppercase tracking-wider shrink-0">18+</span>
                                             )}
                                         </span>
                                     </td>
@@ -284,7 +284,7 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                                             )}
                                             <span>{movie.title}</span>
                                             {movie.is_adult && (
-                                                <span className="px-1.5 py-0.5 text-[10px] font-black rounded bg-red-600 text-white uppercase tracking-wider shrink-0">18+</span>
+                                                <span className="px-1.5 py-0.5 text-[10px] font-black rounded bg-violet-600 text-white uppercase tracking-wider shrink-0">18+</span>
                                             )}
                                         </h3>
                                         <div className="flex items-center gap-2 mt-1">
@@ -322,7 +322,7 @@ export default function ContentList({ initialMovies }: ContentListProps) {
                                         <button
                                             onClick={() => handleDelete(movie.id)}
                                             disabled={deletingId === movie.id}
-                                            className="p-2 rounded-lg bg-red-500/10 text-red-500 active:bg-red-500/20 disabled:opacity-50"
+                                            className="p-2 rounded-lg bg-red-500/10 text-violet-300 active:bg-red-500/20 disabled:opacity-50"
                                         >
                                             {deletingId === movie.id ? (
                                                 <span className="w-5 h-5 border-2 border-red-500/20 border-t-red-500 rounded-full animate-spin block"></span>

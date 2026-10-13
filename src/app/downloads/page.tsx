@@ -443,7 +443,7 @@ export default function DownloadsPage() {
             {/* ── Step 1: Content Selector ──────────────────────────── */}
             <div className="glass-panel rounded-2xl p-5 space-y-4 dl-anim-panel-1">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2">
-                    <span className="w-6 h-6 bg-red-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">1</span>
+                    <span className="w-6 h-6 bg-violet-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">1</span>
                     Select Content
                 </h2>
 
@@ -454,7 +454,7 @@ export default function DownloadsPage() {
                             key={type}
                             onClick={() => setContentType(type)}
                             className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all capitalize ${contentType === type
-                                ? 'bg-red-600 text-white shadow-lg shadow-red-900/30'
+                                ? 'bg-violet-600 text-white shadow-lg shadow-red-900/30'
                                 : 'bg-white/5 text-gray-400 hover:bg-white/10 border border-white/5'
                                 }`}
                         >
@@ -472,7 +472,7 @@ export default function DownloadsPage() {
                             placeholder={loadingTitles ? 'Loading...' : `Search ${contentType}s...`}
                             value={titleSearch}
                             onChange={e => { setTitleSearch(e.target.value); setSelectedTitleId(''); }}
-                            className="w-full bg-dark-700 border border-white/10 rounded-xl p-3 text-white placeholder-gray-500 focus:border-red-500/50 outline-none transition-all"
+                            className="w-full bg-dark-700 border border-white/10 rounded-xl p-3 text-white placeholder-gray-500 focus:border-violet-400/50 outline-none transition-all"
                         />
                         {selectedTitle && !titleSearch && (
                             <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
@@ -533,7 +533,7 @@ export default function DownloadsPage() {
                     <button
                         onClick={handleLoad}
                         disabled={loadingData}
-                        className="w-full py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/30 flex items-center justify-center gap-2"
+                        className="w-full py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-violet-300 hover:to-violet-600 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/30 flex items-center justify-center gap-2"
                     >
                         {loadingData ? (
                             <>
@@ -558,7 +558,7 @@ export default function DownloadsPage() {
                     {/* Resolution Tabs */}
                     <div className="p-4 border-b border-white/5 flex flex-wrap items-center gap-2">
                         <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400 flex items-center gap-2 mr-2">
-                            <span className="w-6 h-6 bg-red-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">2</span>
+                            <span className="w-6 h-6 bg-violet-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">2</span>
                             Edit Links
                         </h2>
                         <div className="flex gap-1.5 p-1 bg-dark-900/50 rounded-xl border border-white/5">
@@ -567,7 +567,7 @@ export default function DownloadsPage() {
                                     key={res}
                                     onClick={() => setActiveRes(res)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeRes === res
-                                        ? 'bg-red-600 text-white'
+                                        ? 'bg-violet-600 text-white'
                                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                                         }`}
                                 >
@@ -598,7 +598,7 @@ export default function DownloadsPage() {
                                     placeholder="e.g., 800MB"
                                     value={movieRow.links[activeRes]?.file_size || ''}
                                     onChange={e => updateMovieLink('file_size', e.target.value)}
-                                    className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-red-500/50 outline-none"
+                                    className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-violet-400/50 outline-none"
                                 />
                             </div>
                             {/* Providers */}
@@ -611,7 +611,7 @@ export default function DownloadsPage() {
                                             placeholder={`Paste ${p.label} link...`}
                                             value={(movieRow.links[activeRes]?.[p.key as keyof LinkData] as string) || ''}
                                             onChange={e => updateMovieLink(p.key, e.target.value)}
-                                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-red-500/50 outline-none"
+                                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:border-violet-400/50 outline-none"
                                         />
                                     </div>
                                 ))}
@@ -657,7 +657,7 @@ export default function DownloadsPage() {
                                                                 return copy;
                                                             });
                                                         }}
-                                                        className="w-14 bg-dark-700 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:border-red-500/50 outline-none"
+                                                        className="w-14 bg-dark-700 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:border-violet-400/50 outline-none"
                                                     />
                                                 </td>
                                                 <td className="py-2 px-3">
@@ -666,7 +666,7 @@ export default function DownloadsPage() {
                                                         placeholder="Title..."
                                                         value={row.episodeTitle}
                                                         onChange={e => updateRowLink(idx, 'episodeTitle', e.target.value)}
-                                                        className="w-full bg-dark-700 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm focus:border-red-500/50 outline-none"
+                                                        className="w-full bg-dark-700 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm focus:border-violet-400/50 outline-none"
                                                     />
                                                 </td>
                                                 <td className="py-2 px-3">
@@ -675,7 +675,7 @@ export default function DownloadsPage() {
                                                         placeholder="Size"
                                                         value={row.links[activeRes]?.file_size || ''}
                                                         onChange={e => updateRowLink(idx, 'file_size', e.target.value)}
-                                                        className="w-20 bg-dark-700 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm focus:border-red-500/50 outline-none"
+                                                        className="w-20 bg-dark-700 border border-white/10 rounded-lg px-2 py-1.5 text-white text-sm focus:border-violet-400/50 outline-none"
                                                     />
                                                 </td>
                                                 {PROVIDER_FIELDS.map(p => (
@@ -688,7 +688,7 @@ export default function DownloadsPage() {
                                                             className={`w-full min-w-[120px] bg-dark-700 border rounded-lg px-2 py-1.5 text-sm outline-none transition-colors ${(row.links[activeRes]?.[p.key as keyof LinkData] as string)
                                                                 ? 'border-green-500/30 text-green-300'
                                                                 : 'border-white/10 text-white'
-                                                                } focus:border-red-500/50`}
+                                                                } focus:border-violet-400/50`}
                                                         />
                                                     </td>
                                                 ))}
@@ -730,7 +730,7 @@ export default function DownloadsPage() {
                                             className="w-full flex items-center justify-between p-3 text-left"
                                         >
                                             <div className="flex items-center gap-3">
-                                                <span className="w-8 h-8 rounded-lg bg-red-600/20 text-red-400 flex items-center justify-center text-sm font-bold">
+                                                <span className="w-8 h-8 rounded-lg bg-violet-600/20 text-red-400 flex items-center justify-center text-sm font-bold">
                                                     {row.episodeNumber}
                                                 </span>
                                                 <div>
@@ -768,7 +768,7 @@ export default function DownloadsPage() {
                                                                     return copy;
                                                                 });
                                                             }}
-                                                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm focus:border-red-500/50 outline-none"
+                                                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm focus:border-violet-400/50 outline-none"
                                                         />
                                                     </div>
                                                     <div>
@@ -778,7 +778,7 @@ export default function DownloadsPage() {
                                                             placeholder="e.g. 250MB"
                                                             value={row.links[activeRes]?.file_size || ''}
                                                             onChange={e => updateRowLink(idx, 'file_size', e.target.value)}
-                                                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm focus:border-red-500/50 outline-none"
+                                                            className="w-full bg-dark-800 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm focus:border-violet-400/50 outline-none"
                                                         />
                                                     </div>
                                                 </div>
@@ -789,7 +789,7 @@ export default function DownloadsPage() {
                                                         placeholder="Episode title..."
                                                         value={row.episodeTitle}
                                                         onChange={e => updateRowLink(idx, 'episodeTitle', e.target.value)}
-                                                        className="w-full bg-dark-800 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm focus:border-red-500/50 outline-none"
+                                                        className="w-full bg-dark-800 border border-white/10 rounded-lg px-2.5 py-2 text-white text-sm focus:border-violet-400/50 outline-none"
                                                     />
                                                 </div>
                                                 {PROVIDER_FIELDS.map(p => (
@@ -803,13 +803,13 @@ export default function DownloadsPage() {
                                                             className={`w-full bg-dark-800 border rounded-lg px-2.5 py-2 text-sm outline-none transition-colors ${(row.links[activeRes]?.[p.key as keyof LinkData] as string)
                                                                 ? 'border-green-500/30 text-green-300'
                                                                 : 'border-white/10 text-white'
-                                                                } focus:border-red-500/50`}
+                                                                } focus:border-violet-400/50`}
                                                         />
                                                     </div>
                                                 ))}
                                                 <button
                                                     onClick={() => deleteRow(idx)}
-                                                    className="w-full py-2 text-red-400 text-sm font-medium bg-red-500/10 rounded-lg hover:bg-red-500/20 transition-colors mt-2"
+                                                    className="w-full py-2 text-red-400 text-sm font-medium bg-red-500/10 rounded-lg hover:bg-violet-500/20 transition-colors mt-2"
                                                 >
                                                     Delete Episode
                                                 </button>
@@ -879,7 +879,7 @@ export default function DownloadsPage() {
             {saveResult && (
                 <div className={`fixed top-4 right-4 z-50 px-5 py-3 rounded-xl shadow-2xl border dl-anim-toast flex items-center gap-3 ${saveResult.success
                     ? 'bg-green-600/20 border-green-500/30 text-green-300'
-                    : 'bg-red-600/20 border-red-500/30 text-red-300'
+                    : 'bg-violet-600/20 border-red-500/30 text-red-300'
                     }`}>
                     {saveResult.success ? (
                         <>

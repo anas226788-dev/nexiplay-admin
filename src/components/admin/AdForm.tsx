@@ -106,7 +106,7 @@ export default function AdForm({ initialData }: AdFormProps) {
                             required
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-violet-400"
                             placeholder="e.g. Home Header Promo"
                         />
                     </div>
@@ -115,7 +115,7 @@ export default function AdForm({ initialData }: AdFormProps) {
                         <select
                             value={placement}
                             onChange={(e) => setPlacement(e.target.value as any)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-violet-400"
                         >
                             <option value="home_top">Homepage Top (320x50 / 728x90)</option>
                             <option value="home_bottom">Homepage Bottom (300x250)</option>
@@ -133,7 +133,7 @@ export default function AdForm({ initialData }: AdFormProps) {
                 <div>
                     <label className="block text-sm text-gray-400 mb-2">Ad Type</label>
                     <div className="flex gap-4">
-                        <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-colors ${adType === 'image' ? 'bg-red-600/10 border-red-500/50 text-red-500' : 'bg-dark-700 border-white/10 text-gray-400'}`}>
+                        <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-colors ${adType === 'image' ? 'bg-violet-600/10 border-red-500/50 text-violet-300' : 'bg-dark-700 border-white/10 text-gray-400'}`}>
                             <input
                                 type="radio"
                                 name="adType"
@@ -145,7 +145,7 @@ export default function AdForm({ initialData }: AdFormProps) {
                             <div className="text-center font-bold">Image Banner</div>
                             <div className="text-center text-xs opacity-70 mt-1">Upload an image or URL</div>
                         </label>
-                        <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-colors ${adType === 'script' ? 'bg-red-600/10 border-red-500/50 text-red-500' : 'bg-dark-700 border-white/10 text-gray-400'}`}>
+                        <label className={`flex-1 p-4 rounded-xl border cursor-pointer transition-colors ${adType === 'script' ? 'bg-violet-600/10 border-red-500/50 text-violet-300' : 'bg-dark-700 border-white/10 text-gray-400'}`}>
                             <input
                                 type="radio"
                                 name="adType"
@@ -200,7 +200,7 @@ export default function AdForm({ initialData }: AdFormProps) {
                                 type="url"
                                 value={destinationUrl}
                                 onChange={(e) => setDestinationUrl(e.target.value)}
-                                className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-red-500"
+                                className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-violet-400"
                                 placeholder="http://example.com/offer"
                             />
                         </div>
@@ -215,7 +215,7 @@ export default function AdForm({ initialData }: AdFormProps) {
                             rows={8}
                             value={scriptCode}
                             onChange={(e) => setScriptCode(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white font-mono text-sm focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-3 text-white font-mono text-sm focus:outline-none focus:border-violet-400"
                             placeholder="<script>...</script>"
                         />
                         <p className="text-xs text-yellow-500 mt-2">
@@ -237,7 +237,7 @@ export default function AdForm({ initialData }: AdFormProps) {
                 <button
                     type="submit"
                     disabled={loading || uploading}
-                    className="px-8 py-3 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-900/40"
+                    className="px-8 py-3 rounded-lg bg-violet-600 text-white font-bold hover:bg-violet-700 transition-colors shadow-lg shadow-red-900/40"
                 >
                     {loading ? 'Saving...' : 'Save Ad Campaign'}
                 </button>

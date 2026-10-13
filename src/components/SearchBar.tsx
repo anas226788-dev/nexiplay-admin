@@ -75,7 +75,7 @@ export default function SearchBar({ className = '' }: SearchBarProps) {
                         }}
                         onFocus={() => setIsOpen(true)}
                         placeholder="Search movies, series, anime..."
-                        className="w-full h-12 pl-12 pr-4 bg-dark-700/80 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-red-500/50 focus:bg-dark-600/80 transition-all duration-300"
+                        className="w-full h-12 pl-12 pr-4 bg-dark-700/80 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-violet-400/50 focus:bg-dark-600/80 transition-all duration-300"
                     />
                     <svg
                         className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"

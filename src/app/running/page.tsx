@@ -319,7 +319,7 @@ export default function RunningTasksPage() {
                         <button
                             onClick={handleCheckAll}
                             disabled={checkingAll || loading}
-                            className="flex items-center gap-2 px-4 py-2 bg-red-600/10 hover:bg-red-600/20 text-red-500 border border-red-500/20 hover:border-red-500/30 rounded-lg font-bold text-sm transition-all disabled:opacity-50"
+                            className="flex items-center gap-2 px-4 py-2 bg-violet-600/10 hover:bg-violet-600/20 text-violet-300 border border-red-500/20 hover:border-red-500/30 rounded-lg font-bold text-sm transition-all disabled:opacity-50"
                         >
                             {checkingAll ? (
                                 <span className="animate-spin h-4 w-4 border-2 border-red-500 border-t-transparent rounded-full"></span>
@@ -450,7 +450,7 @@ export default function RunningTasksPage() {
                                                             <button
                                                                 onClick={() => handleRejectSubs(task.id)}
                                                                 disabled={approvingId === task.id}
-                                                                className="px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 text-xs font-bold rounded-lg transition-all border border-red-500/20 disabled:opacity-50"
+                                                                className="px-3 py-1.5 bg-violet-600/20 hover:bg-violet-600/30 text-red-400 text-xs font-bold rounded-lg transition-all border border-red-500/20 disabled:opacity-50"
                                                             >
                                                                 🗑️
                                                             </button>
@@ -480,7 +480,7 @@ export default function RunningTasksPage() {
 
                                         <button
                                             onClick={() => handleToggleRunning(task)}
-                                            className="p-2 text-gray-500 hover:text-red-400 bg-white/5 hover:bg-red-500/10 rounded-lg transition-colors border border-white/5"
+                                            className="p-2 text-gray-500 hover:text-red-400 bg-white/5 hover:bg-violet-500/10 rounded-lg transition-colors border border-white/5"
                                             title="Stop Tracking"
                                         >
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -518,7 +518,7 @@ export default function RunningTasksPage() {
                                         <button
                                             onClick={() => handleMarkDone(task)}
                                             disabled={updatingId === task.id}
-                                            className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold rounded-lg transition-all active:scale-95 shadow-lg shadow-red-900/20"
+                                            className="flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold rounded-lg transition-all active:scale-95 shadow-lg shadow-red-900/20"
                                         >
                                             {updatingId === task.id ? (
                                                 <span className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></span>
@@ -558,7 +558,7 @@ export default function RunningTasksPage() {
                                         type="number" 
                                         value={editTask.last_episode || 0} 
                                         onChange={e => setEditTask({...editTask, last_episode: parseInt(e.target.value)})}
-                                        className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50" 
+                                        className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50" 
                                     />
                                 </div>
                                 <div>
@@ -567,7 +567,7 @@ export default function RunningTasksPage() {
                                         type="number" 
                                         value={editTask.next_episode || 0} 
                                         onChange={e => setEditTask({...editTask, next_episode: parseInt(e.target.value)})}
-                                        className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50" 
+                                        className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50" 
                                     />
                                 </div>
                             </div>
@@ -577,7 +577,7 @@ export default function RunningTasksPage() {
                                     type="datetime-local" 
                                     value={editTask.next_episode_date ? editTask.next_episode_date.slice(0, 16) : ''} 
                                     onChange={e => setEditTask({...editTask, next_episode_date: e.target.value ? new Date(e.target.value).toISOString() : undefined})}
-                                    className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white style-color-scheme-dark outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50" 
+                                    className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white style-color-scheme-dark outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50" 
                                 />
                             </div>
                             <div>
@@ -585,7 +585,7 @@ export default function RunningTasksPage() {
                                 <textarea 
                                     value={editTask.admin_note || ''} 
                                     onChange={e => setEditTask({...editTask, admin_note: e.target.value})}
-                                    className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white resize-none h-20 outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50" 
+                                    className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white resize-none h-20 outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50" 
                                     placeholder="Type an admin note..."
                                 />
                             </div>
@@ -601,7 +601,7 @@ export default function RunningTasksPage() {
                                         <select
                                             value={editTask.scraper_source || ''}
                                             onChange={e => setEditTask({...editTask, scraper_source: e.target.value as any})}
-                                            className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 text-sm"
+                                            className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50 text-sm"
                                         >
                                             <option value="">None (Manual)</option>
                                             <option value="fxlinks">FXLinks</option>
@@ -615,7 +615,7 @@ export default function RunningTasksPage() {
                                         <select
                                             value={editTask.scraper_resolution || '720p'}
                                             onChange={e => setEditTask({...editTask, scraper_resolution: e.target.value as any})}
-                                            className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 text-sm"
+                                            className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50 text-sm"
                                         >
                                             <option value="360p">360p</option>
                                             <option value="480p">480p</option>
@@ -632,7 +632,7 @@ export default function RunningTasksPage() {
                                                 type="url"
                                                 value={editTask.scraper_url || ''}
                                                 onChange={e => setEditTask({...editTask, scraper_url: e.target.value})}
-                                                className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 text-sm"
+                                                className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50 text-sm"
                                                 placeholder="https://..."
                                                 required={!!editTask.scraper_source}
                                             />
@@ -644,7 +644,7 @@ export default function RunningTasksPage() {
                                                 min="1"
                                                 value={editTask.scraper_season || 1}
                                                 onChange={e => setEditTask({...editTask, scraper_season: parseInt(e.target.value) || 1})}
-                                                className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 text-sm text-center font-mono"
+                                                className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50 text-sm text-center font-mono"
                                                 required={!!editTask.scraper_source}
                                             />
                                         </div>
@@ -666,7 +666,7 @@ export default function RunningTasksPage() {
                             </div>
                             <div className="pt-4 flex justify-end gap-3 border-t border-white/10 mt-4">
                                 <button type="button" onClick={() => setEditTask(null)} className="px-4 py-2 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-colors">Cancel</button>
-                                <button type="submit" disabled={updatingId === 'edit'} className="px-4 py-2 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                                <button type="submit" disabled={updatingId === 'edit'} className="px-4 py-2 rounded-lg bg-violet-600 text-white font-bold hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center gap-2">
                                     {updatingId === 'edit' ? <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span> : null}
                                     Save Changes
                                 </button>

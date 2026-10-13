@@ -101,7 +101,7 @@ export default function AppVersionPage() {
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                        <span className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center text-lg">
+                        <span className="w-10 h-10 bg-gradient-to-br from-violet-300 to-red-700 rounded-xl flex items-center justify-center text-lg">
                             📱
                         </span>
                         App Version Control
@@ -320,7 +320,7 @@ export default function AppVersionPage() {
                                             checked={config.force_update}
                                             onChange={(e) => setConfig({ ...config, force_update: e.target.checked })}
                                         />
-                                        <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                                        <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-violet-600"></div>
                                     </label>
                                 </div>
                             </div>
@@ -356,7 +356,7 @@ export default function AppVersionPage() {
                                 <button
                                     type="submit"
                                     disabled={saving}
-                                    className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-red-500/10"
+                                    className="px-8 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-red-500/10"
                                 >
                                     {saving ? (
                                         <>

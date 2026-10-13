@@ -162,7 +162,7 @@ export default function NoticePage() {
                                     </td>
                                     <td className="px-6 py-4 text-right flex items-center justify-end gap-3">
                                         <Link href={`/notices/edit/${notice.id}`} className="text-gray-400 hover:text-white">Edit</Link>
-                                        <button onClick={() => deleteNotice(notice.id)} className="text-red-500 hover:text-red-400">Delete</button>
+                                        <button onClick={() => deleteNotice(notice.id)} className="text-violet-300 hover:text-red-400">Delete</button>
                                     </td>
                                 </tr>
                             );

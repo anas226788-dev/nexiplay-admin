@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ContentRequest, AppSettings, Category } from '@/lib/types';
 import AdminShell from '@/components/AdminShell';
@@ -49,6 +49,16 @@ export default function RequestsPage() {
 
     // Messages
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    // Filters & Search
+    const [filterStatus, setFilterStatus] = useState<'all' | 'not_found' | 'pending' | 'review' | 'added' | 'rejected'>('all');
+    const [searchFilter, setSearchFilter] = useState('');
+
+    // Bulk selection & deletion
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+    const [deletingBatch, setDeletingBatch] = useState(false);
+    const [showDeleteNotFoundModal, setShowDeleteNotFoundModal] = useState(false);
+    const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
 
     useEffect(() => {
         fetchRequests();
@@ -194,15 +204,131 @@ export default function RequestsPage() {
         }
     };
 
+    // Helper to identify failed / not found requests
+    const isNotFoundRequest = (req: ContentRequest) => {
+        return (
+            req.processing_status === 'no_match' ||
+            req.processing_status === 'failed' ||
+            req.processing_status === 'skipped' ||
+            Boolean(req.automation_error)
+        );
+    };
+
+    // Filtered counts
+    const notFoundRequests = useMemo(() => requests.filter(isNotFoundRequest), [requests]);
+    const pendingRequests = useMemo(() => requests.filter(r => r.status === 'pending'), [requests]);
+    const reviewRequests = useMemo(() => requests.filter(r => r.status === 'review'), [requests]);
+    const addedRequests = useMemo(() => requests.filter(r => r.status === 'added'), [requests]);
+    const rejectedRequests = useMemo(() => requests.filter(r => r.status === 'rejected'), [requests]);
+
+    // Filtered requests list
+    const filteredRequests = useMemo(() => {
+        return requests.filter(req => {
+            if (filterStatus === 'not_found' && !isNotFoundRequest(req)) return false;
+            if (filterStatus === 'pending' && req.status !== 'pending') return false;
+            if (filterStatus === 'review' && req.status !== 'review') return false;
+            if (filterStatus === 'added' && req.status !== 'added') return false;
+            if (filterStatus === 'rejected' && req.status !== 'rejected') return false;
+
+            if (searchFilter.trim()) {
+                const query = searchFilter.toLowerCase();
+                const name = (req.content_name || req.title || '').toLowerCase();
+                const user = (req.user_name || req.user_email || '').toLowerCase();
+                const note = (req.notes || '').toLowerCase();
+                const err = (req.automation_error || '').toLowerCase();
+                if (!name.includes(query) && !user.includes(query) && !note.includes(query) && !err.includes(query)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+    }, [requests, filterStatus, searchFilter]);
+
+    // Batch and single delete execution
+    const handleDeleteIds = async (idsToDelete: string[], label = 'requests') => {
+        if (idsToDelete.length === 0) return;
+        setDeletingBatch(true);
+        try {
+            const res = await fetch('/api/admin/requests', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: idsToDelete }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to delete requests');
+
+            const deletedSet = new Set(idsToDelete);
+            setRequests(prev => prev.filter(r => !deletedSet.has(r.id)));
+            setSelectedIds(prev => prev.filter(id => !deletedSet.has(id)));
+            showMessage('success', `🎉 Successfully deleted ${data.count ?? idsToDelete.length} ${label}`);
+        } catch (err: any) {
+            console.error('Delete failed:', err);
+            // Fallback directly to client Supabase delete if API returns error
+            try {
+                const { error: supaErr } = await supabase.from('content_requests').delete().in('id', idsToDelete);
+                if (supaErr) throw supaErr;
+                const deletedSet = new Set(idsToDelete);
+                setRequests(prev => prev.filter(r => !deletedSet.has(r.id)));
+                setSelectedIds(prev => prev.filter(id => !deletedSet.has(id)));
+                showMessage('success', `🎉 Successfully deleted ${idsToDelete.length} ${label}`);
+            } catch (fallbackErr: any) {
+                showMessage('error', fallbackErr.message || err.message || 'Failed to delete requests');
+            }
+        } finally {
+            setDeletingBatch(false);
+            setShowDeleteNotFoundModal(false);
+            setShowDeleteSelectedModal(false);
+        }
+    };
+
     const deleteRequest = async (id: string) => {
         if (!confirm('Are you sure you want to delete this request?')) return;
-        const { error } = await supabase.from('content_requests').delete().eq('id', id);
-        if (!error) {
-            setRequests(requests.filter(r => r.id !== id));
-            showMessage('success', 'Request deleted');
-        } else {
-            showMessage('error', 'Failed to delete request');
+        await handleDeleteIds([id], 'request');
+    };
+
+    const handleDeleteAllNotFound = () => {
+        if (notFoundRequests.length === 0) {
+            showMessage('error', 'No "Not Found" requests to delete.');
+            return;
         }
+        setShowDeleteNotFoundModal(true);
+    };
+
+    const handleConfirmDeleteAllNotFound = () => {
+        const ids = notFoundRequests.map(r => r.id);
+        handleDeleteIds(ids, '"Not Found" requests');
+    };
+
+    const handleConfirmDeleteSelected = () => {
+        handleDeleteIds(selectedIds, 'selected requests');
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === filteredRequests.length && filteredRequests.length > 0) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(filteredRequests.map(r => r.id));
+        }
+    };
+
+    const toggleSelectOne = (id: string) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+    };
+
+    const handleBatchRetry = async () => {
+        const targetIds = selectedIds.filter(id => {
+            const req = requests.find(r => r.id === id);
+            return req && (req.processing_status === 'failed' || req.processing_status === 'no_match' || req.processing_status === 'skipped');
+        });
+        if (targetIds.length === 0) {
+            showMessage('error', 'None of the selected requests are in failed/skipped state.');
+            return;
+        }
+        for (const id of targetIds) {
+            await handleRetryRequest(id);
+        }
+        setSelectedIds([]);
+        showMessage('success', `Reset ${targetIds.length} requests for retry.`);
     };
 
     const suggestImportSource = (contentName: string): 'rareanimes' | 'bollyflix' | 'movielink' => {
@@ -503,12 +629,25 @@ export default function RequestsPage() {
                             Automated scraper pipeline runs every 15 min or on-demand
                         </p>
                     </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                        {/* Delete All Not Found Button */}
+                        <button
+                            onClick={handleDeleteAllNotFound}
+                            disabled={notFoundRequests.length === 0 || deletingBatch}
+                            className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border font-bold text-xs transition-all bg-red-500/15 border-red-500/30 text-red-300 hover:bg-red-500/25 disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-red-950/20 active:scale-95"
+                            title="Delete all requests where scrapers found no match or failed"
+                        >
+                            <svg className="w-4 h-4 text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Delete Not Found ({notFoundRequests.length})</span>
+                        </button>
+
                         <button
                             onClick={() => setShowSettings(!showSettings)}
                             className={`flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl border transition-all flex items-center justify-center gap-2 text-xs font-bold ${
                                 showSettings 
-                                ? 'bg-red-600 border-red-500 text-white' 
+                                ? 'bg-violet-600 border-red-500 text-white' 
                                 : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10 hover:text-white'
                             }`}
                             title="Configure Scraper Domains"
@@ -580,9 +719,141 @@ export default function RequestsPage() {
                             <button
                                 onClick={saveSettings}
                                 disabled={savingSettings}
-                                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg text-sm transition-all disabled:opacity-50"
+                                className="px-5 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg text-sm transition-all disabled:opacity-50"
                             >
                                 {savingSettings ? 'Saving...' : 'Save Domains'}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Filter Tabs & Search Bar */}
+                <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 p-2.5 bg-dark-900/60 rounded-2xl border border-white/5 backdrop-blur-md">
+                    {/* Filter Pills */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+                        <button
+                            onClick={() => setFilterStatus('all')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                                filterStatus === 'all'
+                                ? 'bg-white/15 text-white shadow'
+                                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
+                        >
+                            <span>All</span>
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/10">{requests.length}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setFilterStatus('not_found')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                                filterStatus === 'not_found'
+                                ? 'bg-red-500/25 text-red-300 border border-red-500/40 shadow-lg shadow-red-900/20'
+                                : 'text-red-400 hover:text-red-300 hover:bg-red-500/10'
+                            }`}
+                        >
+                            <span>⚠️ Not Found</span>
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-red-500/25 text-red-300 font-mono font-bold">{notFoundRequests.length}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setFilterStatus('pending')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                                filterStatus === 'pending'
+                                ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                                : 'text-gray-400 hover:text-yellow-300 hover:bg-white/5'
+                            }`}
+                        >
+                            <span>⏳ Pending</span>
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/10">{pendingRequests.length}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setFilterStatus('review')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                                filterStatus === 'review'
+                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                                : 'text-gray-400 hover:text-purple-300 hover:bg-white/5'
+                            }`}
+                        >
+                            <span>📝 Review Ready</span>
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/10">{reviewRequests.length}</span>
+                        </button>
+
+                        <button
+                            onClick={() => setFilterStatus('added')}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                                filterStatus === 'added'
+                                ? 'bg-green-500/20 text-green-300 border border-green-500/30'
+                                : 'text-gray-400 hover:text-green-300 hover:bg-white/5'
+                            }`}
+                        >
+                            <span>✅ Added</span>
+                            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/10">{addedRequests.length}</span>
+                        </button>
+
+                        {rejectedRequests.length > 0 && (
+                            <button
+                                onClick={() => setFilterStatus('rejected')}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                                    filterStatus === 'rejected'
+                                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                    : 'text-gray-400 hover:text-rose-300 hover:bg-white/5'
+                                }`}
+                            >
+                                <span>❌ Rejected</span>
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-white/10">{rejectedRequests.length}</span>
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Search Input */}
+                    <div className="relative min-w-[240px] lg:w-72">
+                        <input
+                            type="text"
+                            value={searchFilter}
+                            onChange={(e) => setSearchFilter(e.target.value)}
+                            placeholder="Filter by title, user, error..."
+                            className="w-full bg-dark-800/80 border border-white/10 rounded-xl pl-9 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+                        />
+                        <svg className="w-4 h-4 text-gray-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        {searchFilter && (
+                            <button
+                                onClick={() => setSearchFilter('')}
+                                className="absolute right-2.5 top-2 text-gray-400 hover:text-white text-xs font-bold"
+                            >
+                                ✕
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Bulk Action Toolbar (when items selected) */}
+                {selectedIds.length > 0 && (
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 px-4 bg-purple-950/40 border border-purple-500/30 rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="flex items-center gap-2 text-xs font-bold text-purple-200">
+                            <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                            <span>{selectedIds.length} request(s) selected</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                            <button
+                                onClick={handleBatchRetry}
+                                className="px-3 py-1.5 rounded-lg bg-orange-500/20 hover:bg-orange-500/30 text-orange-300 border border-orange-500/30 text-xs font-bold transition-colors flex items-center gap-1"
+                            >
+                                🔄 Retry Selected
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteSelectedModal(true)}
+                                className="px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 text-xs font-bold transition-colors flex items-center gap-1"
+                            >
+                                🗑️ Delete Selected ({selectedIds.length})
+                            </button>
+                            <button
+                                onClick={() => setSelectedIds([])}
+                                className="px-2.5 py-1.5 text-xs text-gray-400 hover:text-white transition-colors"
+                            >
+                                Deselect
                             </button>
                         </div>
                     </div>
@@ -594,6 +865,15 @@ export default function RequestsPage() {
                         <table className="w-full text-left">
                             <thead className="bg-white/5 text-gray-400 text-xs uppercase">
                                 <tr>
+                                    <th className="w-12 px-4 py-4 text-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={filteredRequests.length > 0 && selectedIds.length === filteredRequests.length}
+                                            onChange={toggleSelectAll}
+                                            className="w-4 h-4 rounded border-white/20 bg-dark-800 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                            title="Select all filtered requests"
+                                        />
+                                    </th>
                                     <th className="px-6 py-4">Request Content</th>
                                     <th className="px-6 py-4">Status</th>
                                     <th className="px-6 py-4">Date</th>
@@ -601,8 +881,19 @@ export default function RequestsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {requests.map((req) => (
-                                    <tr key={req.id} className="hover:bg-white/5 transition-colors">
+                                {filteredRequests.map((req) => (
+                                    <tr 
+                                        key={req.id} 
+                                        className={`hover:bg-white/5 transition-colors ${selectedIds.includes(req.id) ? 'bg-purple-950/20' : ''}`}
+                                    >
+                                        <td className="w-12 px-4 py-4 text-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.includes(req.id)}
+                                                onChange={() => toggleSelectOne(req.id)}
+                                                className="w-4 h-4 rounded border-white/20 bg-dark-800 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                                            />
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2.5 flex-wrap">
                                                 <span className="text-white font-semibold text-sm">
@@ -770,7 +1061,7 @@ export default function RequestsPage() {
                                             )}
                                             <button
                                                 onClick={() => deleteRequest(req.id)}
-                                                className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                                                className="p-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-violet-500/30 transition-all"
                                                 title="Delete"
                                             >
                                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -780,10 +1071,26 @@ export default function RequestsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {requests.length === 0 && (
+                                {filteredRequests.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
-                                            No requests found.
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                                            <div className="flex flex-col items-center justify-center gap-2">
+                                                <span className="text-2xl">🔍</span>
+                                                <p className="font-semibold text-gray-400">No requests found</p>
+                                                <p className="text-xs text-gray-500">
+                                                    {filterStatus !== 'all' || searchFilter 
+                                                        ? 'No requests match your current filters. Try changing or clearing them.' 
+                                                        : 'No content requests available.'}
+                                                </p>
+                                                {(filterStatus !== 'all' || searchFilter) && (
+                                                    <button
+                                                        onClick={() => { setFilterStatus('all'); setSearchFilter(''); }}
+                                                        className="mt-2 text-xs text-purple-400 hover:text-purple-300 underline font-semibold"
+                                                    >
+                                                        Reset Filters
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 )}
@@ -794,21 +1101,44 @@ export default function RequestsPage() {
 
                 {/* Mobile Card Requests View (Phone Optimized) */}
                 <div className="md:hidden space-y-4">
-                    {requests.length === 0 ? (
+                    {filteredRequests.length === 0 ? (
                         <div className="glass-panel rounded-xl p-8 text-center text-gray-500 text-sm">
-                            No requests found.
+                            <div className="flex flex-col items-center justify-center gap-2">
+                                <span className="text-2xl">🔍</span>
+                                <p className="font-semibold text-gray-400">No requests found</p>
+                                <p className="text-xs text-gray-500">
+                                    {filterStatus !== 'all' || searchFilter 
+                                        ? 'No requests match your current filters.' 
+                                        : 'No content requests available.'}
+                                </p>
+                                {(filterStatus !== 'all' || searchFilter) && (
+                                    <button
+                                        onClick={() => { setFilterStatus('all'); setSearchFilter(''); }}
+                                        className="mt-2 text-xs text-purple-400 hover:text-purple-300 underline font-semibold"
+                                    >
+                                        Reset Filters
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ) : (
-                        requests.map((req) => (
-                            <div key={req.id} className="glass-panel rounded-2xl p-4 space-y-3.5 border border-white/5 shadow-lg">
+                        filteredRequests.map((req) => (
+                            <div key={req.id} className={`glass-panel rounded-2xl p-4 space-y-3.5 border transition-all shadow-lg ${selectedIds.includes(req.id) ? 'border-purple-500/50 bg-purple-950/20' : 'border-white/5'}`}>
                                 {/* Title & Status Row */}
                                 <div className="flex items-start justify-between gap-2.5">
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <h3 className="font-bold text-white text-base leading-snug">
-                                                {req.content_name || req.title}
-                                            </h3>
-                                        </div>
+                                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.includes(req.id)}
+                                            onChange={() => toggleSelectOne(req.id)}
+                                            className="w-4 h-4 mt-1 rounded border-white/20 bg-dark-800 text-purple-600 focus:ring-purple-500 cursor-pointer shrink-0"
+                                        />
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h3 className="font-bold text-white text-base leading-snug">
+                                                    {req.content_name || req.title}
+                                                </h3>
+                                            </div>
                                         {req.has_account && (req.user_name || req.user_email) && (
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-1.5 rounded-full text-[11px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/25">
                                                 {req.user_avatar ? (
@@ -822,6 +1152,7 @@ export default function RequestsPage() {
                                         {req.notes && (
                                             <p className="text-xs text-gray-400 italic mt-1">Note: {req.notes}</p>
                                         )}
+                                        </div>
                                     </div>
                                     <span className={`px-2.5 py-1 text-xs font-black rounded-full capitalize shrink-0 ${
                                         req.status === 'added' ? 'bg-green-500/20 text-green-400' :
@@ -956,7 +1287,7 @@ export default function RequestsPage() {
                                             </button>
                                             <button
                                                 onClick={() => deleteRequest(req.id)}
-                                                className="py-2.5 px-2 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
+                                                className="py-2.5 px-2 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-violet-500/30 transition-colors flex items-center justify-center gap-1"
                                             >
                                                 <span>🗑️</span>
                                                 <span>Del</span>
@@ -983,7 +1314,7 @@ export default function RequestsPage() {
                                                 </button>
                                                 <button
                                                     onClick={() => deleteRequest(req.id)}
-                                                    className="py-2 px-3 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1.5"
+                                                    className="py-2 px-3 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-violet-500/30 transition-colors flex items-center justify-center gap-1.5"
                                                 >
                                                     <span>🗑️</span>
                                                     <span>Delete</span>
@@ -996,7 +1327,7 @@ export default function RequestsPage() {
                                         <div className="flex items-center justify-end gap-2">
                                             <button
                                                 onClick={() => deleteRequest(req.id)}
-                                                className="py-2 px-3 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
+                                                className="py-2 px-3 bg-red-500/20 text-red-400 rounded-xl text-xs font-bold hover:bg-violet-500/30 transition-colors flex items-center justify-center gap-1"
                                             >
                                                 <span>🗑️</span>
                                                 <span>Delete</span>
@@ -1040,7 +1371,7 @@ export default function RequestsPage() {
                                         <select
                                             value={activeSearchRequestType}
                                             onChange={(e) => setActiveSearchRequestType(e.target.value as any)}
-                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500 font-semibold"
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400 font-semibold"
                                         >
                                             <option value="auto">Auto Detect (Recommended)</option>
                                             <option value="movie">Movie</option>
@@ -1053,7 +1384,7 @@ export default function RequestsPage() {
                                         <select
                                             value={searchSource}
                                             onChange={(e) => setSearchSource(e.target.value as any)}
-                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                                         >
                                             <option value="movielink">MovieLinkBD</option>
                                             <option value="rareanimes">RareAnimes (Anime)</option>
@@ -1067,7 +1398,7 @@ export default function RequestsPage() {
                                                 type="text"
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                                className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                                                className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                                                 placeholder="Enter title..."
                                             />
                                             <button
@@ -1172,7 +1503,7 @@ export default function RequestsPage() {
                                                 type="text"
                                                 value={reviewData.title}
                                                 onChange={(e) => setReviewData({ ...reviewData, title: e.target.value })}
-                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                                             />
                                         </div>
                                         <div>
@@ -1182,7 +1513,7 @@ export default function RequestsPage() {
                                                 value={reviewData.description}
                                                 onChange={(e) => setReviewData({ ...reviewData, description: e.target.value })}
                                                 placeholder="Add content description..."
-                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500 resize-none"
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400 resize-none"
                                             />
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1191,7 +1522,7 @@ export default function RequestsPage() {
                                                 <select
                                                     value={reviewData.type}
                                                     onChange={(e) => setReviewData({ ...reviewData, type: e.target.value as any })}
-                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500 font-medium"
+                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400 font-medium"
                                                 >
                                                     <option value="movie">Movie</option>
                                                     <option value="series">Series</option>
@@ -1204,7 +1535,7 @@ export default function RequestsPage() {
                                                     type="number"
                                                     value={reviewData.release_year}
                                                     onChange={(e) => setReviewData({ ...reviewData, release_year: parseInt(e.target.value) || new Date().getFullYear() })}
-                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                                                 />
                                             </div>
                                         </div>
@@ -1218,7 +1549,7 @@ export default function RequestsPage() {
                                                 type="text"
                                                 value={reviewData.poster_url || ''}
                                                 onChange={(e) => setReviewData({ ...reviewData, poster_url: e.target.value })}
-                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-xs focus:outline-none focus:border-red-500 font-mono mb-2"
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-xs focus:outline-none focus:border-violet-400 font-mono mb-2"
                                                 placeholder="Paste image URL..."
                                             />
                                             {reviewData.poster_url ? (
@@ -1259,7 +1590,7 @@ export default function RequestsPage() {
                                                     }}
                                                     className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                                                         isSelected 
-                                                        ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/10' 
+                                                        ? 'bg-violet-600 border-red-500 text-white shadow-lg shadow-red-600/10' 
                                                         : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
                                                     }`}
                                                 >
@@ -1355,7 +1686,7 @@ export default function RequestsPage() {
                                                                     const dls = reviewData.downloads.filter((_: any, i: number) => i !== idx);
                                                                     setReviewData({ ...reviewData, downloads: dls });
                                                                 }}
-                                                                className="p-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg shrink-0"
+                                                                className="p-2 bg-red-500/20 text-red-400 hover:bg-violet-500/30 rounded-lg shrink-0"
                                                             >
                                                                 🗑️
                                                             </button>
@@ -1391,7 +1722,7 @@ export default function RequestsPage() {
                                                                         onClick={() => setActiveSeasonTab(sIdx)}
                                                                         className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 border ${
                                                                             isActive
-                                                                                ? 'bg-red-600 border-red-500 text-white shadow-lg shadow-red-600/20'
+                                                                                ? 'bg-violet-600 border-red-500 text-white shadow-lg shadow-red-600/20'
                                                                                 : 'bg-dark-900 border-white/10 text-gray-400 hover:text-white hover:border-white/20'
                                                                         }`}
                                                                     >
@@ -1412,7 +1743,7 @@ export default function RequestsPage() {
                                                                                 setReviewData({ ...reviewData, seasons });
                                                                                 setActiveSeasonTab(Math.max(0, sIdx - 1));
                                                                             }}
-                                                                            className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded text-xs transition-colors"
+                                                                            className="p-1 hover:bg-violet-500/20 text-gray-500 hover:text-red-400 rounded text-xs transition-colors"
                                                                             title="Delete Season"
                                                                         >
                                                                             ✕
@@ -1461,7 +1792,7 @@ export default function RequestsPage() {
                                                                             <div key={idx} className="p-3 bg-dark-900/60 border border-white/5 rounded-lg space-y-2">
                                                                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                                                                     <div className="flex items-center gap-2">
-                                                                                        <span className="px-2 py-0.5 bg-red-600/20 text-red-400 border border-red-500/20 rounded text-[11px] font-mono font-bold whitespace-nowrap">
+                                                                                        <span className="px-2 py-0.5 bg-violet-600/20 text-red-400 border border-red-500/20 rounded text-[11px] font-mono font-bold whitespace-nowrap">
                                                                                             S{currentSeason.season_number} E{ep.episode_number}
                                                                                         </span>
                                                                                         <input
@@ -1495,7 +1826,7 @@ export default function RequestsPage() {
                                                                                                 copy.seasons[currentSeasonIdx].episodes = copy.seasons[currentSeasonIdx].episodes.filter((_: any, i: number) => i !== idx);
                                                                                                 setReviewData(copy);
                                                                                             }}
-                                                                                            className="p-1.5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded transition-colors text-xs shrink-0"
+                                                                                            className="p-1.5 hover:bg-violet-500/20 text-gray-500 hover:text-red-400 rounded transition-colors text-xs shrink-0"
                                                                                             title="Delete Episode"
                                                                                         >
                                                                                             🗑️
@@ -1549,7 +1880,7 @@ export default function RequestsPage() {
                                                                                                         copy.seasons[currentSeasonIdx].episodes[idx].download_links = copy.seasons[currentSeasonIdx].episodes[idx].download_links.filter((_: any, i: number) => i !== lIdx);
                                                                                                         setReviewData(copy);
                                                                                                     }}
-                                                                                                    className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-400 rounded text-xs shrink-0"
+                                                                                                    className="p-1 hover:bg-violet-500/20 text-gray-500 hover:text-red-400 rounded text-xs shrink-0"
                                                                                                     title="Remove Link"
                                                                                                 >
                                                                                                     ✕
@@ -1610,7 +1941,7 @@ export default function RequestsPage() {
                                                             });
                                                             setActiveSeasonTab(0);
                                                         }}
-                                                        className="mt-2 px-3 py-1.5 bg-red-600/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold"
+                                                        className="mt-2 px-3 py-1.5 bg-violet-600/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold"
                                                     >
                                                         + Initialize Season 1
                                                     </button>
@@ -1810,6 +2141,133 @@ export default function RequestsPage() {
                                     </>
                                 );
                             })()}
+                        </div>
+                    </div>
+                )}
+                {/* MODAL 5: Delete All Not Found Confirmation */}
+                {showDeleteNotFoundModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-[#13111A] border border-red-500/30 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                            <div className="flex items-center gap-3 text-red-400">
+                                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-2xl">
+                                    🗑️
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-white">Delete All "Not Found" Requests</h3>
+                                    <p className="text-xs text-gray-400 mt-0.5">Permanent batch deletion</p>
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-gray-300 leading-relaxed">
+                                Are you sure you want to permanently delete all <strong className="text-red-400 font-bold">{notFoundRequests.length}</strong> requests that scrapers could not find or that failed during automation?
+                            </p>
+
+                            <div className="max-h-48 overflow-y-auto space-y-1.5 p-3 rounded-xl bg-black/50 border border-white/5 scrollbar-thin">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1 sticky top-0 bg-[#0B0910] py-0.5">
+                                    Requests to be deleted ({notFoundRequests.length}):
+                                </div>
+                                {notFoundRequests.map(r => (
+                                    <div key={r.id} className="text-xs text-gray-300 flex items-center justify-between gap-2 py-1 px-2 rounded hover:bg-white/5">
+                                        <span className="truncate font-medium">{r.content_name || r.title}</span>
+                                        <span className="text-[10px] font-mono text-red-400/80 shrink-0 bg-red-500/10 px-1.5 py-0.5 rounded border border-red-500/20">
+                                            {r.processing_status || 'error'}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/5">
+                                <button
+                                    onClick={() => setShowDeleteNotFoundModal(false)}
+                                    disabled={deletingBatch}
+                                    className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmDeleteAllNotFound}
+                                    disabled={deletingBatch}
+                                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {deletingBatch ? (
+                                        <>
+                                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span>Deleting {notFoundRequests.length}...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>🗑️</span>
+                                            <span>Yes, Delete All ({notFoundRequests.length})</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* MODAL 6: Delete Selected Requests Confirmation */}
+                {showDeleteSelectedModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-[#13111A] border border-red-500/30 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                            <div className="flex items-center gap-3 text-red-400">
+                                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-2xl">
+                                    🗑️
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-white">Delete Selected Requests</h3>
+                                    <p className="text-xs text-gray-400 mt-0.5">Permanent batch deletion</p>
+                                </div>
+                            </div>
+
+                            <p className="text-xs text-gray-300 leading-relaxed">
+                                Are you sure you want to permanently delete the <strong className="text-red-400 font-bold">{selectedIds.length}</strong> selected requests?
+                            </p>
+
+                            <div className="max-h-48 overflow-y-auto space-y-1.5 p-3 rounded-xl bg-black/50 border border-white/5 scrollbar-thin">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-1 sticky top-0 bg-[#0B0910] py-0.5">
+                                    Selected requests ({selectedIds.length}):
+                                </div>
+                                {selectedIds.map(id => {
+                                    const req = requests.find(r => r.id === id);
+                                    if (!req) return null;
+                                    return (
+                                        <div key={id} className="text-xs text-gray-300 flex items-center justify-between gap-2 py-1 px-2 rounded hover:bg-white/5">
+                                            <span className="truncate font-medium">{req.content_name || req.title}</span>
+                                            <span className="text-[10px] font-mono text-gray-400 shrink-0 capitalize">
+                                                {req.status}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/5">
+                                <button
+                                    onClick={() => setShowDeleteSelectedModal(false)}
+                                    disabled={deletingBatch}
+                                    className="px-4 py-2 text-xs font-bold text-gray-400 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmDeleteSelected}
+                                    disabled={deletingBatch}
+                                    className="px-5 py-2.5 text-xs font-bold rounded-xl bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/30 transition-all flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    {deletingBatch ? (
+                                        <>
+                                            <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            <span>Deleting {selectedIds.length}...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>🗑️</span>
+                                            <span>Yes, Delete Selected ({selectedIds.length})</span>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

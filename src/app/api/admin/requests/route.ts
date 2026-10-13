@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 function adminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) throw new Error('Server-side Supabase credentials are not configured');
   return createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } });
 }
@@ -95,3 +95,34 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  if (!sameOrigin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  try {
+    const db = adminClient();
+    const body = await req.json().catch(() => ({}));
+    const ids: string[] = Array.isArray(body.ids) ? body.ids : body.id ? [body.id] : [];
+
+    if (ids.length === 0) {
+      return NextResponse.json({ error: 'No request IDs provided' }, { status: 400 });
+    }
+
+    // Delete in batches of 100 to prevent large request constraints
+    const BATCH_SIZE = 100;
+    let deletedCount = 0;
+
+    for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+      const chunk = ids.slice(i, i + BATCH_SIZE);
+      const { error } = await db.from('content_requests').delete().in('id', chunk);
+      if (error) throw error;
+      deletedCount += chunk.length;
+    }
+
+    return NextResponse.json({ success: true, count: deletedCount });
+  } catch (error: unknown) {
+    console.error('Admin requests DELETE error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to delete requests';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+

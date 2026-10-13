@@ -33,7 +33,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
                     <div className="p-4 w-full transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                         <div className="flex items-center gap-2 mb-2">
-                            <span className="px-2 py-0.5 text-xs font-bold rounded bg-red-600 shadow-lg shadow-red-900/50 uppercase tracking-wider text-white">
+                            <span className="px-2 py-0.5 text-xs font-bold rounded bg-violet-600 shadow-lg shadow-red-900/50 uppercase tracking-wider text-white">
                                 {movie.type}
                             </span>
                             {movie.release_year && (

@@ -426,7 +426,7 @@ export default function AdsPage() {
                                         className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                                             ad.is_active
                                                 ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/25'
-                                                : 'bg-red-500/15 text-red-400 border-red-500/20 hover:bg-red-500/25'
+                                                : 'bg-red-500/15 text-red-400 border-red-500/20 hover:bg-violet-500/25'
                                         }`}
                                     >
                                         {ad.is_active ? '● Active' : '○ Inactive'}
@@ -439,7 +439,7 @@ export default function AdsPage() {
                                     </Link>
                                     <button
                                         onClick={() => deleteAd(ad.id)}
-                                        className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px] font-bold rounded-lg border border-red-500/15 transition-all"
+                                        className="px-3 py-1.5 bg-red-500/10 hover:bg-violet-500/20 text-red-400 text-[11px] font-bold rounded-lg border border-red-500/15 transition-all"
                                     >
                                         Delete
                                     </button>

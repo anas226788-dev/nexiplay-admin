@@ -64,7 +64,7 @@ export default function DmcaRequestsPage() {
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className={`px-2 py-0.5 text-xs font-bold rounded uppercase ${req.status === 'pending' ? 'bg-yellow-500/20 text-yellow-500' :
                                         req.status === 'approved' ? 'bg-green-500/20 text-green-500' :
-                                            'bg-red-500/20 text-red-500'
+                                            'bg-red-500/20 text-violet-300'
                                         }`}>
                                         {req.status}
                                     </span>
@@ -88,7 +88,7 @@ export default function DmcaRequestsPage() {
                                         </button>
                                         <button
                                             onClick={() => updateStatus(req.id, 'rejected')}
-                                            className="px-4 py-2 bg-red-600/20 text-red-500 hover:bg-red-600/30 rounded-lg text-sm font-bold transition-colors"
+                                            className="px-4 py-2 bg-violet-600/20 text-violet-300 hover:bg-violet-600/30 rounded-lg text-sm font-bold transition-colors"
                                         >
                                             Reject
                                         </button>
@@ -96,7 +96,7 @@ export default function DmcaRequestsPage() {
                                 )}
                                 <button
                                     onClick={() => deleteRequest(req.id)}
-                                    className="px-4 py-2 bg-gray-700/50 text-gray-400 hover:bg-red-600/20 hover:text-red-500 rounded-lg text-sm font-bold transition-colors"
+                                    className="px-4 py-2 bg-gray-700/50 text-gray-400 hover:bg-violet-600/20 hover:text-violet-300 rounded-lg text-sm font-bold transition-colors"
                                 >
                                     Delete
                                 </button>

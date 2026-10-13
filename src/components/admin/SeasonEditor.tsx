@@ -401,7 +401,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                                     <button
                                         type="button"
                                         onClick={() => deleteSeason(season.id!)}
-                                        className="px-3 py-1.5 bg-red-600/20 text-red-400 text-sm font-medium rounded-lg hover:bg-red-600/30 transition-colors"
+                                        className="px-3 py-1.5 bg-violet-600/20 text-red-400 text-sm font-medium rounded-lg hover:bg-violet-600/30 transition-colors"
                                     >
                                         Delete
                                     </button>

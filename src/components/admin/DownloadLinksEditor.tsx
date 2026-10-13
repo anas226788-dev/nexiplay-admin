@@ -75,7 +75,7 @@ export default function DownloadLinksEditor({ movieId, initialLinks, onChange }:
                         className={`
                             px-4 py-2 rounded-lg font-medium text-sm transition-all
                             ${activeTab === res
-                                ? 'bg-red-600 text-white'
+                                ? 'bg-violet-600 text-white'
                                 : hasAnyLink(res)
                                     ? 'bg-green-600/20 text-green-400 border border-green-500/30'
                                     : 'bg-dark-700 text-gray-400 border border-white/10 hover:bg-dark-600'
@@ -105,7 +105,7 @@ export default function DownloadLinksEditor({ movieId, initialLinks, onChange }:
                             placeholder="e.g., 800MB"
                             value={links[activeTab]?.file_size || ''}
                             onChange={(e) => updateLink(activeTab, 'file_size', e.target.value)}
-                            className="w-full bg-dark-600 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-600 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                         />
                     </div>
 
@@ -118,7 +118,7 @@ export default function DownloadLinksEditor({ movieId, initialLinks, onChange }:
                                 placeholder={provider.placeholder}
                                 value={(links[activeTab]?.[provider.key as keyof DownloadLink] as string) || ''}
                                 onChange={(e) => updateLink(activeTab, provider.key, e.target.value)}
-                                className="w-full bg-dark-600 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                                className="w-full bg-dark-600 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                             />
                         </div>
                     ))}

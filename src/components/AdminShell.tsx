@@ -84,14 +84,14 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
     return (
         <AdminShellContext.Provider value={true}>
-            <div className="flex min-h-screen bg-black">
+            <div className="flex min-h-screen bg-[#0D0B12]">
             {/* Sidebar (Desktop Only) */}
             <aside className="
                 hidden md:flex flex-col fixed top-0 left-0 bottom-0 w-64
                 glass-panel z-50 border-r-0
             ">
                 <div className="p-6">
-                    <h1 className="text-xl font-bold bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent">
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-violet-300 to-violet-500 bg-clip-text text-transparent">
                         Nexiplay Admin
                     </h1>
                 </div>
@@ -104,7 +104,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                 key={item.path}
                                 href={item.path}
                                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive
-                                    ? 'bg-red-600/10 text-red-400 border border-red-500/10'
+                                    ? 'bg-violet-500/10 text-violet-300 border border-violet-400/15'
                                     : 'text-gray-400 hover:bg-white/5 hover:text-white'
                                     }`}
                             >
@@ -113,12 +113,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                 </svg>
                                 <span className="flex-1">{item.name}</span>
                                 {item.name === 'Running Tasks' && runningAlerts > 0 && (
-                                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                    <span className="bg-rose-400 text-[#0D0B12] text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
                                         {runningAlerts}
                                     </span>
                                 )}
                                 {item.name === 'Requests' && pendingRequests > 0 && (
-                                    <span className="bg-yellow-500 text-black text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                    <span className="bg-[#FFB878] text-[#0D0B12] text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
                                         {pendingRequests}
                                     </span>
                                 )}
@@ -141,7 +141,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                 key={item.path}
                                 href={item.path}
                                 className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-colors ${isActive
-                                    ? 'text-red-500'
+                                    ? 'text-violet-300'
                                     : 'text-gray-500'
                                     }`}
                             >
@@ -189,10 +189,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
                                     </svg>
                                     {item.name === 'Running Tasks' && runningAlerts > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-red-500 w-3.5 h-3.5 rounded-full animate-pulse border-2 border-dark-900"></span>
+                                        <span className="absolute -top-1 -right-1 bg-rose-400 w-3.5 h-3.5 rounded-full animate-pulse border-2 border-dark-900"></span>
                                     )}
                                     {item.name === 'Requests' && pendingRequests > 0 && (
-                                        <span className="absolute -top-1 -right-1 bg-yellow-500 w-3.5 h-3.5 rounded-full animate-pulse border-2 border-dark-900"></span>
+                                        <span className="absolute -top-1 -right-1 bg-[#FFB878] w-3.5 h-3.5 rounded-full animate-pulse border-2 border-dark-900"></span>
                                     )}
                                 </div>
                                 <span className="text-xs text-gray-400 font-medium">{item.name}</span>

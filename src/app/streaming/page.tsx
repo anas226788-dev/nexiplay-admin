@@ -1258,7 +1258,7 @@ export default function StreamingPage() {
                                     onClick={() => setActiveTab(tab)}
                                     className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${
                                         activeTab === tab 
-                                        ? 'bg-red-600 text-white shadow-lg shadow-red-900/30' 
+                                        ? 'bg-violet-600 text-white shadow-lg shadow-red-900/30' 
                                         : 'text-gray-400 hover:text-white'
                                     }`}
                                 >
@@ -1447,7 +1447,7 @@ export default function StreamingPage() {
                                             className={`px-3 py-1.5 rounded-lg border transition-all text-xs font-bold flex items-center gap-1 ${
                                                 movie.streaming_url === 'disabled'
                                                 ? 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border-green-500/20'
-                                                : 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border-red-500/20'
+                                                : 'bg-red-500/20 hover:bg-violet-500/30 text-red-400 border-red-500/20'
                                             }`}
                                         >
                                             {movie.streaming_url === 'disabled' ? '🟢 Enable' : '🚫 Disable'}
@@ -1524,7 +1524,7 @@ export default function StreamingPage() {
                                     <select
                                         value={searchSource}
                                         onChange={(e) => setSearchSource(e.target.value as any)}
-                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500 font-semibold"
+                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400 font-semibold"
                                     >
                                         <option value="tmdb">TheMovieDB (TMDB)</option>
                                         {matchingMovie.type === 'anime' && (
@@ -1539,7 +1539,7 @@ export default function StreamingPage() {
                                             type="text"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                                             placeholder="Search title..."
                                         />
                                         <button
@@ -1802,7 +1802,7 @@ export default function StreamingPage() {
                                                         ...editingScraperMovie,
                                                         animerulz_url: e.target.value
                                                     })}
-                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
                                                     placeholder="AniList ID (e.g. 154587)"
                                                 />
                                             </div>
@@ -1816,7 +1816,7 @@ export default function StreamingPage() {
                                                         ...editingScraperMovie,
                                                         animerulz_season: parseInt(e.target.value) || 1
                                                     })}
-                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500 text-center font-mono font-bold"
+                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400 text-center font-mono font-bold"
                                                 />
                                             </div>
                                         </div>
@@ -1835,7 +1835,7 @@ export default function StreamingPage() {
                                                                 ...animerulzUrls,
                                                                 [season.season_number]: e.target.value
                                                             })}
-                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
                                                             placeholder={`Animerulz URL/ID for Season ${season.season_number}...`}
                                                         />
                                                         {season.id.toString().startsWith('virtual_') && (
@@ -1847,7 +1847,7 @@ export default function StreamingPage() {
                                                                     delete updated[season.season_number];
                                                                     setAnimerulzUrls(updated);
                                                                 }}
-                                                                className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                                className="text-gray-400 hover:text-violet-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
                                                                 title="Remove season field"
                                                             >
                                                                 ✕
@@ -1871,7 +1871,7 @@ export default function StreamingPage() {
                                                         }
                                                     ]);
                                                 }}
-                                                className="text-xs font-bold text-red-500 hover:text-red-400 flex items-center gap-1 mt-1 hover:underline"
+                                                className="text-xs font-bold text-violet-300 hover:text-red-400 flex items-center gap-1 mt-1 hover:underline"
                                             >
                                                 ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
                                             </button>
@@ -1886,7 +1886,7 @@ export default function StreamingPage() {
                                                 ...editingScraperMovie,
                                                 animerulz_resolution: e.target.value as any
                                             })}
-                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500 font-semibold"
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400 font-semibold"
                                         >
                                             <option value="360p">360p</option>
                                             <option value="480p">480p</option>
@@ -1925,7 +1925,7 @@ export default function StreamingPage() {
                                                     ...editingScraperMovie,
                                                     toonplay_url: e.target.value
                                                 })}
-                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
                                                 placeholder="Toonplay URL/ID..."
                                             />
                                         </div>
@@ -1939,7 +1939,7 @@ export default function StreamingPage() {
                                                     ...editingScraperMovie,
                                                     toonplay_season: parseInt(e.target.value) || 1
                                                 })}
-                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500 text-center font-mono font-bold"
+                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400 text-center font-mono font-bold"
                                             />
                                         </div>
                                     </div>
@@ -1958,7 +1958,7 @@ export default function StreamingPage() {
                                                              ...toonplayUrls,
                                                              [season.season_number]: e.target.value
                                                          })}
-                                                         className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                         className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
                                                          placeholder={`Toonplay URL/ID for Season ${season.season_number}...`}
                                                      />
                                                      {season.id.toString().startsWith('virtual_') && (
@@ -1970,7 +1970,7 @@ export default function StreamingPage() {
                                                                  delete updated[season.season_number];
                                                                  setToonplayUrls(updated);
                                                              }}
-                                                             className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                             className="text-gray-400 hover:text-violet-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
                                                              title="Remove season field"
                                                          >
                                                              ✕
@@ -2009,7 +2009,7 @@ export default function StreamingPage() {
                                             ...editingScraperMovie,
                                             toonplay_resolution: e.target.value as any
                                         })}
-                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500 font-semibold"
+                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400 font-semibold"
                                     >
                                         <option value="360p">360p</option>
                                         <option value="480p">480p</option>
@@ -2067,7 +2067,7 @@ export default function StreamingPage() {
                                                                 type="text"
                                                                 value={srv.val}
                                                                 onChange={(e) => srv.setVal(e.target.value)}
-                                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
                                                                 placeholder={srv.placeholder}
                                                             />
                                                         </div>
@@ -2086,7 +2086,7 @@ export default function StreamingPage() {
                                                                                 ...srv.map,
                                                                                 [season.season_number]: e.target.value
                                                                             })}
-                                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
                                                                             placeholder={`URL for Season ${season.season_number}...`}
                                                                         />
                                                                         {season.id.toString().startsWith('virtual_') && (
@@ -2098,7 +2098,7 @@ export default function StreamingPage() {
                                                                                     delete updated[season.season_number];
                                                                                     (srv.setMap as any)(updated);
                                                                                 }}
-                                                                                className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                                                className="text-gray-400 hover:text-violet-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
                                                                                 title="Remove season field"
                                                                             >
                                                                                 ✕
@@ -2146,7 +2146,7 @@ export default function StreamingPage() {
                                                                                     ...srv.episodeMap,
                                                                                     [key]: e.target.value
                                                                                 })}
-                                                                                className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-red-500"
+                                                                                className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
                                                                                 placeholder={`Episode ${episode.episode_number} URL...`}
                                                                             />
                                                                             {episode.id?.toString().startsWith('virtual_ep_') && (
@@ -2158,7 +2158,7 @@ export default function StreamingPage() {
                                                                                         delete updated[key];
                                                                                         srv.setEpisodeMap(updated);
                                                                                     }}
-                                                                                    className="text-gray-400 hover:text-red-500 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                                                    className="text-gray-400 hover:text-violet-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
                                                                                     title="Remove episode field"
                                                                                 >
                                                                                     âœ•
@@ -2350,7 +2350,7 @@ export default function StreamingPage() {
                                     }
                                 }}
                                 disabled={scrapingLoader}
-                                className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-bold rounded-lg text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-red-900/30"
+                                className="px-5 py-2.5 bg-gradient-to-r from-red-600 to-orange-600 hover:from-violet-300 hover:to-orange-500 text-white font-bold rounded-lg text-sm transition-all flex items-center gap-1.5 shadow-lg shadow-red-900/30"
                             >
                                 {scrapingLoader ? (
                                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

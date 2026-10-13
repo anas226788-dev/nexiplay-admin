@@ -30,7 +30,7 @@ export default function DownloadButton({ download }: DownloadButtonProps) {
             href={download.file_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="download-btn inline-flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 border border-red-500/30 shadow-lg shadow-red-900/30 transition-all duration-300 hover:shadow-red-900/50 hover:scale-[1.02] w-full md:w-auto group"
+            className="download-btn inline-flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-red-600 to-red-700 hover:from-violet-300 hover:to-violet-600 border border-red-500/30 shadow-lg shadow-red-900/30 transition-all duration-300 hover:shadow-red-900/50 hover:scale-[1.02] w-full md:w-auto group"
         >
             <svg
                 className="w-5 h-5 text-white transition-transform group-hover:translate-y-0.5"
@@ -60,7 +60,7 @@ export function DownloadSection({ downloads }: DownloadSectionProps) {
     return (
         <div className="space-y-4">
             <h3 className="section-title text-xl">
-                <svg className="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 mr-2 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Download Links

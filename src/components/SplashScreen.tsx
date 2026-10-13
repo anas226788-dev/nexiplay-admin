@@ -52,7 +52,7 @@ export default function SplashScreen() {
                 {particles.map((particle, i) => (
                     <div
                         key={i}
-                        className="absolute rounded-full bg-red-600/20 blur-sm"
+                        className="absolute rounded-full bg-violet-600/20 blur-sm"
                         style={particle.style}
                     />
                 ))}
@@ -63,7 +63,7 @@ export default function SplashScreen() {
                 {/* Logo Container */}
                 <div className="relative w-32 h-32 mx-auto mb-6">
                     {/* Pulse Glow Effect */}
-                    <div className="absolute inset-0 rounded-full bg-red-600/30 blur-2xl animate-pulse-glow" />
+                    <div className="absolute inset-0 rounded-full bg-violet-600/30 blur-2xl animate-pulse-glow" />
 
                     {/* Logo SVG */}
                     <div className="relative z-10 w-full h-full bg-gradient-to-br from-dark-800 to-black rounded-3xl border border-white/10 shadow-2xl flex items-center justify-center overflow-hidden">
@@ -71,7 +71,7 @@ export default function SplashScreen() {
                         <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-white/10 to-transparent" />
 
                         {/* N Icon */}
-                        <svg className="w-16 h-16 text-red-600 drop-shadow-[0_0_15px_rgba(229,9,20,0.5)]" fill="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-16 h-16 text-violet-300 drop-shadow-[0_0_15px_rgba(146,115,245,0.35)]" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M4 4h4l6 8V4h6v16h-4l-6-8v8H4V4z" />
                         </svg>
                     </div>
@@ -80,7 +80,7 @@ export default function SplashScreen() {
                 {/* Text */}
                 <div className="space-y-2 opacity-0 animate-fade-in" style={{ animationDelay: '0.5s' }}>
                     <h1 className="text-4xl font-black tracking-tighter text-white">
-                        NEXI<span className="text-red-600">PLAY</span>
+                        NEXI<span className="text-violet-300">PLAY</span>
                     </h1>
                     <p className="text-sm text-gray-400 tracking-widest uppercase">
                         Start Streaming
@@ -89,7 +89,7 @@ export default function SplashScreen() {
 
                 {/* Loading Indicator */}
                 <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-48 h-1 bg-dark-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-red-600 w-full animate-[shimmer_2s_infinite] origin-left scale-x-0"
+                    <div className="h-full bg-violet-600 w-full animate-[shimmer_2s_infinite] origin-left scale-x-0"
                         style={{ animation: 'loading-bar 3s ease-in-out forwards' }} />
                 </div>
             </div>

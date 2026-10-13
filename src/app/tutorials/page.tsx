@@ -10,7 +10,7 @@ const SOURCE_CONFIG: { key: string; name: string; icon: string; color: string }[
     { key: 'terabox', name: 'TeraBox', icon: '📦', color: 'from-cyan-500 to-cyan-600' },
     { key: 'mediafire', name: 'MediaFire', icon: '🔥', color: 'from-orange-500 to-orange-600' },
     { key: 'pcloud', name: 'pCloud', icon: '💾', color: 'from-green-500 to-green-600' },
-    { key: 'youtube', name: 'YouTube', icon: '▶️', color: 'from-red-500 to-pink-600' },
+    { key: 'youtube', name: 'YouTube', icon: '▶️', color: 'from-violet-300 to-pink-600' },
 ];
 
 export default function TutorialsPage() {
@@ -174,7 +174,7 @@ export default function TutorialsPage() {
                                         placeholder="https://www.youtube.com/watch?v=..."
                                         value={tutorial?.tutorial_url || ''}
                                         onChange={(e) => updateTutorial(source.key, 'tutorial_url', e.target.value)}
-                                        className="w-full px-3 py-2.5 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white text-sm placeholder-gray-600"
+                                        className="w-full px-3 py-2.5 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-violet-400 transition-all text-white text-sm placeholder-gray-600"
                                     />
                                 </div>
 
@@ -188,7 +188,7 @@ export default function TutorialsPage() {
                                             checked={isActive}
                                             onChange={(e) => updateTutorial(source.key, 'is_active', e.target.checked)}
                                         />
-                                        <div className="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                                        <div className="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
                                     </label>
                                 </div>
                             </div>
@@ -202,19 +202,19 @@ export default function TutorialsPage() {
                 <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">How It Works</h3>
                 <ul className="space-y-2 text-sm text-gray-400">
                     <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-0.5">•</span>
+                        <span className="text-violet-300 mt-0.5">•</span>
                         Paste a YouTube tutorial URL for any download source above.
                     </li>
                     <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-0.5">•</span>
+                        <span className="text-violet-300 mt-0.5">•</span>
                         Users will see a small &quot;How to download?&quot; button next to each download provider.
                     </li>
                     <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-0.5">•</span>
+                        <span className="text-violet-300 mt-0.5">•</span>
                         Clicking it opens a modal with the YouTube video embedded — no page redirect.
                     </li>
                     <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-0.5">•</span>
+                        <span className="text-violet-300 mt-0.5">•</span>
                         If no URL is set or the source is inactive, the button is hidden automatically.
                     </li>
                 </ul>
@@ -225,7 +225,7 @@ export default function TutorialsPage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-red-900/30"
+                    className="px-8 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-red-900/30"
                 >
                     {saving ? (
                         <>

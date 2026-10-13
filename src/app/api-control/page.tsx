@@ -402,7 +402,7 @@ export default function StreamApiControlPage() {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/10 pb-6">
                     <div>
                         <div className="flex items-center gap-2.5 mb-2">
-                            <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-red-600/20 text-red-400 border border-red-500/30 flex items-center gap-1.5">
+                            <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-violet-600/20 text-red-400 border border-red-500/30 flex items-center gap-1.5">
                                 <span>🔒</span>
                                 <span>RR Nexiplay Stream Protection</span>
                             </span>
@@ -439,7 +439,7 @@ export default function StreamApiControlPage() {
                                 setNewlyCreatedKey(null);
                                 setIsCreateModalOpen(true);
                             }}
-                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black text-xs transition-all shadow-lg shadow-red-900/30 flex items-center gap-2 active:scale-95"
+                            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-violet-300 hover:to-orange-500 text-white font-black text-xs transition-all shadow-lg shadow-red-900/30 flex items-center gap-2 active:scale-95"
                         >
                             <span className="text-base leading-none">+</span>
                             <span>নতুন API Key তৈরি করুন</span>
@@ -526,7 +526,7 @@ export default function StreamApiControlPage() {
                             disabled={savingSettings}
                             className={`w-full py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
                                 settings?.isEnabled
-                                    ? 'bg-red-500/15 text-red-300 hover:bg-red-500/25 border border-red-500/30'
+                                    ? 'bg-red-500/15 text-red-300 hover:bg-violet-500/25 border border-red-500/30'
                                     : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30'
                             }`}
                         >
@@ -608,7 +608,7 @@ export default function StreamApiControlPage() {
                                 type="button"
                                 onClick={() => handleSaveSettings()}
                                 disabled={savingSettings}
-                                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-all shadow-md shadow-red-900/30 disabled:opacity-50 self-start sm:self-auto"
+                                className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs transition-all shadow-md shadow-red-900/30 disabled:opacity-50 self-start sm:self-auto"
                             >
                                 {savingSettings ? 'সেভ হচ্ছে...' : 'সেটিংস সেভ করুন'}
                             </button>
@@ -620,7 +620,7 @@ export default function StreamApiControlPage() {
                                 onClick={() => setSettings({ ...settings, accessMode: 'demo_allowed' })}
                                 className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1 block ${
                                     settings.accessMode === 'demo_allowed'
-                                        ? 'bg-red-600/10 border-red-500 text-white shadow-lg shadow-red-950/30'
+                                        ? 'bg-violet-600/10 border-red-500 text-white shadow-lg shadow-red-950/30'
                                         : 'bg-black/40 border-white/5 text-gray-400 hover:bg-white/5'
                                 }`}
                             >
@@ -641,7 +641,7 @@ export default function StreamApiControlPage() {
                                 onClick={() => setSettings({ ...settings, accessMode: 'strict' })}
                                 className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1 block ${
                                     settings.accessMode === 'strict'
-                                        ? 'bg-red-600/10 border-red-500 text-white shadow-lg shadow-red-950/30'
+                                        ? 'bg-violet-600/10 border-red-500 text-white shadow-lg shadow-red-950/30'
                                         : 'bg-black/40 border-white/5 text-gray-400 hover:bg-white/5'
                                 }`}
                             >
@@ -662,7 +662,7 @@ export default function StreamApiControlPage() {
                                 onClick={() => setSettings({ ...settings, accessMode: 'open' })}
                                 className={`p-4 rounded-2xl border cursor-pointer transition-all space-y-1 block ${
                                     settings.accessMode === 'open'
-                                        ? 'bg-red-600/10 border-red-500 text-white shadow-lg shadow-red-950/30'
+                                        ? 'bg-violet-600/10 border-red-500 text-white shadow-lg shadow-red-950/30'
                                         : 'bg-black/40 border-white/5 text-gray-400 hover:bg-white/5'
                                 }`}
                             >
@@ -701,14 +701,14 @@ export default function StreamApiControlPage() {
                                 placeholder="🔍 নাম বা কী দিয়ে খুঁজুন..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="px-3.5 py-1.5 rounded-xl bg-black/60 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500 w-full sm:w-56"
+                                className="px-3.5 py-1.5 rounded-xl bg-black/60 border border-white/10 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-violet-400 w-full sm:w-56"
                             />
 
                             <div className="flex bg-white/5 p-1 rounded-xl border border-white/5 text-xs">
                                 <button
                                     type="button"
                                     onClick={() => setFilterTab('all')}
-                                    className={`px-3 py-1 rounded-lg font-bold transition-all ${filterTab === 'all' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                    className={`px-3 py-1 rounded-lg font-bold transition-all ${filterTab === 'all' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
                                 >
                                     সব ({keys.length})
                                 </button>
@@ -722,7 +722,7 @@ export default function StreamApiControlPage() {
                                 <button
                                     type="button"
                                     onClick={() => setFilterTab('disabled')}
-                                    className={`px-3 py-1 rounded-lg font-bold transition-all ${filterTab === 'disabled' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                    className={`px-3 py-1 rounded-lg font-bold transition-all ${filterTab === 'disabled' ? 'bg-violet-600 text-white' : 'text-gray-400 hover:text-white'}`}
                                 >
                                     🔴 বন্ধ ({stats.disabledKeys})
                                 </button>
@@ -759,7 +759,7 @@ export default function StreamApiControlPage() {
                             <button
                                 type="button"
                                 onClick={() => setIsCreateModalOpen(true)}
-                                className="px-5 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl text-white font-black inline-flex items-center gap-2 shadow-lg"
+                                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 rounded-xl text-white font-black inline-flex items-center gap-2 shadow-lg"
                             >
                                 <span>+ প্রথম কী তৈরি করুন</span>
                             </button>
@@ -824,7 +824,7 @@ export default function StreamApiControlPage() {
                                                             className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
                                                                 copiedKey === item.id
                                                                     ? 'bg-emerald-600 text-white'
-                                                                    : 'bg-white/5 hover:bg-red-600/20 text-gray-300 hover:text-red-300 border border-white/5'
+                                                                    : 'bg-white/5 hover:bg-violet-600/20 text-gray-300 hover:text-red-300 border border-white/5'
                                                             }`}
                                                             title="কী কপি করুন"
                                                         >
@@ -841,7 +841,7 @@ export default function StreamApiControlPage() {
                                                         onClick={() => handleToggleKey(item.id, item.isActive, item.name)}
                                                         className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all inline-flex items-center gap-2 border shadow-sm ${
                                                             item.isActive
-                                                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/40'
+                                                                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40 hover:bg-violet-500/20 hover:text-red-300 hover:border-red-500/40'
                                                                 : 'bg-red-500/15 text-red-300 border-red-500/40 hover:bg-emerald-500/20 hover:text-emerald-300 hover:border-emerald-500/40'
                                                         }`}
                                                         title="ক্লিক করে সাথে সাথে অ্যাক্সেস চালু বা বন্ধ করুন"
@@ -895,7 +895,7 @@ export default function StreamApiControlPage() {
                                                         <button
                                                             type="button"
                                                             onClick={() => handleDeleteKey(item.id, item.name)}
-                                                            className="px-2.5 py-1.5 rounded-lg bg-red-600/10 hover:bg-red-600/25 text-red-400 hover:text-red-300 font-bold text-[11px] border border-red-500/20 transition-all"
+                                                            className="px-2.5 py-1.5 rounded-lg bg-violet-600/10 hover:bg-violet-600/25 text-red-400 hover:text-red-300 font-bold text-[11px] border border-red-500/20 transition-all"
                                                             title="স্থায়ীভাবে মুছে ফেলুন"
                                                         >
                                                             🗑️ ডিলিট
@@ -936,7 +936,7 @@ export default function StreamApiControlPage() {
                             <select
                                 value={testKeyId}
                                 onChange={(e) => setTestKeyId(e.target.value)}
-                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-red-500"
+                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-violet-400"
                             >
                                 {keys.map(k => (
                                     <option key={k.id} value={k.id}>
@@ -953,7 +953,7 @@ export default function StreamApiControlPage() {
                                 value={testSlug}
                                 onChange={(e) => setTestSlug(e.target.value)}
                                 placeholder="e.g. hana-kimi-2026 or bleach-..."
-                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-red-500 font-mono"
+                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-violet-400 font-mono"
                             />
                         </div>
 
@@ -964,7 +964,7 @@ export default function StreamApiControlPage() {
                                 min={1}
                                 value={testEpisode}
                                 onChange={(e) => setTestEpisode(e.target.value)}
-                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-red-500 font-mono"
+                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-violet-400 font-mono"
                             />
                         </div>
 
@@ -973,7 +973,7 @@ export default function StreamApiControlPage() {
                                 type="button"
                                 onClick={runTestStream}
                                 disabled={testLoading || !testKeyId}
-                                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black text-xs transition-all shadow-md shadow-red-900/30 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
+                                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-violet-300 hover:to-orange-500 text-white font-black text-xs transition-all shadow-md shadow-red-900/30 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95"
                             >
                                 {testLoading ? (
                                     <span>টেস্ট হচ্ছে...</span>
@@ -1080,7 +1080,7 @@ export default function StreamApiControlPage() {
                                                 `fetch('${liveUrl}')\n  .then(res => res.json())\n  .then(data => {\n    if (data.success) {\n      console.log('Stream URL:', data.playbackUrl);\n    }\n  });`,
                                                 'js-code'
                                             )}
-                                            className="text-[11px] px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold"
+                                            className="text-[11px] px-2.5 py-1 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-bold"
                                         >
                                             {copiedKey === 'js-code' ? '✓ কোড কপি হয়েছে' : '⚡ JS Code কপি'}
                                         </button>
@@ -1176,7 +1176,7 @@ if (data.success) {
                                 {/* 1. Client Name */}
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-black text-gray-200 block">
-                                        ১. ক্লায়েন্ট বা সাইটের নাম <span className="text-red-500">*</span>
+                                        ১. ক্লায়েন্ট বা সাইটের নাম <span className="text-violet-300">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -1184,7 +1184,7 @@ if (data.success) {
                                         placeholder="যেমন: Moviebari Web, Karim Bhai Android App, Test User"
                                         value={newKeyName}
                                         onChange={(e) => setNewKeyName(e.target.value)}
-                                        className="w-full px-4 py-3 rounded-2xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-red-500 placeholder-gray-500 font-medium"
+                                        className="w-full px-4 py-3 rounded-2xl bg-black/60 border border-white/10 text-xs text-white focus:outline-none focus:border-violet-400 placeholder-gray-500 font-medium"
                                     />
                                     <p className="text-[11px] text-gray-500">
                                         কার জন্য বানাচ্ছেন তা সহজে চেনার জন্য নাম দিন।
@@ -1458,7 +1458,7 @@ if (data.success) {
                                     <button
                                         type="submit"
                                         disabled={creatingKey}
-                                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-black text-xs transition-all shadow-lg shadow-red-900/30 disabled:opacity-50 active:scale-95 flex items-center gap-2"
+                                        className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-violet-300 hover:to-orange-500 text-white font-black text-xs transition-all shadow-lg shadow-red-900/30 disabled:opacity-50 active:scale-95 flex items-center gap-2"
                                     >
                                         {creatingKey ? 'তৈরি হচ্ছে...' : '⚡ API Key তৈরি করুন'}
                                     </button>

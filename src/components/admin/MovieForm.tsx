@@ -472,7 +472,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             required
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                         />
                     </div>
                     <div>
@@ -482,7 +482,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             required
                             value={slug}
                             onChange={(e) => setSlug(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                         />
                     </div>
                 </div>
@@ -493,7 +493,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         <select
                             value={type}
                             onChange={(e) => setType(e.target.value as 'movie' | 'series' | 'anime')}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                         >
                             <option value="movie">Movie</option>
                             <option value="series">Series</option>
@@ -507,7 +507,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             required
                             value={releaseYear}
                             onChange={(e) => setReleaseYear(Number(e.target.value))}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                         />
                     </div>
                 </div>
@@ -518,7 +518,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                         rows={4}
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                        className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                     />
                 </div>
             </div>
@@ -550,7 +550,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             placeholder="e.g. 299534"
                             value={tmdbId}
                             onChange={(e) => setTmdbId(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                         />
                         <p className="text-xs text-gray-500 mt-1">Used to auto-resolve movies and TV series streams.</p>
                     </div>
@@ -561,7 +561,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             placeholder="e.g. tt4154796"
                             value={imdbId}
                             onChange={(e) => setImdbId(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                         />
                         <p className="text-xs text-gray-500 mt-1">Alternative identifier (fallback).</p>
                     </div>
@@ -572,7 +572,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             placeholder="e.g. 38000"
                             value={malId}
                             onChange={(e) => setMalId(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                         />
                         <p className="text-xs text-gray-500 mt-1">Used to auto-resolve anime streams.</p>
                     </div>
@@ -586,7 +586,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             placeholder="https://..."
                             value={streamingUrl}
                             onChange={(e) => setStreamingUrl(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                         />
                         <p className="text-xs text-gray-500 mt-1">If provided, this movie will load this exact URL instead of the auto-resolvers.</p>
                     </div>
@@ -607,7 +607,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                                 onChange={(e) => setIsRunning(e.target.checked)}
                                 className="sr-only peer"
                             />
-                            <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                            <div className="w-11 h-6 bg-dark-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
                             <span className="ml-3 text-sm font-medium text-gray-300">Running Series</span>
                         </label>
 
@@ -811,25 +811,25 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm text-gray-400 mb-1">Language</label>
-                        <input type="text" value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500" />
+                        <input type="text" value={language} onChange={(e) => setLanguage(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400" />
                     </div>
                     <div>
                         <label className="block text-sm text-gray-400 mb-1">Source (Quality)</label>
-                        <input type="text" value={source} onChange={(e) => setSource(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500" />
+                        <input type="text" value={source} onChange={(e) => setSource(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400" />
                     </div>
                     <div>
                         <label className="block text-sm text-gray-400 mb-1">Format</label>
-                        <input type="text" value={format} onChange={(e) => setFormat(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500" />
+                        <input type="text" value={format} onChange={(e) => setFormat(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400" />
                     </div>
-                    <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500" />
+                    <input type="text" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400" />
                 </div>
                 <div>
                     <label className="block text-sm text-gray-400 mb-1">Trailer URL</label>
-                    <input type="url" placeholder="https://youtube.com/..." value={trailerUrl} onChange={(e) => setTrailerUrl(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500" />
+                    <input type="url" placeholder="https://youtube.com/..." value={trailerUrl} onChange={(e) => setTrailerUrl(e.target.value)} className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400" />
                 </div>
                 <div className="md:col-span-2">
                     <label className="block text-sm text-gray-400 mb-1">Cast Members</label>
-                    <input type="text" value={castMembers} onChange={(e) => setCastMembers(e.target.value)} placeholder="Actor 1, Actor 2, Actor 3" className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500" />
+                    <input type="text" value={castMembers} onChange={(e) => setCastMembers(e.target.value)} placeholder="Actor 1, Actor 2, Actor 3" className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400" />
                 </div>
 
             </div>
@@ -852,7 +852,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             checked={isAdult}
                             onChange={(e) => setIsAdult(e.target.checked)}
                         />
-                        <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                        <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-violet-600"></div>
                     </label>
                 </div>
             </div>
@@ -1050,7 +1050,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                                 accept="image/*"
                                 onChange={handleImageUpload}
                                 disabled={uploading}
-                                className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-600 file:text-white hover:file:bg-red-700 cursor-pointer"
+                                className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-600 file:text-white hover:file:bg-red-700 cursor-pointer"
                             />
                         </div>
                         {uploading && <p className="text-sm text-yellow-400">Uploading...</p>}
@@ -1068,7 +1068,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                                 value={posterUrl}
                                 onChange={(e) => setPosterUrl(e.target.value)}
                                 placeholder="https://..."
-                                className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                                className="w-full bg-dark-700 border border-white/10 rounded-lg p-2.5 text-white focus:outline-none focus:border-violet-400"
                             />
                         </div>
                     </div>
@@ -1078,7 +1078,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
             {/* Screenshots Section */}
             <div className="glass p-6 rounded-xl border border-white/5 space-y-4">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <span className="text-red-500">📸</span> Movie Screenshots
+                    <span className="text-violet-300">📸</span> Movie Screenshots
                 </h2>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-4">
@@ -1093,7 +1093,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             <button
                                 type="button"
                                 onClick={() => removeScreenshot(index)}
-                                className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                                className="absolute top-2 right-2 p-1 bg-violet-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-violet-700"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1112,7 +1112,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             disabled={uploading}
                             className="hidden"
                         />
-                        <div className="p-3 rounded-full bg-white/5 group-hover:bg-red-500/10 text-gray-400 group-hover:text-red-500 transition-colors mb-2">
+                        <div className="p-3 rounded-full bg-white/5 group-hover:bg-violet-500/10 text-gray-400 group-hover:text-violet-300 transition-colors mb-2">
                             {uploading ? (
                                 <svg className="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1141,7 +1141,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                             type="button"
                             onClick={() => toggleCategory(cat.id)}
                             className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${selectedCategories.includes(cat.id)
-                                ? 'bg-red-600 text-white border-red-500'
+                                ? 'bg-violet-600 text-white border-red-500'
                                 : 'bg-dark-700 text-gray-400 border-white/10 hover:bg-dark-600'
                                 }`}
                         >
@@ -1214,7 +1214,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                 <button
                     type="submit"
                     disabled={loading || uploading}
-                    className="px-8 py-3 rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 transition-colors shadow-lg shadow-red-900/40"
+                    className="px-8 py-3 rounded-lg bg-violet-600 text-white font-bold hover:bg-violet-700 transition-colors shadow-lg shadow-red-900/40"
                 >
                     {loadingStage === 'saving' 
                         ? 'Saving Content...' 

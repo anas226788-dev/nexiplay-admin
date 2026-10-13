@@ -107,7 +107,7 @@ export default function ChatbotPage() {
                                         onChange={(e) => setSettings({ ...settings, is_enabled: e.target.checked })}
                                         className="sr-only peer"
                                     />
-                                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                                    <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
                                     <span className="ml-3 text-sm font-medium text-gray-300">Enable Chatbot</span>
                                 </label>
                             </div>
@@ -193,7 +193,7 @@ export default function ChatbotPage() {
                         <button
                             onClick={handleSettingsUpdate}
                             disabled={saving}
-                            className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors"
+                            className="px-6 py-2 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-lg transition-colors"
                         >
                             {saving ? 'Saving...' : 'Save Settings'}
                         </button>
@@ -268,7 +268,7 @@ export default function ChatbotPage() {
                                     </div>
                                     <button
                                         onClick={() => handleDeleteFAQ(faq.id)}
-                                        className="text-red-500 hover:text-red-400 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        className="text-violet-300 hover:text-red-400 p-2 hover:bg-violet-500/10 rounded-lg transition-colors"
                                     >
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

@@ -204,7 +204,7 @@ export default function CoinShopAdminPage() {
                 <button
                     onClick={handleSave}
                     disabled={saving}
-                    className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-xl shadow-lg hover:from-red-500 hover:to-red-600 transition-all disabled:opacity-50"
+                    className="px-6 py-2.5 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-xl shadow-lg hover:from-violet-300 hover:to-violet-600 transition-all disabled:opacity-50"
                 >
                     {saving ? 'Saving Changes...' : 'Save All Changes'}
                 </button>
@@ -234,7 +234,7 @@ export default function CoinShopAdminPage() {
                             onChange={(e) => setPopupEnabled(e.target.checked)}
                             className="sr-only peer"
                         />
-                        <div className="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                        <div className="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
                     </label>
                 </div>
 
@@ -246,7 +246,7 @@ export default function CoinShopAdminPage() {
                             value={popupTitle}
                             onChange={(e) => setPopupTitle(e.target.value)}
                             placeholder="e.g. Tired of Ads?"
-                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                         />
                     </div>
 
@@ -255,7 +255,7 @@ export default function CoinShopAdminPage() {
                         <select
                             value={popupTriggerCount}
                             onChange={(e) => setPopupTriggerCount(parseInt(e.target.value))}
-                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                         >
                             <option value={1}>Show after EVERY 1 ad dismissal (Highest conversion)</option>
                             <option value={2}>Show after every 2 ad dismissals</option>
@@ -270,7 +270,7 @@ export default function CoinShopAdminPage() {
                             onChange={(e) => setPopupMessage(e.target.value)}
                             rows={3}
                             placeholder="Message to display to free users..."
-                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                         />
                     </div>
 
@@ -281,7 +281,7 @@ export default function CoinShopAdminPage() {
                             value={popupButtonText}
                             onChange={(e) => setPopupButtonText(e.target.value)}
                             placeholder="e.g. GET VIP NOW (250 🪙)"
-                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                         />
                     </div>
 
@@ -290,7 +290,7 @@ export default function CoinShopAdminPage() {
                         <select
                             value={popupAction}
                             onChange={(e) => setPopupAction(e.target.value)}
-                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-red-500"
+                            className="w-full bg-dark-700 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-violet-400"
                         >
                             <option value="buy_vip">Direct Buy VIP (250 Coins)</option>
                             <option value="buy_elite">Direct Buy ELITE PRO (500 Coins)</option>
@@ -436,7 +436,7 @@ export default function CoinShopAdminPage() {
                         </div>
                         <div className="flex justify-end gap-3 pt-2">
                             <button onClick={() => setShowAddTaskModal(false)} className="px-4 py-2 text-gray-400 text-sm">Cancel</button>
-                            <button onClick={handleAddTask} className="px-5 py-2 bg-red-600 text-white font-bold text-sm rounded-xl">Add Task</button>
+                            <button onClick={handleAddTask} className="px-5 py-2 bg-violet-600 text-white font-bold text-sm rounded-xl">Add Task</button>
                         </div>
                     </div>
                 </div>
@@ -503,7 +503,7 @@ export default function CoinShopAdminPage() {
                         </div>
                         <div className="flex justify-end gap-3 pt-2">
                             <button onClick={() => setShowAddShopModal(false)} className="px-4 py-2 text-gray-400 text-sm">Cancel</button>
-                            <button onClick={handleAddShopItem} className="px-5 py-2 bg-red-600 text-white font-bold text-sm rounded-xl">Add Item</button>
+                            <button onClick={handleAddShopItem} className="px-5 py-2 bg-violet-600 text-white font-bold text-sm rounded-xl">Add Item</button>
                         </div>
                     </div>
                 </div>

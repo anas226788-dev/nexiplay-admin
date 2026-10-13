@@ -373,7 +373,7 @@ export default function NovelsAdminPage() {
                                     cover_url: '', description: '', blogger_label: '', status: 'completed'
                                 });
                             }}
-                            className="flex-1 sm:flex-initial bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-1.5"
+                            className="flex-1 sm:flex-initial bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-1.5"
                         >
                             <span>+</span> Add Novel
                         </button>
@@ -445,28 +445,28 @@ export default function NovelsAdminPage() {
                         <form onSubmit={handleSave} className="space-y-3.5">
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 mb-1">Title</label>
-                                <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-red-500 transition-colors" />
+                                <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-violet-400 transition-colors" />
                             </div>
                             
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 mb-1">Slug (URL)</label>
-                                <input type="text" value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-red-500 transition-colors" />
+                                <input type="text" value={formData.slug} onChange={e => setFormData({...formData, slug: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-violet-400 transition-colors" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 mb-1">Author</label>
-                                    <input type="text" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-red-500 transition-colors" />
+                                    <input type="text" value={formData.author} onChange={e => setFormData({...formData, author: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-violet-400 transition-colors" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 mb-1">Genre</label>
-                                    <input type="text" value={formData.genre} onChange={e => setFormData({...formData, genre: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-red-500 transition-colors" />
+                                    <input type="text" value={formData.genre} onChange={e => setFormData({...formData, genre: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-violet-400 transition-colors" />
                                 </div>
                             </div>
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 mb-1">Cover Image URL</label>
-                                <input type="url" value={formData.cover_url} onChange={e => setFormData({...formData, cover_url: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-red-500 transition-colors" />
+                                <input type="url" value={formData.cover_url} onChange={e => setFormData({...formData, cover_url: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-violet-400 transition-colors" />
                                 {formData.cover_url && (
                                     <div className="mt-2 w-20 h-28 rounded-lg overflow-hidden border border-white/10 bg-dark-800">
                                         <img src={formData.cover_url} alt="preview" className="w-full h-full object-cover" onError={(e: any) => { e.target.style.display = 'none'; }} />
@@ -476,12 +476,12 @@ export default function NovelsAdminPage() {
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 mb-1">Blogger Label</label>
-                                <input type="text" value={formData.blogger_label} onChange={e => setFormData({...formData, blogger_label: e.target.value})} placeholder="e.g. scum-novel" className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-red-500 transition-colors" />
+                                <input type="text" value={formData.blogger_label} onChange={e => setFormData({...formData, blogger_label: e.target.value})} placeholder="e.g. scum-novel" className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-violet-400 transition-colors" />
                             </div>
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 mb-1">Status</label>
-                                <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-red-500 transition-colors">
+                                <select value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-violet-400 transition-colors">
                                     <option value="completed">Completed</option>
                                     <option value="ongoing">Ongoing</option>
                                 </select>
@@ -489,10 +489,10 @@ export default function NovelsAdminPage() {
 
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 mb-1">Description</label>
-                                <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-red-500 transition-colors"></textarea>
+                                <textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-dark-800 border border-white/10 rounded-xl px-3.5 py-2 text-white text-sm outline-none focus:border-violet-400 transition-colors"></textarea>
                             </div>
 
-                            <button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
+                            <button type="submit" disabled={loading} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-2.5 rounded-xl transition-all text-sm flex items-center justify-center gap-2">
                                 {loading ? 'Saving...' : isEditing ? 'Update Novel' : 'Save Novel'}
                             </button>
                         </form>
@@ -580,7 +580,7 @@ export default function NovelsAdminPage() {
                                                     <button onClick={() => handleEdit(novel)} className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg font-bold text-xs transition-colors">
                                                         Edit
                                                     </button>
-                                                    <button onClick={() => handleDelete(novel.id, novel.title)} className="px-2.5 py-1 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-lg font-bold text-xs transition-colors">
+                                                    <button onClick={() => handleDelete(novel.id, novel.title)} className="px-2.5 py-1 bg-red-500/20 hover:bg-violet-500/40 text-red-400 rounded-lg font-bold text-xs transition-colors">
                                                         Del
                                                     </button>
                                                 </div>

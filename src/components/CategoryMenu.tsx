@@ -26,7 +26,7 @@ export default function CategoryMenu({ categories, activeSlug }: CategoryMenuPro
                             className={`
                 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300
                 ${isActive
-                                    ? 'bg-red-600 text-white shadow-lg shadow-red-600/30'
+                                    ? 'bg-violet-600 text-white shadow-lg shadow-red-600/30'
                                     : 'bg-dark-600/80 text-gray-300 hover:bg-dark-500 hover:text-white border border-white/5'
                                 }
               `}
@@ -62,7 +62,7 @@ export function TypeTabs({ activeType = 'all' }: TypeTabsProps) {
                     className={`
             px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-300
             ${activeType === type.key
-                            ? 'bg-red-600 text-white shadow-lg'
+                            ? 'bg-violet-600 text-white shadow-lg'
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                         }
           `}

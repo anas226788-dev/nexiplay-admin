@@ -90,7 +90,7 @@ export default function CommentsPage() {
                                     <td className="p-4 text-right">
                                         <button
                                             onClick={() => deleteComment(comment.id)}
-                                            className="text-red-500 hover:text-red-400 font-medium transition-colors"
+                                            className="text-violet-300 hover:text-red-400 font-medium transition-colors"
                                         >
                                             Delete
                                         </button>
@@ -136,7 +136,7 @@ export default function CommentsPage() {
                                 </span>
                                 <button
                                     onClick={() => deleteComment(comment.id)}
-                                    className="text-red-500 bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-bold active:bg-red-500/20 transition-colors"
+                                    className="text-violet-300 bg-red-500/10 px-3 py-1.5 rounded-lg text-xs font-bold active:bg-red-500/20 transition-colors"
                                 >
                                     Delete
                                 </button>

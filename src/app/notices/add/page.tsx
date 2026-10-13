@@ -328,7 +328,7 @@ export default function AddNoticePage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                        <span className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center text-lg">
+                        <span className="w-10 h-10 bg-gradient-to-br from-violet-300 to-red-700 rounded-xl flex items-center justify-center text-lg">
                             📢
                         </span>
                         Create Notice
@@ -383,7 +383,7 @@ export default function AddNoticePage() {
                     <button
                         type="button"
                         onClick={() => applyAppDownloadTemplate('top_bar')}
-                        className="p-3 bg-dark-900/80 hover:bg-red-600/20 border border-white/10 hover:border-red-500/40 rounded-xl text-left transition-all group"
+                        className="p-3 bg-dark-900/80 hover:bg-violet-600/20 border border-white/10 hover:border-red-500/40 rounded-xl text-left transition-all group"
                     >
                         <div className="flex items-center gap-2 text-xs font-bold text-red-400 group-hover:text-red-300">
                             <span>📌</span> Top Bar Banner
@@ -394,7 +394,7 @@ export default function AddNoticePage() {
                     <button
                         type="button"
                         onClick={() => applyAppDownloadTemplate('popup')}
-                        className="p-3 bg-dark-900/80 hover:bg-red-600/20 border border-white/10 hover:border-red-500/40 rounded-xl text-left transition-all group"
+                        className="p-3 bg-dark-900/80 hover:bg-violet-600/20 border border-white/10 hover:border-red-500/40 rounded-xl text-left transition-all group"
                     >
                         <div className="flex items-center gap-2 text-xs font-bold text-red-400 group-hover:text-red-300">
                             <span>💬</span> Launch Modal Popup
@@ -405,7 +405,7 @@ export default function AddNoticePage() {
                     <button
                         type="button"
                         onClick={() => applyAppDownloadTemplate('bottom_bar')}
-                        className="p-3 bg-dark-900/80 hover:bg-red-600/20 border border-white/10 hover:border-red-500/40 rounded-xl text-left transition-all group"
+                        className="p-3 bg-dark-900/80 hover:bg-violet-600/20 border border-white/10 hover:border-red-500/40 rounded-xl text-left transition-all group"
                     >
                         <div className="flex items-center gap-2 text-xs font-bold text-red-400 group-hover:text-red-300">
                             <span>⬇️</span> Bottom Sticky Bar
@@ -498,7 +498,7 @@ export default function AddNoticePage() {
                             <button
                                 type="button"
                                 onClick={() => setBtnStyle('large')}
-                                className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${btnStyle === 'large' ? 'bg-red-600 text-white font-bold' : 'bg-dark-900 text-gray-400 border border-white/10'}`}
+                                className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all ${btnStyle === 'large' ? 'bg-violet-600 text-white font-bold' : 'bg-dark-900 text-gray-400 border border-white/10'}`}
                             >
                                 Large Red Button
                             </button>
@@ -523,7 +523,7 @@ export default function AddNoticePage() {
                             <button
                                 type="button"
                                 onClick={insertDownloadButton}
-                                className="px-3.5 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center gap-1.5"
+                                className="px-3.5 py-2 bg-gradient-to-r from-red-600 to-rose-600 hover:from-violet-300 hover:to-rose-500 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center gap-1.5"
                             >
                                 <span>➕</span> Append New Button
                             </button>
@@ -567,7 +567,7 @@ export default function AddNoticePage() {
                             <button
                                 type="button"
                                 onClick={() => setFormData({ ...formData, image_url: '' })}
-                                className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-xs font-bold"
+                                className="absolute -top-2 -right-2 w-6 h-6 bg-violet-600 hover:bg-violet-700 text-white rounded-full flex items-center justify-center text-xs font-bold"
                             >
                                 ✕
                             </button>
@@ -668,7 +668,7 @@ export default function AddNoticePage() {
                             <input
                                 type="text"
                                 placeholder="Search movies, anime, series..."
-                                className="w-full bg-dark-800/80 border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-red-500/50 text-sm placeholder:text-gray-600 transition-all"
+                                className="w-full bg-dark-800/80 border border-white/[0.08] rounded-xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-violet-400/50 text-sm placeholder:text-gray-600 transition-all"
                                 value={movieSearch}
                                 onChange={(e) => setMovieSearch(e.target.value)}
                             />
@@ -773,7 +773,7 @@ export default function AddNoticePage() {
                             checked={formData.is_active}
                             onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                         />
-                        <div className="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                        <div className="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600"></div>
                     </label>
                     <span className="text-sm font-semibold text-white">Active (Visible to users)</span>
                 </div>
@@ -781,7 +781,7 @@ export default function AddNoticePage() {
                 <button
                     type="submit"
                     disabled={loading || uploading}
-                    className="w-full py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-red-600/20 text-base"
+                    className="w-full py-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-violet-300 hover:to-rose-500 text-white font-bold rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-red-600/20 text-base"
                 >
                     {loading ? 'Publishing Notice...' : '🚀 Publish Notice'}
                 </button>

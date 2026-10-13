@@ -181,7 +181,7 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
                                 type="button"
                                 onClick={() => setFormData({ ...formData, device_target: option.id })}
                                 className={`flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${formData.device_target === option.id
-                                        ? 'border-red-600 bg-red-600/10 text-white'
+                                        ? 'border-red-600 bg-violet-600/10 text-white'
                                         : 'border-white/5 bg-dark-900 text-gray-400 hover:border-white/20'
                                     }`}
                             >
@@ -246,7 +246,7 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
                             checked={formData.is_active}
                             onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
                         />
-                        <div className="w-11 h-6 bg-dark-900 peer-focus:outline-none border border-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600 peer-checked:border-red-600"></div>
+                        <div className="w-11 h-6 bg-dark-900 peer-focus:outline-none border border-white/10 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600 peer-checked:border-red-600"></div>
                         <span className="ml-3 text-sm font-bold text-white uppercase">Active Immediately</span>
                     </label>
                 </div>
@@ -255,7 +255,7 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
                     <button
                         type="submit"
                         disabled={saving}
-                        className="flex-1 py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/30 disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 py-4 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/30 disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                         {saving ? (
                             <>

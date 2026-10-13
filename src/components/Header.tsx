@@ -24,12 +24,10 @@ export default function Header() {
                 <div className="flex items-center justify-between h-16 md:h-20">
                     {/* Logo with Glow */}
                     <Link href="/" className="flex items-center gap-3 group relative">
-                        <div className="absolute inset-0 bg-red-600/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
-                        <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-dark-800 to-black border border-white/10 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            <span className="text-red-600 font-bold text-xl">N</span>
-                        </div>
-                        <span className="text-xl md:text-2xl font-black tracking-tight text-white group-hover:text-red-500 transition-colors">
-                            NEXI<span className="text-red-600">PLAY</span>
+                        <div className="absolute inset-0 bg-[#9273F5]/25 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full" />
+                        <img src="/nexiplay-mark-3d.webp" alt="NEXIPLAY" className="relative h-10 w-10 shrink-0 rounded-xl object-contain drop-shadow-[0_0_12px_rgba(146,115,245,0.45)] transition-transform duration-300 group-hover:scale-105" />
+                        <span className="text-xl md:text-2xl font-black tracking-tight text-white group-hover:text-[#9273F5] transition-colors">
+                            NEXI<span className="text-[#9273F5]">PLAY</span>
                         </span>
                     </Link>
 
@@ -93,7 +91,7 @@ function MobileMenu({
                     <Link
                         key={link.href}
                         href={link.href}
-                        className={`block px-4 py-2 hover:bg-white/5 transition-colors ${isActive(link.href) ? 'text-red-500' : 'text-gray-300'
+                        className={`block px-4 py-2 hover:bg-white/5 transition-colors ${isActive(link.href) ? 'text-violet-300' : 'text-gray-300'
                             }`}
                     >
                         {link.label}

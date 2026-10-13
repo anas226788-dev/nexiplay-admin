@@ -132,7 +132,7 @@ export default function RREmbedPlayerPage() {
 
             {error && (
                 <div className="p-6 max-w-md w-full mx-4 bg-[#111118] border border-red-500/30 rounded-2xl text-center text-white shadow-2xl">
-                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 text-xl font-bold">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-violet-300 text-xl font-bold">
                         ✕
                     </div>
                     <p className="text-xs font-bold text-red-400 mb-4">{error}</p>
@@ -144,13 +144,13 @@ export default function RREmbedPlayerPage() {
                                 value={inputKey}
                                 onChange={(e) => setInputKey(e.target.value)}
                                 placeholder="আপনার API Key টি এখানে পেস্ট করুন..."
-                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/80 border border-white/20 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-red-500 font-mono text-center"
+                                className="w-full px-3.5 py-2.5 rounded-xl bg-black/80 border border-white/20 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-violet-400 font-mono text-center"
                                 autoFocus
                             />
                             <div className="flex items-center justify-center gap-2">
                                 <button
                                     type="submit"
-                                    className="px-5 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-xs font-black rounded-xl transition-all shadow-md active:scale-95"
+                                    className="px-5 py-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-violet-300 hover:to-orange-500 text-xs font-black rounded-xl transition-all shadow-md active:scale-95"
                                 >
                                     আনলক ও প্লে করুন ▶
                                 </button>
@@ -166,7 +166,7 @@ export default function RREmbedPlayerPage() {
                     ) : (
                         <button
                             onClick={() => window.location.reload()}
-                            className="mt-2 px-5 py-2 bg-red-600 hover:bg-red-500 text-xs font-bold rounded-xl transition-all"
+                            className="mt-2 px-5 py-2 bg-violet-600 hover:bg-violet-500 text-xs font-bold rounded-xl transition-all"
                         >
                             Retry
                         </button>

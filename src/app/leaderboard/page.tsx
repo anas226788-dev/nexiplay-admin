@@ -445,7 +445,7 @@ export default function LeaderboardAdminPage() {
                     <button
                         onClick={generateClientSideLeaderboard}
                         disabled={generating}
-                        className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-red-600 hover:from-amber-600 hover:to-red-700 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 flex-shrink-0"
+                        className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-violet-600 hover:from-amber-600 hover:to-red-700 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 flex-shrink-0"
                     >
                         {generating ? (
                             <>
@@ -500,7 +500,7 @@ export default function LeaderboardAdminPage() {
                             <p className="mb-3">No leaderboard entries found.</p>
                             <button
                                 onClick={generateClientSideLeaderboard}
-                                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl"
+                                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-xl"
                             >
                                 🚀 Generate Leaderboard Now
                             </button>

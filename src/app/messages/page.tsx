@@ -117,7 +117,7 @@ export default function MessagesPage() {
                                                     <button onClick={() => rejectMessage(msg.id)} className="text-orange-500 hover:text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 px-3 py-1 rounded text-xs font-bold transition-colors">Reject</button>
                                                 </>
                                             )}
-                                            <button onClick={() => deleteMessage(msg.id)} className="text-red-500 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 px-3 py-1 rounded text-xs font-bold transition-colors">Delete</button>
+                                            <button onClick={() => deleteMessage(msg.id)} className="text-violet-300 hover:text-red-400 bg-red-500/10 hover:bg-violet-500/20 px-3 py-1 rounded text-xs font-bold transition-colors">Delete</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -176,7 +176,7 @@ export default function MessagesPage() {
                                         <button onClick={() => rejectMessage(msg.id)} className="flex-1 text-orange-500 bg-orange-500/10 py-2 rounded-lg text-xs font-bold active:bg-orange-500/20 transition-colors">Reject</button>
                                     </>
                                 )}
-                                <button onClick={() => deleteMessage(msg.id)} className="flex-1 text-red-500 bg-red-500/10 py-2 rounded-lg text-xs font-bold active:bg-red-500/20 transition-colors">Delete</button>
+                                <button onClick={() => deleteMessage(msg.id)} className="flex-1 text-violet-300 bg-red-500/10 py-2 rounded-lg text-xs font-bold active:bg-red-500/20 transition-colors">Delete</button>
                             </div>
                         </div>
                     ))

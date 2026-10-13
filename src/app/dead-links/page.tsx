@@ -109,7 +109,7 @@ export default function DeadLinksPage() {
                         <button
                             onClick={runScan}
                             disabled={loading}
-                            className="text-xs px-3 py-1 glass-button bg-red-600/80 hover:bg-red-700 disabled:opacity-50 rounded text-white font-bold transition-colors"
+                            className="text-xs px-3 py-1 glass-button bg-violet-600/80 hover:bg-violet-700 disabled:opacity-50 rounded text-white font-bold transition-colors"
                         >
                             {loading ? 'Scanning...' : 'Run Scan (Batch 10)'}
                         </button>
@@ -118,14 +118,14 @@ export default function DeadLinksPage() {
                 <div className="flex bg-dark-800 p-1 rounded-lg border border-white/10">
                     <button
                         onClick={() => setActiveTab('movies')}
-                        className={`px-4 py-2 rounded-md font-medium transition-all ${activeTab === 'movies' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                        className={`px-4 py-2 rounded-md font-medium transition-all ${activeTab === 'movies' ? 'bg-violet-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         Movies ({activeTab === 'movies' ? deadLinks.length : '...'})
                     </button>
                     <button
                         onClick={() => setActiveTab('episodes')}
-                        className={`px-4 py-2 rounded-md font-medium transition-all ${activeTab === 'episodes' ? 'bg-red-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
+                        className={`px-4 py-2 rounded-md font-medium transition-all ${activeTab === 'episodes' ? 'bg-violet-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'
                             }`}
                     >
                         Episodes ({activeTab === 'episodes' ? deadLinks.length : '...'})

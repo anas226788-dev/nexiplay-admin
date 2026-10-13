@@ -154,7 +154,7 @@ export default function SettingsPage() {
                                         checked={settings.is_ads_enabled}
                                         onChange={(e) => setSettings({ ...settings, is_ads_enabled: e.target.checked })}
                                     />
-                                    <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                                    <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-violet-600"></div>
                                 </label>
                             </div>
 
@@ -168,7 +168,7 @@ export default function SettingsPage() {
                                         placeholder="https://..."
                                         value={settings.popunder_url || ''}
                                         onChange={(e) => setSettings({ ...settings, popunder_url: e.target.value })}
-                                        className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white placeholder-gray-600"
+                                        className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-violet-400 transition-all text-white placeholder-gray-600"
                                     />
                                 </div>
 
@@ -181,7 +181,7 @@ export default function SettingsPage() {
                                         placeholder="https://..."
                                         value={settings.direct_link_url || ''}
                                         onChange={(e) => setSettings({ ...settings, direct_link_url: e.target.value })}
-                                        className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white placeholder-gray-600"
+                                        className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-violet-400 transition-all text-white placeholder-gray-600"
                                     />
                                     <p className="mt-2 text-xs text-gray-500">This URL opens in a new tab when users click on content cards.</p>
                                 </div>
@@ -196,7 +196,7 @@ export default function SettingsPage() {
                                         max="10"
                                         value={settings.ad_frequency_session || 1}
                                         onChange={(e) => setSettings({ ...settings, ad_frequency_session: parseInt(e.target.value) || 1 })}
-                                        className="w-24 px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white"
+                                        className="w-24 px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-violet-400 transition-all text-white"
                                     />
                                     <p className="mt-2 text-xs text-gray-500">How many times the ad popup will appear per user session when clicking content.</p>
                                 </div>
@@ -215,7 +215,7 @@ export default function SettingsPage() {
                                                 checked={settings.is_verification_enabled || false}
                                                 onChange={(e) => setSettings({ ...settings, is_verification_enabled: e.target.checked })}
                                             />
-                                            <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                                            <div className="w-14 h-7 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-violet-600"></div>
                                         </label>
                                     </div>
 
@@ -230,7 +230,7 @@ export default function SettingsPage() {
                                                     placeholder="https://..."
                                                     value={settings.verification_ad_url_1 || ''}
                                                     onChange={(e) => setSettings({ ...settings, verification_ad_url_1: e.target.value })}
-                                                    className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white placeholder-gray-600"
+                                                    className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-violet-400 transition-all text-white placeholder-gray-600"
                                                 />
                                                 <p className="mt-1.5 text-xs text-gray-500">Ad link for the first step (Secure Scanning). If empty, defaults to direct link.</p>
                                             </div>
@@ -244,7 +244,7 @@ export default function SettingsPage() {
                                                     placeholder="https://..."
                                                     value={settings.verification_ad_url_2 || ''}
                                                     onChange={(e) => setSettings({ ...settings, verification_ad_url_2: e.target.value })}
-                                                    className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 transition-all text-white placeholder-gray-600"
+                                                    className="w-full px-4 py-3 bg-dark-900 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-violet-400 transition-all text-white placeholder-gray-600"
                                                 />
                                                 <p className="mt-1.5 text-xs text-gray-500">Ad link for the second step (Final Verification). If empty, defaults to popunder link.</p>
                                             </div>
@@ -440,7 +440,7 @@ export default function SettingsPage() {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="px-8 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-8 py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {saving ? (
                                 <>

@@ -3,25 +3,27 @@
 @tailwind utilities;
 
 :root {
-  /* Liquid Glass Theme - Core Palette */
-  --bg-deep: #000000;
-  --bg-surface: #0a0a0a;
+  /* Violet Afterglow */
+  --bg-deep: #0D0B12;
+  --bg-surface: #17141F;
 
   /* Primary Accents */
-  --primary-red: #E50914;
-  --primary-red-hover: #ff1f1f;
-  --primary-glow: rgba(229, 9, 20, 0.5);
+  --primary-violet: #9273F5;
+  --primary-violet-hover: #B09AFF;
+  --primary-glow: rgba(146, 115, 245, 0.28);
+  --accent-mint: #57D6C0;
+  --accent-apricot: #FFB878;
 
   /* Glass Layers */
-  --glass-base: rgba(22, 22, 22, 0.6);
+  --glass-base: rgba(33, 29, 43, 0.68);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-hover: rgba(255, 255, 255, 0.15);
   --glass-highlight: rgba(255, 255, 255, 0.05);
   --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 
   /* Text */
-  --foreground: #ededed;
-  --foreground-muted: #a1a1a1;
+  --foreground: #F4F0FA;
+  --foreground-muted: #ADA6B9;
 }
 
 body {
@@ -31,15 +33,15 @@ body {
   -webkit-font-smoothing: antialiased;
   /* Ambient Background Light */
   background-image:
-    radial-gradient(circle at 10% 20%, rgba(30, 30, 30, 0.4) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(229, 9, 20, 0.1) 0%, transparent 40%);
+    radial-gradient(ellipse at 14% 10%, rgba(146, 115, 245, 0.12) 0%, transparent 42%),
+    radial-gradient(ellipse at 90% 85%, rgba(87, 214, 192, 0.05) 0%, transparent 38%);
   background-attachment: fixed;
 }
 
 /* --- Glass Utilities --- */
 
 .glass-panel {
-  background: linear-gradient(145deg, rgba(30, 30, 30, 0.6) 0%, rgba(10, 10, 10, 0.4) 100%);
+  background: linear-gradient(145deg, rgba(33, 29, 43, 0.82) 0%, rgba(23, 20, 31, 0.76) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
@@ -100,11 +102,11 @@ body {
 
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(229, 9, 20, 0.2);
+    box-shadow: 0 0 20px rgba(146, 115, 245, 0.14);
   }
 
   50% {
-    box-shadow: 0 0 40px rgba(229, 9, 20, 0.5);
+    box-shadow: 0 0 32px rgba(146, 115, 245, 0.32);
   }
 }
 
@@ -168,7 +170,7 @@ body {
 }
 
 .text-gradient-red {
-  background: linear-gradient(to right, #E50914, #ff4d4d);
+  background: linear-gradient(to right, #B09AFF, #9273F5);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
