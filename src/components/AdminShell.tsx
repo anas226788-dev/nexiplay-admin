@@ -60,6 +60,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const menuItems = [
         { name: 'Dashboard', path: '/', icon: 'M4 6h16M4 12h16M4 18h16' },
         { name: 'Add Content', path: '/add', icon: 'M12 4v16m8-8H4' },
+        { name: 'TMDB Catalog', path: '/tmdb-catalog', icon: 'M4 5h16M4 12h16M4 19h16M8 5v14m8-14v14' },
+        { name: 'Shorts Feed', path: '/shorts', icon: 'M13 10V3L4 14h7v7l9-11h-7z' },
+        { name: 'Vibe Check', path: '/mood-picks', icon: 'M12 21a9 9 0 110-18 9 9 0 010 18zm-3-7s1.2 2 3 2 3-2 3-2M9 9h.01M15 9h.01' },
+        { name: 'Vibe Manager', path: '/vibe-manager', icon: 'M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1M16 12a4 4 0 11-8 0 4 4 0 018 0z' },
         { name: 'Novels', path: '/novels', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
         { name: 'Downloads', path: '/downloads', icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4' },
         { name: 'Tutorials', path: '/tutorials', icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
