@@ -118,7 +118,8 @@ export async function GET(request: NextRequest) {
                 'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
                 'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
                 'Content-Type': contentType || 'video/mp2t',
-                'Cache-Control': 'public, max-age=86400, immutable'
+                'Cache-Control': 'public, max-age=86400, s-maxage=604800, immutable',
+                'CDN-Cache-Control': 'max-age=604800'
             };
 
             const cl = segRes.headers.get('content-length');
