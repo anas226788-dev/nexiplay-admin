@@ -116,6 +116,7 @@ export async function GET(request: NextRequest) {
 
         const isSeriesOrAnime = movie.type === 'anime' || movie.type === 'series';
         let rrStreamUrl = '';
+        let targetSeasonId: string | null = null;
 
         // 2. If Series/Anime, fetch corresponding episode
         if (isSeriesOrAnime) {
@@ -126,10 +127,11 @@ export async function GET(request: NextRequest) {
                 .eq('movie_id', movie.id)
                 .eq('season_number', seasonNum)
                 .maybeSingle();
+            targetSeasonId = season?.id || null;
 
             let episodeQuery = supabase.from('episodes').select('*');
-            if (season?.id) {
-                episodeQuery = episodeQuery.eq('season_id', season.id).eq('episode_number', epNum);
+            if (targetSeasonId) {
+                episodeQuery = episodeQuery.eq('season_id', targetSeasonId).eq('episode_number', epNum);
             } else {
                 episodeQuery = episodeQuery.eq('movie_id', movie.id).eq('episode_number', epNum);
             }

@@ -1,11 +1,19 @@
 import crypto from 'crypto';
 
-// Secret key for AES encryption (defaults to an internal fallback if env not set)
-const STREAM_SECRET = process.env.STREAM_API_SECRET || 'nexiplay_rr_stream_encryption_key_2026_x7a9';
+function getSecret(): string {
+    const secret = process.env.STREAM_API_SECRET;
+    if (!secret) {
+        if (process.env.NODE_ENV === 'production') {
+            throw new Error('STREAM_API_SECRET environment variable is required.');
+        }
+        return 'dev_only_stream_secret_change_in_env';
+    }
+    return secret;
+}
 
 // Derive a 32-byte key from secret
 function getEncryptionKey(): Buffer {
-    return crypto.createHash('sha256').update(STREAM_SECRET).digest();
+    return crypto.createHash('sha256').update(getSecret()).digest();
 }
 
 export type EncryptedStreamPayload = {

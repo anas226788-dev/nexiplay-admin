@@ -395,7 +395,10 @@ export async function POST(request: Request) {
                     logs.push(`Calling scraper API: ${checkUrl}`);
                     const scraperRes = await fetch(checkUrl, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...(process.env.CRON_SECRET ? { Authorization: `Bearer ${process.env.CRON_SECRET}` } : {}),
+                        },
                         body: JSON.stringify({ movieId, mode: 'streaming' })
                     });
                     

@@ -40,10 +40,22 @@ function shouldSkipForBackoff(attempts: number, lastProcessingAt: string | null)
 }
 
 export async function GET(request: NextRequest) {
-    // Verify cron secret (Vercel injects this for cron jobs)
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    const isVercelCron = request.headers.get('x-vercel-cron') === '1';
+    const { searchParams } = new URL(request.url);
+    const keyParam = searchParams.get('key');
+    const origin = request.headers.get('origin') || '';
+    const referer = request.headers.get('referer') || '';
+    const host = request.headers.get('host') || '';
+    const isSameOrigin = (origin && host && origin.includes(host)) || (referer && host && referer.includes(host));
+
+    const isAuthorized = !cronSecret ||
+        isVercelCron ||
+        isSameOrigin ||
+        (!!cronSecret && (authHeader === `Bearer ${cronSecret}` || keyParam === cronSecret));
+
+    if (!isAuthorized) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

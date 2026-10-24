@@ -6,18 +6,26 @@ export const maxDuration = 60;
 
 function isAuthorized(request: NextRequest): boolean {
     const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) return true;
-
     const authHeader = request.headers.get('authorization');
     const { searchParams } = new URL(request.url);
     const keyParam = searchParams.get('key');
-    const adminHeader = request.headers.get('x-admin-sync');
+    const isVercelCron = request.headers.get('x-vercel-cron') === '1';
 
-    if (authHeader === `Bearer ${cronSecret}`) return true;
-    if (keyParam === cronSecret) return true;
-    if (request.headers.get('x-vercel-cron') === '1') return true;
-    if (adminHeader === 'true') return true;
-    if (!authHeader && !keyParam) return true; // Direct client-side calls from Admin UI
+    if (isVercelCron) return true;
+    if (cronSecret && (authHeader === `Bearer ${cronSecret}` || keyParam === cronSecret)) {
+        return true;
+    }
+
+    // Allow internal requests originating from the admin UI
+    const origin = request.headers.get('origin') || '';
+    const referer = request.headers.get('referer') || '';
+    const host = request.headers.get('host') || '';
+    if ((origin && host && origin.includes(host)) || (referer && host && referer.includes(host))) {
+        return true;
+    }
+
+    // If no secret configured, allow default operation
+    if (!cronSecret) return true;
 
     return false;
 }

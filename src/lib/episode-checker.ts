@@ -652,17 +652,38 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                                     warnings.push(...scrapeResult.warnings.map(w => `Multi-Scraper (${serverKey} S${sNum}): ${w}`));
                                 }
 
+                                // Fetch existing episodes for this season to correctly map relative vs absolute episode numbers
+                                const { data: seasonEps } = await supabase
+                                    .from('episodes')
+                                    .select('id, episode_number')
+                                    .eq('season_id', season.id)
+                                    .order('episode_number', { ascending: true });
+
                                 for (const ep of scrapeResult.episodes) {
                                     if (!ep.streamingUrl) continue;
 
-                                    const episodeId = await getOrCreateEpisode(season.id, ep.number);
-                                    
-                                    if (await saveEpisodeServerStream(episodeId, serverKey, ep.streamingUrl, ep.number)) {
+                                    let targetEpId: string;
+                                    let targetEpNum: number = ep.number;
+
+                                    const directMatch = seasonEps?.find(e => e.episode_number === ep.number);
+                                    if (directMatch) {
+                                        targetEpId = directMatch.id;
+                                        targetEpNum = directMatch.episode_number;
+                                    } else if (ep.number >= 1 && seasonEps && ep.number <= seasonEps.length) {
+                                        const positionalMatch = seasonEps[ep.number - 1];
+                                        targetEpId = positionalMatch.id;
+                                        targetEpNum = positionalMatch.episode_number;
+                                    } else {
+                                        targetEpId = await getOrCreateEpisode(season.id, ep.number);
+                                        targetEpNum = ep.number;
+                                    }
+
+                                    if (await saveEpisodeServerStream(targetEpId, serverKey, ep.streamingUrl, targetEpNum)) {
                                         importedLegacyCount++;
                                     }
 
-                                    if (ep.number > maxScrapedEpNum) {
-                                        maxScrapedEpNum = ep.number;
+                                    if (targetEpNum > maxScrapedEpNum) {
+                                        maxScrapedEpNum = targetEpNum;
                                     }
                                 }
                             } catch (err: any) {
@@ -718,25 +739,35 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                 }
 
                 const scrapedEpisodes: any[] = [];
-                if (isJson) {
-                    for (const [sNumStr, sUrl] of Object.entries(urlMap)) {
-                        const sNum = parseInt(sNumStr);
-                        console.log(`[Cron Animerulz] Scraping Season ${sNum} from URL: ${sUrl}`);
-                        const scrapeResult = await scrapeSource(sUrl, 'animerulz', skipEpisodes, { disableSequels: true, targetSeason: sNum });
-                        for (const ep of scrapeResult.episodes) {
-                            ep.season = sNum;
+                try {
+                    if (isJson) {
+                        for (const [sNumStr, sUrl] of Object.entries(urlMap)) {
+                            const sNum = parseInt(sNumStr);
+                            console.log(`[Cron Animerulz] Scraping Season ${sNum} from URL: ${sUrl}`);
+                            try {
+                                const scrapeResult = await scrapeSource(sUrl, 'animerulz', skipEpisodes, { disableSequels: true, targetSeason: sNum });
+                                for (const ep of scrapeResult.episodes) {
+                                    ep.season = sNum;
+                                }
+                                scrapedEpisodes.push(...scrapeResult.episodes);
+                                if (scrapeResult.warnings) {
+                                    warnings.push(...scrapeResult.warnings.map(w => `Animerulz S${sNum}: ${w}`));
+                                }
+                            } catch (sErr: any) {
+                                console.warn(`[Cron Animerulz] Season ${sNum} scrape failed:`, sErr.message);
+                                warnings.push(`Animerulz S${sNum}: ${sErr.message}`);
+                            }
                         }
+                    } else {
+                        const scrapeResult = await scrapeSource(animerulzUrl, 'animerulz', skipEpisodes);
                         scrapedEpisodes.push(...scrapeResult.episodes);
                         if (scrapeResult.warnings) {
-                            warnings.push(...scrapeResult.warnings.map(w => `Animerulz S${sNum}: ${w}`));
+                            warnings.push(...scrapeResult.warnings.map(w => `Animerulz: ${w}`));
                         }
                     }
-                } else {
-                    const scrapeResult = await scrapeSource(animerulzUrl, 'animerulz', skipEpisodes);
-                    scrapedEpisodes.push(...scrapeResult.episodes);
-                    if (scrapeResult.warnings) {
-                        warnings.push(...scrapeResult.warnings.map(w => `Animerulz: ${w}`));
-                    }
+                } catch (animerulzErr: any) {
+                    console.warn(`[Cron Animerulz] Scraper failed for "${movie.title}":`, animerulzErr.message);
+                    warnings.push(`Animerulz: ${animerulzErr.message}`);
                 }
 
                 // Ensure all seasons found in scraped episodes exist in the database

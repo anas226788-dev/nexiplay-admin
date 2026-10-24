@@ -6,15 +6,15 @@ import crypto from 'crypto';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const CRON_SECRET = process.env.CRON_SECRET || 'nexiplay_novel_sync_2026';
+const CRON_SECRET = process.env.CRON_SECRET;
 const R2_BUCKET = process.env.R2_BUCKET || 'nexiplay-novels';
 
 const s3 = new S3Client({
     region: 'auto',
-    endpoint: process.env.R2_ENDPOINT || 'https://567e986afd30a195bbcc250e393fabb2.r2.cloudflarestorage.com',
+    endpoint: process.env.R2_ENDPOINT || '',
     credentials: {
-        accessKeyId: process.env.R2_ACCESS_KEY_ID || 'd4436908e2b179428b39075f49c3a859',
-        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '89cea1266e4de08a6028580dbe184d3a1858179f66f35936eb6f3982109f8e0a'
+        accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || ''
     }
 });
 
@@ -53,9 +53,11 @@ export async function GET(request: NextRequest) {
     const keyParam = searchParams.get('key');
     const authHeader = request.headers.get('authorization');
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    const adminHeader = request.headers.get('x-admin-sync');
+    const isVercelCron = request.headers.get('x-vercel-cron') === '1';
 
-    if (keyParam !== CRON_SECRET && bearerToken !== CRON_SECRET && adminHeader !== 'true') {
+    const isAuthorized = isVercelCron || (!!CRON_SECRET && (keyParam === CRON_SECRET || bearerToken === CRON_SECRET));
+
+    if (!isAuthorized) {
         return NextResponse.json(
             { success: false, error: 'Unauthorized. Invalid or missing cron key.' },
             { status: 401 }
