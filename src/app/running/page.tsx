@@ -19,6 +19,100 @@ interface PendingSubInfo {
     gdriveLink: string | null;
 }
 
+// --- Bangladesh Timezone Helpers (BST / UTC+6) ---
+const BD_TIMEZONE = 'Asia/Dhaka';
+
+function getBdPartsFromIso(isoString?: string): { date: string; time: string } {
+    if (!isoString) return { date: '', time: '20:00' };
+    try {
+        const d = new Date(isoString);
+        if (isNaN(d.getTime())) return { date: '', time: '20:00' };
+        const date = new Intl.DateTimeFormat('en-CA', {
+            timeZone: BD_TIMEZONE,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(d);
+        const time = new Intl.DateTimeFormat('en-GB', {
+            timeZone: BD_TIMEZONE,
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).format(d);
+        return { date, time };
+    } catch {
+        return { date: '', time: '20:00' };
+    }
+}
+
+function bdPartsToUtcIso(dateStr: string, timeStr: string): string | undefined {
+    if (!dateStr) return undefined;
+    const time = timeStr || '20:00';
+    const isoLike = `${dateStr}T${time}:00+06:00`;
+    const d = new Date(isoLike);
+    return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+function getTodayBdDate(): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: BD_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date());
+}
+
+function getOffsetBdDate(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: BD_TIMEZONE,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(d);
+}
+
+function formatBdDateTime(dateStr?: string): string | null {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return null;
+    return date.toLocaleString('en-US', {
+        timeZone: BD_TIMEZONE,
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    }) + ' (BD)';
+}
+
+function getCountdownBadge(dateStr?: string): { text: string; isOverdue: boolean } | null {
+    if (!dateStr) return null;
+    const target = new Date(dateStr).getTime();
+    if (isNaN(target)) return null;
+    const now = Date.now();
+    const diff = target - now;
+
+    if (diff <= 0) {
+        const overdueMins = Math.floor(Math.abs(diff) / (1000 * 60));
+        if (overdueMins < 60) return { text: `🚨 Overdue by ${overdueMins}m`, isOverdue: true };
+        const overdueHours = Math.floor(overdueMins / 60);
+        if (overdueHours < 24) return { text: `🚨 Overdue by ${overdueHours}h`, isOverdue: true };
+        const overdueDays = Math.floor(overdueHours / 24);
+        return { text: `🚨 Overdue by ${overdueDays}d`, isOverdue: true };
+    }
+
+    const mins = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(mins / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return { text: `⏳ In ${days}d ${hours % 24}h`, isOverdue: false };
+    if (hours > 0) return { text: `⏳ In ${hours}h ${mins % 60}m`, isOverdue: false };
+    return { text: `⚡ In ${mins}m`, isOverdue: false };
+}
+
 export default function RunningTasksPage() {
     const [tasks, setTasks] = useState<RunningTask[]>([]);
     const [loading, setLoading] = useState(true);
@@ -26,6 +120,9 @@ export default function RunningTasksPage() {
     const [checkingId, setCheckingId] = useState<string | null>(null);
     const [checkingAll, setCheckingAll] = useState(false);
     const [editTask, setEditTask] = useState<RunningTask | null>(null);
+    // BD Time picker state for modal
+    const [bdDate, setBdDate] = useState<string>('');
+    const [bdTime, setBdTime] = useState<string>('20:00');
     // Pending subs state
     const [pendingSubs, setPendingSubs] = useState<Record<string, PendingSubInfo[]>>({});
     const [approvingId, setApprovingId] = useState<string | null>(null);
@@ -204,6 +301,24 @@ export default function RunningTasksPage() {
         }
     };
 
+    const handleOpenEdit = (task: RunningTask) => {
+        setEditTask(task);
+        const { date, time } = getBdPartsFromIso(task.next_episode_date);
+        setBdDate(date);
+        setBdTime(time || '20:00');
+    };
+
+    const handleBdDateChange = (newDate: string, newTime: string) => {
+        setBdDate(newDate);
+        setBdTime(newTime);
+        if (!newDate) {
+            setEditTask(prev => prev ? { ...prev, next_episode_date: undefined } : null);
+        } else {
+            const iso = bdPartsToUtcIso(newDate, newTime);
+            setEditTask(prev => prev ? { ...prev, next_episode_date: iso } : null);
+        }
+    };
+
     const handleMarkDone = async (task: RunningTask) => {
         setUpdatingId(task.id);
         const newLast = (task.last_episode || 0) + 1;
@@ -211,9 +326,17 @@ export default function RunningTasksPage() {
         
         let newDate = task.next_episode_date;
         if (newDate) {
-            const dateObj = new Date(newDate);
-            dateObj.setDate(dateObj.getDate() + 7);
-            newDate = dateObj.toISOString();
+            const { date, time } = getBdPartsFromIso(newDate);
+            if (date) {
+                const parts = date.split('-').map(Number);
+                const nextD = new Date(parts[0], parts[1] - 1, parts[2] + 7);
+                const nextDateStr = new Intl.DateTimeFormat('en-CA', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).format(nextD);
+                newDate = bdPartsToUtcIso(nextDateStr, time);
+            }
         }
 
         const { error } = await supabase
@@ -234,6 +357,32 @@ export default function RunningTasksPage() {
                     ? { ...t, last_episode: newLast, next_episode: newNext, next_episode_date: newDate, notify_admin: false }
                     : t
             ));
+        }
+        setUpdatingId(null);
+    };
+
+    const handleAdd7Days = async (task: RunningTask) => {
+        setUpdatingId(task.id);
+        const baseIso = task.next_episode_date || new Date().toISOString();
+        const { date, time } = getBdPartsFromIso(baseIso);
+        const parts = (date || getTodayBdDate()).split('-').map(Number);
+        const nextD = new Date(parts[0], parts[1] - 1, parts[2] + 7);
+        const nextDateStr = new Intl.DateTimeFormat('en-CA', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(nextD);
+        const newDate = bdPartsToUtcIso(nextDateStr, time || '20:00');
+
+        const { error } = await supabase
+            .from('movies')
+            .update({ next_episode_date: newDate, notify_admin: false })
+            .eq('id', task.id);
+
+        if (!error) {
+            setTasks(tasks.map(t => t.id === task.id ? { ...t, next_episode_date: newDate, notify_admin: false } : t));
+        } else {
+            alert('Error updating schedule');
         }
         setUpdatingId(null);
     };
@@ -283,23 +432,23 @@ export default function RunningTasksPage() {
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return null;
         const date = new Date(dateStr);
-        const now = new Date();
-        
-        // Calculate difference in days based on midnight boundaries to get accurate relative day counts
-        const dateMidnight = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const diffTime = dateMidnight.getTime() - nowMidnight.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        if (isNaN(date.getTime())) return null;
 
-        const timeString = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-        const dateString = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const timeString = date.toLocaleTimeString('en-US', { timeZone: 'Asia/Dhaka', hour: 'numeric', minute: '2-digit' });
+        const dateString = date.toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka', month: 'short', day: 'numeric' });
 
-        if (diffDays === 0) return `Today at ${timeString}`;
-        if (diffDays === 1) return `Tomorrow at ${timeString}`;
-        if (diffDays === -1) return `Overdue by 1 day (${dateString})`;
-        if (diffDays < -1) return `Overdue by ${Math.abs(diffDays)} days (${dateString})`;
+        const bdTodayParts = getTodayBdDate().split('-').map(Number);
+        const bdTargetParts = getBdPartsFromIso(dateStr).date.split('-').map(Number);
+        const targetMidnight = new Date(bdTargetParts[0], bdTargetParts[1] - 1, bdTargetParts[2]);
+        const todayMidnight = new Date(bdTodayParts[0], bdTodayParts[1] - 1, bdTodayParts[2]);
+        const diffDays = Math.round((targetMidnight.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return `Today at ${timeString} BD`;
+        if (diffDays === 1) return `Tomorrow at ${timeString} BD`;
+        if (diffDays === -1) return `Overdue by 1 day (${dateString} ${timeString} BD)`;
+        if (diffDays < -1) return `Overdue by ${Math.abs(diffDays)} days (${dateString} ${timeString} BD)`;
         
-        return `In ${diffDays} days (${dateString} at ${timeString})`;
+        return `In ${diffDays} days (${dateString} at ${timeString} BD)`;
     };
 
     const isDue = (dateStr?: string) => {
@@ -389,15 +538,28 @@ export default function RunningTasksPage() {
                                                         {moviePendingSubs.length} Sub Pending
                                                     </span>
                                                 )}
-                                                {task.next_episode_date && (
-                                                    <span className={`
-                                                        px-2 py-0.5 text-xs font-bold rounded-full border
-                                                        ${due
-                                                            ? 'bg-red-500 text-white border-red-500 animate-pulse'
-                                                            : 'bg-green-500/10 text-green-400 border-green-500/20'
-                                                        }
-                                                     `}>
-                                                        Due: {dateLabel}
+                                                {task.next_episode_date ? (() => {
+                                                    const countdown = getCountdownBadge(task.next_episode_date);
+                                                    const bdFormatted = formatBdDateTime(task.next_episode_date);
+                                                    return (
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {countdown && (
+                                                                <span className={`px-2 py-0.5 text-xs font-bold rounded-full border flex items-center gap-1 ${
+                                                                    countdown.isOverdue
+                                                                        ? 'bg-red-500/20 text-red-400 border-red-500/40 animate-pulse'
+                                                                        : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                                                }`}>
+                                                                    {countdown.text}
+                                                                </span>
+                                                            )}
+                                                            <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-white/5 text-gray-300 border border-white/10" title="Bangladesh Standard Time (BST / UTC+6)">
+                                                                🇧🇩 {bdFormatted}
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })() : (
+                                                    <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-white/5 text-gray-400 border border-white/5">
+                                                        No schedule
                                                     </span>
                                                 )}
                                             </div>
@@ -506,9 +668,18 @@ export default function RunningTasksPage() {
                                         )}
 
                                         <button
-                                            onClick={() => setEditTask(task)}
-                                            className="p-2 text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/5"
-                                            title="Edit Settings"
+                                            onClick={() => handleAdd7Days(task)}
+                                            disabled={updatingId === task.id}
+                                            className="px-2.5 py-2 text-xs font-bold text-violet-300 hover:text-white bg-violet-600/10 hover:bg-violet-600/25 border border-violet-500/20 hover:border-violet-500/40 rounded-lg transition-all disabled:opacity-50 flex items-center gap-1"
+                                            title="Quick +7 Days (Reschedule to next week at same BD time)"
+                                        >
+                                            <span>+7d</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleOpenEdit(task)}
+                                            className="p-2 text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/5"
+                                            title="Edit Schedule & Settings"
                                         >
                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -571,14 +742,156 @@ export default function RunningTasksPage() {
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <label className="block text-sm text-gray-400 mb-1">Next Episode Date</label>
-                                <input 
-                                    type="datetime-local" 
-                                    value={editTask.next_episode_date ? editTask.next_episode_date.slice(0, 16) : ''} 
-                                    onChange={e => setEditTask({...editTask, next_episode_date: e.target.value ? new Date(e.target.value).toISOString() : undefined})}
-                                    className="w-full bg-dark-800 border-[1px] border-white/10 rounded-lg p-2 text-white style-color-scheme-dark outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-red-500/50" 
-                                />
+                            {/* Next Episode Date & BD Time Scheduling */}
+                            <div className="bg-white/[0.03] p-4 rounded-xl border border-white/10 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-sm font-bold text-white flex items-center gap-1.5">
+                                        <span>⏰</span> Next Episode Schedule
+                                        <span className="text-[10px] uppercase font-bold bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                                            🇧🇩 BD Time (BST / UTC+6)
+                                        </span>
+                                    </label>
+                                    {bdDate && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleBdDateChange('', '20:00')}
+                                            className="text-xs text-red-400 hover:text-red-300 hover:underline"
+                                        >
+                                            Clear Schedule
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Quick Date Presets */}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-[11px] text-gray-400 mr-1">Quick Date:</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBdDateChange(getTodayBdDate(), bdTime || '20:00')}
+                                        className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all border ${
+                                            bdDate === getTodayBdDate()
+                                                ? 'bg-violet-600 text-white border-violet-500'
+                                                : 'bg-white/5 hover:bg-white/10 text-gray-300 border-white/10'
+                                        }`}
+                                    >
+                                        Today
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBdDateChange(getOffsetBdDate(1), bdTime || '20:00')}
+                                        className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all border ${
+                                            bdDate === getOffsetBdDate(1)
+                                                ? 'bg-violet-600 text-white border-violet-500'
+                                                : 'bg-white/5 hover:bg-white/10 text-gray-300 border-white/10'
+                                        }`}
+                                    >
+                                        Tomorrow
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBdDateChange(getOffsetBdDate(2), bdTime || '20:00')}
+                                        className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all border ${
+                                            bdDate === getOffsetBdDate(2)
+                                                ? 'bg-violet-600 text-white border-violet-500'
+                                                : 'bg-white/5 hover:bg-white/10 text-gray-300 border-white/10'
+                                        }`}
+                                    >
+                                        +2 Days
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleBdDateChange(getOffsetBdDate(7), bdTime || '20:00')}
+                                        className={`px-2.5 py-1 text-xs rounded-lg font-medium transition-all border ${
+                                            bdDate === getOffsetBdDate(7)
+                                                ? 'bg-violet-600 text-white border-violet-500'
+                                                : 'bg-white/5 hover:bg-white/10 text-gray-300 border-white/10'
+                                        }`}
+                                    >
+                                        Next Week (+7d)
+                                    </button>
+                                </div>
+
+                                {/* Date & Time Inputs */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                                    <div>
+                                        <label className="block text-xs text-gray-400 mb-1 font-medium">Release Date (BD)</label>
+                                        <input
+                                            type="date"
+                                            value={bdDate}
+                                            onChange={e => handleBdDateChange(e.target.value, bdTime || '20:00')}
+                                            className="w-full bg-dark-800 border border-white/10 rounded-lg p-2 text-white outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-violet-500/50 [color-scheme:dark] text-sm font-mono"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-gray-400 mb-1 font-medium">Release Time (BD)</label>
+                                        <input
+                                            type="time"
+                                            value={bdTime}
+                                            onChange={e => handleBdDateChange(bdDate, e.target.value)}
+                                            className="w-full bg-dark-800 border border-white/10 rounded-lg p-2 text-white outline-none focus:border-violet-400/50 focus:ring-1 focus:ring-violet-500/50 [color-scheme:dark] text-sm font-mono"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Quick Time Presets */}
+                                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                                    <span className="text-[11px] text-gray-400 mr-1">Time presets:</span>
+                                    {[
+                                        { label: '12:00 PM', time: '12:00' },
+                                        { label: '06:00 PM', time: '18:00' },
+                                        { label: '08:00 PM', time: '20:00' },
+                                        { label: '10:00 PM', time: '22:00' },
+                                        { label: '11:59 PM', time: '23:59' }
+                                    ].map(preset => (
+                                        <button
+                                            key={preset.time}
+                                            type="button"
+                                            onClick={() => handleBdDateChange(bdDate || getTodayBdDate(), preset.time)}
+                                            className={`px-2 py-0.5 text-[11px] rounded font-mono transition-all border ${
+                                                bdTime === preset.time
+                                                    ? 'bg-violet-600/30 text-violet-300 border-violet-500/50 font-bold'
+                                                    : 'bg-white/5 hover:bg-white/10 text-gray-400 border-white/5'
+                                            }`}
+                                        >
+                                            {preset.label}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                {/* Real-time Preview & Countdown Banner */}
+                                {editTask.next_episode_date ? (() => {
+                                    const countdown = getCountdownBadge(editTask.next_episode_date);
+                                    const bdFormatted = formatBdDateTime(editTask.next_episode_date);
+                                    return (
+                                        <div className={`p-3 rounded-lg border flex items-center justify-between gap-3 ${
+                                            countdown?.isOverdue
+                                                ? 'bg-red-500/10 border-red-500/30'
+                                                : 'bg-emerald-500/10 border-emerald-500/30'
+                                        }`}>
+                                            <div>
+                                                <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                                                    <span>🇧🇩</span> {bdFormatted}
+                                                </div>
+                                                <div className="text-[11px] text-gray-400 mt-0.5">
+                                                    Exact Bangladesh Standard Time (UTC+6)
+                                                </div>
+                                            </div>
+                                            {countdown && (
+                                                <span className={`px-2.5 py-1 text-xs font-bold rounded-lg border whitespace-nowrap ${
+                                                    countdown.isOverdue
+                                                        ? 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse'
+                                                        : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                                                }`}>
+                                                    {countdown.text}
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })() : (
+                                    <div className="p-2.5 rounded-lg border border-dashed border-white/10 text-center text-xs text-gray-500">
+                                        No schedule set. Select a date above to enable the episode countdown timer.
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label className="block text-sm text-gray-400 mb-1">Admin Note</label>
