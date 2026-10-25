@@ -401,6 +401,10 @@ async function fetchHtmlWithProxy(
             if (directAttempt.ok && !isCloudflareBlock(directAttempt.status, directAttempt.html)) {
                 return directAttempt;
             }
+            if (directAttempt.status === 404 || directAttempt.status === 410) {
+                // Do not retry proxies on 404/410 — the URL simply does not exist
+                return directAttempt;
+            }
             console.warn(`[Direct Fetch] HTTP ${directAttempt.status} or block detected for ${url}; trying proxies.`);
         } catch (err: any) {
             directError = err;
@@ -834,6 +838,10 @@ export async function scrapeSource(
             setCookieHeader = fetchRes.setCookieHeader;
         }
         
+        if (status === 404 || status === 410) {
+            throw new Error(`Failed to fetch source page: HTTP ${status} (Page not found - please verify the scraper URL)`);
+        }
+
         if (!ok || isCloudflareBlock(status, html)) {
             throw new Error(`Failed to fetch source page: HTTP ${status} (Cloudflare block or connection error)`);
         }

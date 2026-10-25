@@ -1169,12 +1169,15 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
         } catch (movieErr: any) {
             console.error(`Error processing auto-checker for "${movieTitle}":`, movieErr);
             const errMsg = movieErr.message || JSON.stringify(movieErr);
+            const isNotFound = errMsg.includes('404') || errMsg.includes('not found') || errMsg.includes('Page not found');
             const isTimeout = errMsg.includes('timeout') || errMsg.includes('aborted');
             const isCfBlock = errMsg.includes('Cloudflare') || errMsg.includes('block');
             const isConnectionErr = errMsg.includes('ECONNREFUSED') || errMsg.includes('ENOTFOUND') || errMsg.includes('fetch failed');
             
             let userFriendlyError = errMsg;
-            if (isTimeout || isConnectionErr) {
+            if (isNotFound) {
+                userFriendlyError = `Source page not found (HTTP 404). Please verify or edit the series scraper link in settings.`;
+            } else if (isTimeout || isConnectionErr) {
                 userFriendlyError = `Source site is not responding (timeout). The site may be down or blocking requests. Try again later.`;
             } else if (isCfBlock) {
                 userFriendlyError = `Source site is protected by Cloudflare and blocked the request. Try again later.`;
