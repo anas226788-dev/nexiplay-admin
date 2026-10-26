@@ -975,6 +975,7 @@ export default function StreamingPage() {
                                     { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
                                     { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
                                     { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
+                                    { id: 'vidmoly', name: 'Vidmoly Server', icon: '🎬', desc: 'Custom video host links' },
                                     { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
                                     { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
                                     { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
@@ -1025,6 +1026,7 @@ export default function StreamingPage() {
                                     { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
                                     { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
                                     { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
+                                    { id: 'vidmoly', name: 'Vidmoly Server', icon: '🎬', desc: 'Custom video host links' },
                                     { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
                                     { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
                                     { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
@@ -1497,6 +1499,7 @@ export default function StreamingPage() {
                                 { key: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', placeholder: 'https://doodstream.com/e/... or /d/...' },
                                 { key: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', placeholder: 'https://streamtape.com/e/... or /v/...' },
                                 { key: 'voe', name: 'Nexi Spark Server', icon: '🚀', placeholder: 'https://voe.sx/e/... or https://voe.sx/...' },
+                                { key: 'vidmoly', name: 'Vidmoly Server', icon: '🎬', placeholder: 'Paste the full Vidmoly share/embed link (for example, https://vidmoly.me/...)' },
                                 { key: 'abyss', name: 'Nexi Vault Server', icon: '🌌', placeholder: 'https://short.ink/... or https://dash.abyss.to/...' },
                                 { key: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', placeholder: 'https://rareanimes.mov/...' }
                             ].map((srv) => (
@@ -1608,6 +1611,7 @@ export default function StreamingPage() {
                                             { key: 'doodstream', label: 'Nexi Turbo', color: 'bg-orange-500/10 border-orange-500/25 text-orange-400' },
                                             { key: 'streamtape', label: 'Nexi Pulse', color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' },
                                             { key: 'voe', label: 'Nexi Spark', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
+                                            { key: 'vidmoly', label: 'Vidmoly', color: 'bg-violet-500/10 border-violet-500/25 text-violet-400' },
                                             { key: 'abyss', label: 'Nexi Vault', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
                                             { key: 'rareanimes', label: 'RR Nexiplay Server', color: 'bg-pink-500/10 border-pink-500/25 text-pink-400' }
                                         ].map((srv) => (
