@@ -61,11 +61,16 @@ export async function GET(request: NextRequest) {
 
     const originHeader = request.headers.get('origin');
     const refererHeader = request.headers.get('referer');
+    const secFetchSite = request.headers.get('sec-fetch-site');
+    const hostHeader = request.headers.get('host') || request.headers.get('x-forwarded-host');
     const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
     const clientIp = forwardedFor || request.headers.get('x-real-ip') || undefined;
 
     // 1. Validate Access & Key Permission
-    const accessCheck = await validateApiKeyAccess(apiKey, originHeader, refererHeader);
+    const accessCheck = await validateApiKeyAccess(apiKey, originHeader, refererHeader, {
+        secFetchSite,
+        hostHeader
+    });
     if (!accessCheck.allowed) {
         return NextResponse.json(
             {

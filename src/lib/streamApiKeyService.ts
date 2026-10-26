@@ -157,6 +157,8 @@ export async function updateStreamApiSettings(updates: Partial<StreamApiSettings
     return updated;
 }
 
+export const OFFICIAL_CORE_KEY = 'nxp_live_nexiplay_official_core_prod';
+
 /**
  * 3. Get all API Keys
  */
@@ -168,7 +170,7 @@ export async function getStreamApiKeys(): Promise<StreamApiKey[]> {
             .order('created_at', { ascending: false });
 
         if (!error && data && data.length > 0) {
-            return data.map((row: any) => ({
+            const mapped: StreamApiKey[] = data.map((row: any) => ({
                 id: row.id,
                 name: row.name,
                 key: row.key,
@@ -183,6 +185,25 @@ export async function getStreamApiKeys(): Promise<StreamApiKey[]> {
                 createdAt: row.created_at,
                 updatedAt: row.updated_at
             }));
+
+            if (!mapped.some(k => k.key === OFFICIAL_CORE_KEY)) {
+                mapped.unshift({
+                    id: 'demo-production-key-1',
+                    name: 'NexiPlay Web & Official Apps',
+                    key: OFFICIAL_CORE_KEY,
+                    type: 'production',
+                    isActive: true,
+                    allowedOrigins: ['*'],
+                    rateLimitPerDay: 0,
+                    totalRequests: 0,
+                    lastUsedAt: null,
+                    lastUsedIp: null,
+                    expiresAt: null,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                });
+            }
+            return mapped;
         }
     } catch {
         // Fallback below
@@ -301,7 +322,8 @@ export async function deleteStreamApiKey(id: string): Promise<boolean> {
 export async function validateApiKeyAccess(
     providedKey?: string | null,
     originHeader?: string | null,
-    refererHeader?: string | null
+    refererHeader?: string | null,
+    context?: { secFetchSite?: string | null; hostHeader?: string | null }
 ): Promise<{ allowed: boolean; reason?: string; statusCode?: number; keyRecord?: StreamApiKey }> {
     const settings = await getStreamApiSettings();
 
@@ -319,7 +341,33 @@ export async function validateApiKeyAccess(
         return { allowed: true };
     }
 
-    // 3. Demo Allowed Mode: Internal local demo requests can proceed
+    const cleanProvidedKey = providedKey?.trim();
+
+    // 3. Official Built-in Core Key (Always valid for NexiPlay Web & Official Apps)
+    if (cleanProvidedKey === OFFICIAL_CORE_KEY) {
+        return {
+            allowed: true,
+            keyRecord: {
+                id: 'demo-production-key-1',
+                name: 'NexiPlay Web & Official Apps',
+                key: OFFICIAL_CORE_KEY,
+                type: 'production',
+                isActive: true,
+                allowedOrigins: ['*'],
+                rateLimitPerDay: 0,
+                totalRequests: 0,
+                lastUsedAt: null,
+                lastUsedIp: null,
+                expiresAt: null,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        };
+    }
+
+    // 4. Check for Internal / Same-Origin NexiPlay requests
+    const isSecSameSite = context?.secFetchSite === 'same-origin' || context?.secFetchSite === 'same-site';
+
     let clientOrigin = originHeader || '';
     if (!clientOrigin && refererHeader) {
         try {
@@ -328,14 +376,20 @@ export async function validateApiKeyAccess(
             clientOrigin = refererHeader;
         }
     }
-    const isLocalOrInternal = clientOrigin.includes('localhost') || clientOrigin.includes('127.0.0.1') || clientOrigin.includes('nexiplay');
 
-    if (settings.accessMode === 'demo_allowed' && !providedKey && isLocalOrInternal) {
+    const host = (context?.hostHeader || '').toLowerCase();
+    const isHostInternal = host.includes('localhost') || host.includes('127.0.0.1') || host.includes('nexiplay') || host.includes('vercel.app');
+    const isOriginInternal = clientOrigin.includes('localhost') || clientOrigin.includes('127.0.0.1') || clientOrigin.includes('nexiplay') || clientOrigin.includes('vercel.app');
+
+    const isLocalOrInternal = isSecSameSite || isOriginInternal || (isHostInternal && (!originHeader || originHeader === 'null'));
+
+    // First-party internal users browsing Nexiplay should never be blocked by an API key prompt
+    if (isLocalOrInternal) {
         return { allowed: true };
     }
 
-    // 4. If key is missing
-    if (!providedKey || !providedKey.trim()) {
+    // 5. If key is missing for external scraper / third-party caller
+    if (!cleanProvidedKey) {
         return {
             allowed: false,
             statusCode: 401,
@@ -343,9 +397,9 @@ export async function validateApiKeyAccess(
         };
     }
 
-    // 5. Look up key
+    // 6. Look up key
     const allKeys = await getStreamApiKeys();
-    const keyRecord = allKeys.find(k => k.key === providedKey.trim());
+    const keyRecord = allKeys.find(k => k.key === cleanProvidedKey);
 
     if (!keyRecord) {
         return {
