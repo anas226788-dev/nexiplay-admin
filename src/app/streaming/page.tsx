@@ -972,10 +972,10 @@ export default function StreamingPage() {
                             <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                                 {[
                                     { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
-                                    { id: 'doodstream', name: 'DoodStream Server', icon: '🟠', desc: 'DoodStream Host' },
-                                    { id: 'streamtape', name: 'Streamtape Server', icon: '🔵', desc: 'Streamtape Host' },
-                                    { id: 'voe', name: 'Voe Server', icon: '🟢', desc: 'Voe.sx Host' },
-                                    { id: 'abyss', name: 'Abyss Server', icon: '🔷', desc: 'Abyss / Short.ink' },
+                                    { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
+                                    { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
+                                    { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
+                                    { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
                                     { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
                                     { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
                                     { id: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', desc: 'RareAnimes Scraper' }
@@ -1022,10 +1022,10 @@ export default function StreamingPage() {
                             <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                                 {[
                                     { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
-                                    { id: 'doodstream', name: 'DoodStream Server', icon: '🟠', desc: 'DoodStream Host' },
-                                    { id: 'streamtape', name: 'Streamtape Server', icon: '🔵', desc: 'Streamtape Host' },
-                                    { id: 'voe', name: 'Voe Server', icon: '🟢', desc: 'Voe.sx Host' },
-                                    { id: 'abyss', name: 'Abyss Server', icon: '🔷', desc: 'Abyss / Short.ink' },
+                                    { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
+                                    { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
+                                    { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
+                                    { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
                                     { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
                                     { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
                                     { id: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', desc: 'RareAnimes Scraper' }
@@ -1277,7 +1277,7 @@ export default function StreamingPage() {
                                                         type="button"
                                                         onClick={() => handleOpenMovieServers(movie)}
                                                         className="mt-1.5 w-full px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-white rounded-lg border border-blue-500/20 text-xs font-bold transition-all flex items-center justify-center gap-1"
-                                                        title="Manage Multi-Server URLs (DoodStream, Streamtape, Voe, Abyss, etc.)"
+                                                        title="Manage Multi-Server URLs (Nexi Turbo, Nexi Pulse, Nexi Spark, Nexi Vault, etc.)"
                                                     >
                                                         <span>🌐</span>
                                                         <span>Manage Servers</span>
@@ -1494,10 +1494,10 @@ export default function StreamingPage() {
 
                             {[
                                 { key: 'custom', name: 'Direct / Custom Player Override', icon: '⭐', placeholder: 'https://cdn.example.com/movie.mp4 or embed URL...' },
-                                { key: 'doodstream', name: 'DoodStream Server', icon: '🟠', placeholder: 'https://doodstream.com/e/... or /d/...' },
-                                { key: 'streamtape', name: 'Streamtape Server', icon: '🔵', placeholder: 'https://streamtape.com/e/... or /v/...' },
-                                { key: 'voe', name: 'Voe Server', icon: '🟢', placeholder: 'https://voe.sx/e/... or https://voe.sx/...' },
-                                { key: 'abyss', name: 'Abyss Server', icon: '🔷', placeholder: 'https://short.ink/... or https://dash.abyss.to/...' },
+                                { key: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', placeholder: 'https://doodstream.com/e/... or /d/...' },
+                                { key: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', placeholder: 'https://streamtape.com/e/... or /v/...' },
+                                { key: 'voe', name: 'Nexi Spark Server', icon: '🚀', placeholder: 'https://voe.sx/e/... or https://voe.sx/...' },
+                                { key: 'abyss', name: 'Nexi Vault Server', icon: '🌌', placeholder: 'https://short.ink/... or https://dash.abyss.to/...' },
                                 { key: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', placeholder: 'https://rareanimes.mov/...' }
                             ].map((srv) => (
                                 <div key={srv.key} className="p-3.5 bg-black/40 rounded-xl border border-white/5 space-y-1.5">
@@ -1605,10 +1605,10 @@ export default function StreamingPage() {
                                         <span className="text-[10px] font-bold text-gray-400 uppercase mr-1">Edit Server URL:</span>
                                         {[
                                             { key: 'custom', label: 'Custom / Direct Override', color: 'bg-white/5 border-white/10 text-white' },
-                                            { key: 'doodstream', label: 'DoodStream', color: 'bg-orange-500/10 border-orange-500/25 text-orange-400' },
-                                            { key: 'streamtape', label: 'Streamtape', color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' },
-                                            { key: 'voe', label: 'Voe', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
-                                            { key: 'abyss', label: 'Abyss', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
+                                            { key: 'doodstream', label: 'Nexi Turbo', color: 'bg-orange-500/10 border-orange-500/25 text-orange-400' },
+                                            { key: 'streamtape', label: 'Nexi Pulse', color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' },
+                                            { key: 'voe', label: 'Nexi Spark', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
+                                            { key: 'abyss', label: 'Nexi Vault', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
                                             { key: 'rareanimes', label: 'RR Nexiplay Server', color: 'bg-pink-500/10 border-pink-500/25 text-pink-400' }
                                         ].map((srv) => (
                                             <button
