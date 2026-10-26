@@ -48,7 +48,60 @@ export default function StreamingPage() {
     const [editingServerKey, setEditingServerKey] = useState<string>('custom');
     const [savingEpisodes, setSavingEpisodes] = useState(false);
 
-        // Message notification toast
+    // Movie Multi-Servers Modal State
+    const [editingMovieServers, setEditingMovieServers] = useState<Movie | null>(null);
+    const [movieServerUrls, setMovieServerUrls] = useState<Record<string, string>>({});
+    const [savingMovieServers, setSavingMovieServers] = useState<boolean>(false);
+
+    const handleOpenMovieServers = (m: Movie) => {
+        setEditingMovieServers(m);
+        let initialUrls: Record<string, string> = {};
+        if (m.streaming_url && m.streaming_url.trim().startsWith('{')) {
+            try {
+                initialUrls = JSON.parse(m.streaming_url);
+            } catch {}
+        } else if (m.streaming_url) {
+            initialUrls.custom = m.streaming_url;
+        }
+        setMovieServerUrls(initialUrls);
+    };
+
+    const handleSaveMovieServers = async () => {
+        if (!editingMovieServers) return;
+        setSavingMovieServers(true);
+        try {
+            const cleaned: Record<string, string> = {};
+            Object.entries(movieServerUrls).forEach(([k, v]) => {
+                if (v && v.trim()) cleaned[k] = v.trim();
+            });
+            let newStreamingUrl: string | null = null;
+            if (Object.keys(cleaned).length > 0) {
+                if (Object.keys(cleaned).length === 1 && cleaned['custom']) {
+                    newStreamingUrl = cleaned['custom'];
+                } else {
+                    newStreamingUrl = JSON.stringify(cleaned);
+                }
+            }
+
+            const { error } = await supabase
+                .from('movies')
+                .update({ streaming_url: newStreamingUrl, updated_at: new Date().toISOString() })
+                .eq('id', editingMovieServers.id);
+            if (error) throw error;
+
+            await upsertStreamingRow(supabase, editingMovieServers.id, { streaming_url: newStreamingUrl });
+
+            setMovies(prev => prev.map(m => m.id === editingMovieServers.id ? { ...m, streaming_url: newStreamingUrl || undefined } : m));
+            showMessage('success', 'Movie servers saved successfully!');
+            setEditingMovieServers(null);
+        } catch (e: any) {
+            showMessage('error', 'Failed to save movie servers: ' + e.message);
+        } finally {
+            setSavingMovieServers(false);
+        }
+    };
+
+    // Message notification toast
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
     
         // Selection state for bulk matching specific rows
@@ -65,27 +118,8 @@ export default function StreamingPage() {
         // Season Scraper URL States
     const [scraperSeasons, setScraperSeasons] = useState<any[]>([]);
     const [scraperEpisodes, setScraperEpisodes] = useState<any[]>([]);
-    const [toonplayLinkMode, setToonplayLinkMode] = useState<'single' | 'separate'>('single');
-    const [toonplayUrls, setToonplayUrls] = useState<Record<number, string>>({});
-    const [animerulzLinkMode, setAnimerulzLinkMode] = useState<'single' | 'separate'>('single');
-    const [animerulzUrls, setAnimerulzUrls] = useState<Record<number, string>>({});
 
-    // New scrapers states
-    const [animeworldLinkMode, setAnimeworldLinkMode] = useState<ScraperLinkMode>('single');
-    const [animeworldUrl, setAnimeworldUrl] = useState<string>('');
-    const [animeworldUrls, setAnimeworldUrls] = useState<Record<number, string>>({});
-    const [animeworldEpisodeUrls, setAnimeworldEpisodeUrls] = useState<Record<string, string>>({});
-
-    const [animixstreamLinkMode, setAnimixstreamLinkMode] = useState<ScraperLinkMode>('single');
-    const [animixstreamUrl, setAnimixstreamUrl] = useState<string>('');
-    const [animixstreamUrls, setAnimixstreamUrls] = useState<Record<number, string>>({});
-    const [animixstreamEpisodeUrls, setAnimixstreamEpisodeUrls] = useState<Record<string, string>>({});
-
-    const [toonstreamLinkMode, setToonstreamLinkMode] = useState<ScraperLinkMode>('single');
-    const [toonstreamUrl, setToonstreamUrl] = useState<string>('');
-    const [toonstreamUrls, setToonstreamUrls] = useState<Record<number, string>>({});
-    const [toonstreamEpisodeUrls, setToonstreamEpisodeUrls] = useState<Record<string, string>>({});
-
+    // Scrapers states
     const [rareanimesLinkMode, setRareanimesLinkMode] = useState<ScraperLinkMode>('single');
     const [rareanimesUrl, setRareanimesUrl] = useState<string>('');
     const [rareanimesUrls, setRareanimesUrls] = useState<Record<number, string>>({});
@@ -95,43 +129,7 @@ export default function StreamingPage() {
 
     useEffect(() => {
         if (editingScraperMovie) {
-            const tempToonplayUrls: Record<number, string> = {};
-            const tUrl = editingScraperMovie.toonplay_url || '';
-            if (tUrl.trim().startsWith('{')) {
-                setToonplayLinkMode('separate');
-                try {
-                    const parsed = JSON.parse(tUrl);
-                    for (const [k, v] of Object.entries(parsed)) {
-                        tempToonplayUrls[parseInt(k)] = v as string;
-                    }
-                    setToonplayUrls(tempToonplayUrls);
-                } catch (e) {
-                    setToonplayUrls({});
-                }
-            } else {
-                setToonplayLinkMode('single');
-                setToonplayUrls({});
-            }
-
-            const tempAnimerulzUrls: Record<number, string> = {};
-            const aUrl = editingScraperMovie.animerulz_url || '';
-            if (aUrl.trim().startsWith('{')) {
-                setAnimerulzLinkMode('separate');
-                try {
-                    const parsed = JSON.parse(aUrl);
-                    for (const [k, v] of Object.entries(parsed)) {
-                        tempAnimerulzUrls[parseInt(k)] = v as string;
-                    }
-                    setAnimerulzUrls(tempAnimerulzUrls);
-                } catch (e) {
-                    setAnimerulzUrls({});
-                }
-            } else {
-                setAnimerulzLinkMode('single');
-                setAnimerulzUrls({});
-            }
-
-            // Parse other scrapers
+            // Parse scrapers
             const sUrl = editingScraperMovie.scraper_url || '';
             let parsedOther: Record<string, any> = {};
             if (sUrl.trim().startsWith('{')) {
@@ -148,48 +146,6 @@ export default function StreamingPage() {
                 }
                 return episodeUrls;
             };
-
-            // AnimeWorld
-            const aw = parsedOther.animeworld || {};
-            setAnimeworldLinkMode(aw.mode || 'single');
-            setAnimeworldUrl(aw.url || '');
-            const awUrls: Record<number, string> = {};
-            if (aw.urls) {
-                for (const [k, v] of Object.entries(aw.urls)) {
-                    awUrls[parseInt(k)] = v as string;
-                }
-            }
-            setAnimeworldUrls(awUrls);
-            const awEpisodeUrls = readEpisodeUrls(aw);
-            setAnimeworldEpisodeUrls(awEpisodeUrls);
-
-            // AnimixStream
-            const am = parsedOther.animixstream || {};
-            setAnimixstreamLinkMode(am.mode || 'single');
-            setAnimixstreamUrl(am.url || '');
-            const amUrls: Record<number, string> = {};
-            if (am.urls) {
-                for (const [k, v] of Object.entries(am.urls)) {
-                    amUrls[parseInt(k)] = v as string;
-                }
-            }
-            setAnimixstreamUrls(amUrls);
-            const amEpisodeUrls = readEpisodeUrls(am);
-            setAnimixstreamEpisodeUrls(amEpisodeUrls);
-
-            // ToonStream
-            const ts = parsedOther.toonstream || {};
-            setToonstreamLinkMode(ts.mode || 'single');
-            setToonstreamUrl(ts.url || '');
-            const tsUrls: Record<number, string> = {};
-            if (ts.urls) {
-                for (const [k, v] of Object.entries(ts.urls)) {
-                    tsUrls[parseInt(k)] = v as string;
-                }
-            }
-            setToonstreamUrls(tsUrls);
-            const tsEpisodeUrls = readEpisodeUrls(ts);
-            setToonstreamEpisodeUrls(tsEpisodeUrls);
 
             // RareAnimes
             const ra = parsedOther.rareanimes || {};
@@ -217,13 +173,8 @@ export default function StreamingPage() {
                         
                         // Parse JSON from urls to find if there are any other seasons configured
                         const extraSeasonNums = new Set<number>();
-                        Object.keys(tempToonplayUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
-                        Object.keys(tempAnimerulzUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
-                        Object.keys(awUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
-                        Object.keys(amUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
-                        Object.keys(tsUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
                         Object.keys(raUrls).forEach(k => extraSeasonNums.add(parseInt(k)));
-                        [awEpisodeUrls, amEpisodeUrls, tsEpisodeUrls, raEpisodeUrls].forEach(map => {
+                        [raEpisodeUrls].forEach(map => {
                             Object.keys(map).forEach(key => {
                                 const [seasonPart] = key.split('_');
                                 const seasonNum = parseInt(seasonPart, 10);
@@ -261,7 +212,7 @@ export default function StreamingPage() {
                                         episode_title: ep.episode_title
                                     }));
                                     const byKey = new Map(existingEpisodes.map(ep => [`${ep.season_number}_${ep.episode_number}`, ep]));
-                                    [awEpisodeUrls, amEpisodeUrls, tsEpisodeUrls, raEpisodeUrls].forEach(map => {
+                                    [raEpisodeUrls].forEach(map => {
                                         Object.keys(map).forEach(key => {
                                             if (byKey.has(key)) return;
                                             const [seasonPart, episodePart] = key.split('_');
@@ -291,85 +242,16 @@ export default function StreamingPage() {
         } else {
             setScraperSeasons([]);
             setScraperEpisodes([]);
-            setToonplayLinkMode('single');
-            setToonplayUrls({});
-            setAnimerulzLinkMode('single');
-            setAnimerulzUrls({});
-
-            setAnimeworldLinkMode('single');
-            setAnimeworldUrl('');
-            setAnimeworldUrls({});
-            setAnimeworldEpisodeUrls({});
-            setAnimixstreamLinkMode('single');
-            setAnimixstreamUrl('');
-            setAnimixstreamUrls({});
-            setAnimixstreamEpisodeUrls({});
-            setToonstreamLinkMode('single');
-            setToonstreamUrl('');
-            setToonstreamUrls({});
-            setToonstreamEpisodeUrls({});
+            setRareanimesLinkMode('single');
+            setRareanimesUrl('');
+            setRareanimesUrls({});
+            setRareanimesEpisodeUrls({});
             setExpandedSection(null);
         }
     }, [editingScraperMovie]);
 
-    const getToonplayUrlToSave = () => {
-        if (toonplayLinkMode === 'single') {
-            return editingScraperMovie?.toonplay_url || null;
-        }
-        const filtered: Record<number, string> = {};
-        for (const [k, v] of Object.entries(toonplayUrls)) {
-            if (v && v.trim()) {
-                filtered[parseInt(k)] = v.trim();
-            }
-        }
-        if (Object.keys(filtered).length === 0) return null;
-        return JSON.stringify(filtered);
-    };
-
-    const getAnimerulzUrlToSave = () => {
-        if (animerulzLinkMode === 'single') {
-            return editingScraperMovie?.animerulz_url || null;
-        }
-        const filtered: Record<number, string> = {};
-        for (const [k, v] of Object.entries(animerulzUrls)) {
-            if (v && v.trim()) {
-                filtered[parseInt(k)] = v.trim();
-            }
-        }
-        if (Object.keys(filtered).length === 0) return null;
-        return JSON.stringify(filtered);
-    };
-
     const getOtherScrapersJsonToSave = () => {
         const payload: Record<string, any> = {};
-        const filterEpisodeUrls = (source: Record<string, string>) => {
-            const filtered: Record<string, string> = {};
-            for (const [k, v] of Object.entries(source)) {
-                if (v && v.trim()) filtered[k] = v.trim();
-            }
-            return filtered;
-        };
-        const normalizeToonStreamInput = (value: string) => {
-            const trimmed = value.trim();
-            if (/^\d+$/.test(trimmed)) {
-                return `https://toonstream.vip/?trembed=${trimmed}`;
-            }
-            return trimmed;
-        };
-        const filterToonStreamSeasonUrls = (source: Record<number, string>) => {
-            const filtered: Record<number, string> = {};
-            for (const [k, v] of Object.entries(source)) {
-                if (v && v.trim()) filtered[parseInt(k)] = normalizeToonStreamInput(v);
-            }
-            return filtered;
-        };
-        const filterToonStreamEpisodeUrls = (source: Record<string, string>) => {
-            const filtered: Record<string, string> = {};
-            for (const [k, v] of Object.entries(source)) {
-                if (v && v.trim()) filtered[k] = normalizeToonStreamInput(v);
-            }
-            return filtered;
-        };
 
         const filterGenericSeasonUrls = (source: Record<number, string>) => {
             const filtered: Record<number, string> = {};
@@ -386,48 +268,6 @@ export default function StreamingPage() {
             }
             return filtered;
         };
-        
-        // AnimeWorld
-        const awFiltered: Record<number, string> = {};
-        for (const [k, v] of Object.entries(animeworldUrls)) {
-            if (v && v.trim()) awFiltered[parseInt(k)] = v.trim();
-        }
-        const awEpisodeFiltered = filterEpisodeUrls(animeworldEpisodeUrls);
-        if (animeworldUrl.trim() || Object.keys(awFiltered).length > 0 || Object.keys(awEpisodeFiltered).length > 0) {
-            payload.animeworld = {
-                mode: animeworldLinkMode,
-                url: animeworldLinkMode === 'single' ? animeworldUrl.trim() : '',
-                urls: animeworldLinkMode === 'separate' ? awFiltered : {},
-                episodeUrls: animeworldLinkMode === 'episode' ? awEpisodeFiltered : {}
-            };
-        }
-
-        // AnimixStream
-        const amFiltered: Record<number, string> = {};
-        for (const [k, v] of Object.entries(animixstreamUrls)) {
-            if (v && v.trim()) amFiltered[parseInt(k)] = v.trim();
-        }
-        const amEpisodeFiltered = filterEpisodeUrls(animixstreamEpisodeUrls);
-        if (animixstreamUrl.trim() || Object.keys(amFiltered).length > 0 || Object.keys(amEpisodeFiltered).length > 0) {
-            payload.animixstream = {
-                mode: animixstreamLinkMode,
-                url: animixstreamLinkMode === 'single' ? animixstreamUrl.trim() : '',
-                urls: animixstreamLinkMode === 'separate' ? amFiltered : {},
-                episodeUrls: animixstreamLinkMode === 'episode' ? amEpisodeFiltered : {}
-            };
-        }
-
-        // ToonStream
-        const tsFiltered = filterToonStreamSeasonUrls(toonstreamUrls);
-        const tsEpisodeFiltered = filterToonStreamEpisodeUrls(toonstreamEpisodeUrls);
-        if (toonstreamUrl.trim() || Object.keys(tsFiltered).length > 0 || Object.keys(tsEpisodeFiltered).length > 0) {
-            payload.toonstream = {
-                mode: toonstreamLinkMode,
-                url: toonstreamLinkMode === 'single' ? normalizeToonStreamInput(toonstreamUrl) : '',
-                urls: toonstreamLinkMode === 'separate' ? tsFiltered : {},
-                episodeUrls: toonstreamLinkMode === 'episode' ? tsEpisodeFiltered : {}
-            };
-        }
 
         // RareAnimes
         const raFiltered = filterGenericSeasonUrls(rareanimesUrls);
@@ -486,13 +326,12 @@ export default function StreamingPage() {
         if (code === undefined || code === null) {
             return [
                 'custom',
+                'doodstream',
+                'streamtape',
+                'voe',
+                'abyss',
                 'vidsrc_to',
                 'vidsrc_me',
-                'toonplay',
-                'animerulz',
-                'animeworld',
-                'animixstream',
-                'toonstream',
                 'rareanimes'
             ];
         }
@@ -1130,14 +969,13 @@ export default function StreamingPage() {
                                     Toggle which servers are active on the Web site. Disabled servers are hidden on Web.
                                 </p>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                                 {[
                                     { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
-                                    { id: 'toonplay', name: 'Nexiplay Private Server', icon: '🔒', desc: 'Hindi/Multi-Audio' },
-                                    { id: 'animerulz', name: 'Server Animerulz', icon: '🌀', desc: 'Auto Scraped m3u8' },
-                                    { id: 'toonstream', name: 'ToonStream Server', icon: '📺', desc: 'ToonStream.vip' },
-                                    { id: 'animeworld', name: 'AnimeWorld Server', icon: '🌍', desc: 'watchanimeworld.net' },
-                                    { id: 'animixstream', name: 'AnimixStream Server', icon: '💿', desc: 'animixstream.com' },
+                                    { id: 'doodstream', name: 'DoodStream Server', icon: '🟠', desc: 'DoodStream Host' },
+                                    { id: 'streamtape', name: 'Streamtape Server', icon: '🔵', desc: 'Streamtape Host' },
+                                    { id: 'voe', name: 'Voe Server', icon: '🟢', desc: 'Voe.sx Host' },
+                                    { id: 'abyss', name: 'Abyss Server', icon: '🔷', desc: 'Abyss / Short.ink' },
                                     { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
                                     { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
                                     { id: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', desc: 'RareAnimes Scraper' }
@@ -1181,14 +1019,13 @@ export default function StreamingPage() {
                                     Toggle which servers are active in the Android App. Independent from Web!
                                 </p>
                             </div>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                                 {[
                                     { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
-                                    { id: 'toonplay', name: 'Nexiplay Private Server', icon: '🔒', desc: 'Hindi/Multi-Audio' },
-                                    { id: 'animerulz', name: 'Server Animerulz', icon: '🌀', desc: 'Auto Scraped m3u8' },
-                                    { id: 'toonstream', name: 'ToonStream Server', icon: '📺', desc: 'ToonStream.vip' },
-                                    { id: 'animeworld', name: 'AnimeWorld Server', icon: '🌍', desc: 'watchanimeworld.net' },
-                                    { id: 'animixstream', name: 'AnimixStream Server', icon: '💿', desc: 'animixstream.com' },
+                                    { id: 'doodstream', name: 'DoodStream Server', icon: '🟠', desc: 'DoodStream Host' },
+                                    { id: 'streamtape', name: 'Streamtape Server', icon: '🔵', desc: 'Streamtape Host' },
+                                    { id: 'voe', name: 'Voe Server', icon: '🟢', desc: 'Voe.sx Host' },
+                                    { id: 'abyss', name: 'Abyss Server', icon: '🔷', desc: 'Abyss / Short.ink' },
                                     { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
                                     { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
                                     { id: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', desc: 'RareAnimes Scraper' }
@@ -1428,13 +1265,24 @@ export default function StreamingPage() {
                                                     📺 Manage
                                                 </button>
                                             ) : (
-                                                <input
-                                                    type="text"
-                                                    value={movie.streaming_url || ''}
-                                                    onChange={(e) => handleFieldChange(movie.id, 'streaming_url', e.target.value)}
-                                                    placeholder="Direct link..."
-                                                    className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-red-500"
-                                                />
+                                                <div>
+                                                    <input
+                                                        type="text"
+                                                        value={movie.streaming_url || ''}
+                                                        onChange={(e) => handleFieldChange(movie.id, 'streaming_url', e.target.value)}
+                                                        placeholder={movie.streaming_url?.trim().startsWith('{') ? 'Multi-servers set' : 'Direct link...'}
+                                                        className="w-full bg-black/60 border border-white/10 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleOpenMovieServers(movie)}
+                                                        className="mt-1.5 w-full px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 hover:text-white rounded-lg border border-blue-500/20 text-xs font-bold transition-all flex items-center justify-center gap-1"
+                                                        title="Manage Multi-Server URLs (DoodStream, Streamtape, Voe, Abyss, etc.)"
+                                                    >
+                                                        <span>🌐</span>
+                                                        <span>Manage Servers</span>
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -1616,6 +1464,88 @@ export default function StreamingPage() {
                 </div>
             )}
 
+            {/* Movie Multi-Server Management Modal */}
+            {editingMovieServers && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
+                    <div className="w-full max-w-2xl bg-dark-800 border border-white/10 rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div>
+                                <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                    <span>🌐</span> Movie Streaming Servers
+                                </h3>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    Configure multi-server links for: <strong className="text-white">&ldquo;{editingMovieServers.title}&rdquo;</strong>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setEditingMovieServers(null)}
+                                className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+                            <p className="text-xs text-gray-400 bg-black/30 p-3 rounded-xl border border-white/5 leading-relaxed">
+                                💡 Enter the stream or embed links for the servers you want to provide for this movie. Empty servers won&apos;t appear to viewers.
+                            </p>
+
+                            {[
+                                { key: 'custom', name: 'Direct / Custom Player Override', icon: '⭐', placeholder: 'https://cdn.example.com/movie.mp4 or embed URL...' },
+                                { key: 'doodstream', name: 'DoodStream Server', icon: '🟠', placeholder: 'https://doodstream.com/e/... or /d/...' },
+                                { key: 'streamtape', name: 'Streamtape Server', icon: '🔵', placeholder: 'https://streamtape.com/e/... or /v/...' },
+                                { key: 'voe', name: 'Voe Server', icon: '🟢', placeholder: 'https://voe.sx/e/... or https://voe.sx/...' },
+                                { key: 'abyss', name: 'Abyss Server', icon: '🔷', placeholder: 'https://short.ink/... or https://dash.abyss.to/...' },
+                                { key: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', placeholder: 'https://rareanimes.mov/...' }
+                            ].map((srv) => (
+                                <div key={srv.key} className="p-3.5 bg-black/40 rounded-xl border border-white/5 space-y-1.5">
+                                    <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
+                                        <span>{srv.icon}</span>
+                                        <span>{srv.name}</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={movieServerUrls[srv.key] || ''}
+                                        onChange={(e) => setMovieServerUrls(prev => ({ ...prev, [srv.key]: e.target.value }))}
+                                        placeholder={srv.placeholder}
+                                        className="w-full bg-black/60 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-white/5 flex justify-end gap-3 bg-dark-850">
+                            <button
+                                onClick={() => setEditingMovieServers(null)}
+                                className="px-5 py-2.5 bg-white/5 hover:bg-white/10 text-white font-bold rounded-lg text-sm transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveMovieServers}
+                                disabled={savingMovieServers}
+                                className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg text-sm transition-all disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {savingMovieServers ? (
+                                    <>
+                                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        <span>Saving...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>💾</span>
+                                        <span>Save Movie Servers</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Episode Management Modal */}
             {editingEpisodesMovie && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200">
@@ -1675,11 +1605,10 @@ export default function StreamingPage() {
                                         <span className="text-[10px] font-bold text-gray-400 uppercase mr-1">Edit Server URL:</span>
                                         {[
                                             { key: 'custom', label: 'Custom / Direct Override', color: 'bg-white/5 border-white/10 text-white' },
-                                            { key: 'toonplay', label: 'Toonplay (Private Server)', color: 'bg-orange-500/10 border-orange-500/25 text-orange-400' },
-                                            { key: 'animerulz', label: 'Animerulz', color: 'bg-red-500/10 border-red-500/25 text-red-400' },
-                                            { key: 'toonstream', label: 'ToonStream', color: 'bg-purple-500/10 border-purple-500/25 text-purple-400' },
-                                            { key: 'animeworld', label: 'AnimeWorld', color: 'bg-green-500/10 border-green-500/25 text-green-400' },
-                                            { key: 'animixstream', label: 'AnimixStream', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
+                                            { key: 'doodstream', label: 'DoodStream', color: 'bg-orange-500/10 border-orange-500/25 text-orange-400' },
+                                            { key: 'streamtape', label: 'Streamtape', color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' },
+                                            { key: 'voe', label: 'Voe', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
+                                            { key: 'abyss', label: 'Abyss', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
                                             { key: 'rareanimes', label: 'RR Nexiplay Server', color: 'bg-pink-500/10 border-pink-500/25 text-pink-400' }
                                         ].map((srv) => (
                                             <button
@@ -1765,438 +1694,169 @@ export default function StreamingPage() {
                             </div>
                             <button
                                 onClick={() => setEditingScraperMovie(null)}
-                                className="p-1 hover:bg-white/10 rounded-lg text-gray-400 transition-colors"
+                                className="p-1 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
                             >
-                                ✕
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
                             </button>
                         </div>
 
                         {/* Body / Form */}
                         <div className="p-6 space-y-5 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                                                        {/* Section 1: Animerulz Scraper */}
-                            {editingScraperMovie.type === 'anime' && (
-                                <div className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-4">
-                                    <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                                        <span className="text-xs font-black text-red-400 uppercase tracking-wider">🌸 Animerulz (Anime Only)</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] font-bold text-gray-400 uppercase">Link Mode:</span>
-                                            <select
-                                                value={animerulzLinkMode}
-                                                onChange={(e) => setAnimerulzLinkMode(e.target.value as any)}
-                                                className="bg-dark-900 border border-white/10 rounded px-1.5 py-0.5 text-white text-[10px] focus:outline-none"
-                                            >
-                                                <option value="single">One Link All Seasons</option>
-                                                <option value="separate">Separate Season Links</option>
-                                            </select>
-                                        </div>
+
+                            {/* Section: RR Nexiplay (RareAnimes) Scraper */}
+                            <div className="bg-black/30 p-5 rounded-xl border border-pink-500/20 space-y-4">
+                                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                    <span className="text-xs font-black text-pink-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <span>🎴</span> RR Nexiplay Server (RareAnimes Scraper)
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Link Mode:</span>
+                                        <select
+                                            value={rareanimesLinkMode}
+                                            onChange={(e) => setRareanimesLinkMode(e.target.value as any)}
+                                            className="bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-[11px] focus:outline-none focus:border-pink-500"
+                                        >
+                                            <option value="single">One Link All Seasons</option>
+                                            <option value="separate">Separate Season Links</option>
+                                            <option value="episode">Separate Episode Links</option>
+                                        </select>
                                     </div>
-                                    
-                                    {animerulzLinkMode === 'single' ? (
-                                        <div className="grid grid-cols-3 gap-3">
-                                            <div className="col-span-2">
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">AniList ID / URL</label>
-                                                <input
-                                                    type="text"
-                                                    value={editingScraperMovie.animerulz_url || ''}
-                                                    onChange={(e) => setEditingScraperMovie({
-                                                        ...editingScraperMovie,
-                                                        animerulz_url: e.target.value
-                                                    })}
-                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
-                                                    placeholder="AniList ID (e.g. 154587)"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Season</label>
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    value={editingScraperMovie.animerulz_season || 1}
-                                                    onChange={(e) => setEditingScraperMovie({
-                                                        ...editingScraperMovie,
-                                                        animerulz_season: parseInt(e.target.value) || 1
-                                                    })}
-                                                    className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400 text-center font-mono font-bold"
-                                                />
-                                            </div>
-                                        </div>
-                                                                        ) : (
-                                        <div className="space-y-3">
-                                            {scraperSeasons.length === 0 ? (
-                                                <p className="text-[11px] text-gray-400 italic">No seasons configured. Click "+ Add Season Input" below to add a season link field.</p>
-                                            ) : (
-                                                scraperSeasons.map((season) => (
-                                                    <div key={season.id} className="flex items-center gap-2">
-                                                        <span className="text-xs font-bold text-gray-300 w-20">Season {season.season_number}:</span>
+                                </div>
+
+                                {rareanimesLinkMode === 'single' ? (
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">RareAnimes URL</label>
+                                        <input
+                                            type="text"
+                                            value={rareanimesUrl}
+                                            onChange={(e) => setRareanimesUrl(e.target.value)}
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-xs focus:outline-none focus:border-pink-500"
+                                            placeholder="https://www.rareanimes.mov/hindi/..."
+                                        />
+                                    </div>
+                                ) : rareanimesLinkMode === 'separate' ? (
+                                    <div className="space-y-3">
+                                        {scraperSeasons.length === 0 ? (
+                                            <p className="text-[11px] text-gray-400 italic">No seasons configured. Click &ldquo;+ Add Season Link&rdquo; below to add fields.</p>
+                                        ) : (
+                                            scraperSeasons.map((season) => (
+                                                <div key={season.id} className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-gray-300 w-20">Season {season.season_number}:</span>
+                                                    <input
+                                                        type="text"
+                                                        value={rareanimesUrls[season.season_number] || ''}
+                                                        onChange={(e) => setRareanimesUrls({
+                                                            ...rareanimesUrls,
+                                                            [season.season_number]: e.target.value
+                                                        })}
+                                                        className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-pink-500"
+                                                        placeholder={`RareAnimes URL for Season ${season.season_number}...`}
+                                                    />
+                                                    {season.id.toString().startsWith('virtual_') && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setScraperSeasons(prev => prev.filter(s => s.id !== season.id));
+                                                                const updated = { ...rareanimesUrls };
+                                                                delete updated[season.season_number];
+                                                                setRareanimesUrls(updated);
+                                                            }}
+                                                            className="text-gray-400 hover:text-pink-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                            title="Remove season field"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const nextSeasonNum = scraperSeasons.length > 0
+                                                    ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1
+                                                    : 1;
+                                                setScraperSeasons(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `virtual_${nextSeasonNum}`,
+                                                        season_number: nextSeasonNum,
+                                                        season_title: `Season ${nextSeasonNum}`
+                                                    }
+                                                ]);
+                                            }}
+                                            className="text-xs font-bold text-pink-500 hover:text-pink-400 flex items-center gap-1 mt-1 hover:underline"
+                                        >
+                                            ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {scraperEpisodes.length === 0 ? (
+                                            <p className="text-[11px] text-gray-400 italic">No episodes configured. Click &ldquo;+ Add Episode Link&rdquo; below to add fields.</p>
+                                        ) : (
+                                            scraperEpisodes.map((episode) => {
+                                                const key = `${episode.season_number}_${episode.episode_number}`;
+                                                return (
+                                                    <div key={episode.id || key} className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-gray-300 w-24">
+                                                            S{episode.season_number} E{episode.episode_number}:
+                                                        </span>
                                                         <input
                                                             type="text"
-                                                            value={animerulzUrls[season.season_number] || ''}
-                                                            onChange={(e) => setAnimerulzUrls({
-                                                                ...animerulzUrls,
-                                                                [season.season_number]: e.target.value
+                                                            value={rareanimesEpisodeUrls[key] || ''}
+                                                            onChange={(e) => setRareanimesEpisodeUrls({
+                                                                ...rareanimesEpisodeUrls,
+                                                                [key]: e.target.value
                                                             })}
-                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
-                                                            placeholder={`Animerulz URL/ID for Season ${season.season_number}...`}
+                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-pink-500"
+                                                            placeholder={`RareAnimes URL for Episode ${episode.episode_number}...`}
                                                         />
-                                                        {season.id.toString().startsWith('virtual_') && (
+                                                        {episode.id?.toString().startsWith('virtual_ep_') && (
                                                             <button
                                                                 type="button"
                                                                 onClick={() => {
-                                                                    setScraperSeasons(prev => prev.filter(s => s.id !== season.id));
-                                                                    const updated = { ...animerulzUrls };
-                                                                    delete updated[season.season_number];
-                                                                    setAnimerulzUrls(updated);
+                                                                    setScraperEpisodes(prev => prev.filter(ep => ep.id !== episode.id));
+                                                                    const updated = { ...rareanimesEpisodeUrls };
+                                                                    delete updated[key];
+                                                                    setRareanimesEpisodeUrls(updated);
                                                                 }}
-                                                                className="text-gray-400 hover:text-violet-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
-                                                                title="Remove season field"
+                                                                className="text-gray-400 hover:text-pink-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
+                                                                title="Remove episode field"
                                                             >
                                                                 ✕
                                                             </button>
                                                         )}
                                                     </div>
-                                                ))
-                                            )}
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const nextSeasonNum = scraperSeasons.length > 0 
-                                                        ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 
-                                                        : 1;
-                                                    setScraperSeasons(prev => [
-                                                        ...prev,
-                                                        {
-                                                            id: `virtual_${nextSeasonNum}`,
-                                                            season_number: nextSeasonNum,
-                                                            season_title: `Season ${nextSeasonNum}`
-                                                        }
-                                                    ]);
-                                                }}
-                                                className="text-xs font-bold text-violet-300 hover:text-red-400 flex items-center gap-1 mt-1 hover:underline"
-                                            >
-                                                ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Resolution</label>
-                                        <select
-                                            value={editingScraperMovie.animerulz_resolution || '720p'}
-                                            onChange={(e) => setEditingScraperMovie({
-                                                ...editingScraperMovie,
-                                                animerulz_resolution: e.target.value as any
-                                            })}
-                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400 font-semibold"
+                                                );
+                                            })
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const defaultSeason = scraperSeasons[0]?.season_number || 1;
+                                                const seasonEpisodes = scraperEpisodes.filter(ep => ep.season_number === defaultSeason);
+                                                const nextEpisodeNum = seasonEpisodes.length > 0
+                                                    ? Math.max(...seasonEpisodes.map(ep => ep.episode_number)) + 1
+                                                    : 1;
+                                                setScraperEpisodes(prev => [
+                                                    ...prev,
+                                                    {
+                                                        id: `virtual_ep_${defaultSeason}_${nextEpisodeNum}`,
+                                                        season_number: defaultSeason,
+                                                        episode_number: nextEpisodeNum,
+                                                        episode_title: `Episode ${nextEpisodeNum}`
+                                                    }
+                                                ]);
+                                            }}
+                                            className="text-xs font-bold text-pink-500 hover:text-pink-400 flex items-center gap-1 mt-1 hover:underline"
                                         >
-                                            <option value="360p">360p</option>
-                                            <option value="480p">480p</option>
-                                            <option value="720p">720p</option>
-                                            <option value="1080p">1080p</option>
-                                        </select>
-                                </div>
-                            </div>
-                            )}
-
-                            {/* Section 2: Toonplay Scraper */}
-                            <div className="bg-black/30 p-4 rounded-xl border border-white/5 space-y-4">
-                                <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                                    <span className="text-xs font-black text-orange-405 uppercase tracking-wider">🔒 Nexiplay Private Server (Toonplay)</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Link Mode:</span>
-                                        <select
-                                            value={toonplayLinkMode}
-                                            onChange={(e) => setToonplayLinkMode(e.target.value as any)}
-                                            className="bg-dark-900 border border-white/10 rounded px-1.5 py-0.5 text-white text-[10px] focus:outline-none"
-                                        >
-                                            <option value="single">One Link All Seasons</option>
-                                            <option value="separate">Separate Season Links</option>
-                                        </select>
+                                            ➕ Add Episode Link
+                                        </button>
                                     </div>
-                                </div>
-
-                                {toonplayLinkMode === 'single' ? (
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div className="col-span-2">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Toonplay URL / ID</label>
-                                            <input
-                                                type="text"
-                                                value={editingScraperMovie.toonplay_url || ''}
-                                                onChange={(e) => setEditingScraperMovie({
-                                                    ...editingScraperMovie,
-                                                    toonplay_url: e.target.value
-                                                })}
-                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
-                                                placeholder="Toonplay URL/ID..."
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Season</label>
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                value={editingScraperMovie.toonplay_season || 1}
-                                                onChange={(e) => setEditingScraperMovie({
-                                                    ...editingScraperMovie,
-                                                    toonplay_season: parseInt(e.target.value) || 1
-                                                })}
-                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400 text-center font-mono font-bold"
-                                            />
-                                        </div>
-                                    </div>
-                                                                 ) : (
-                                     <div className="space-y-3">
-                                         {scraperSeasons.length === 0 ? (
-                                             <p className="text-[11px] text-gray-400 italic">No seasons configured. Click "+ Add Season Input" below to add a season link field.</p>
-                                         ) : (
-                                             scraperSeasons.map((season) => (
-                                                 <div key={season.id} className="flex items-center gap-2">
-                                                     <span className="text-xs font-bold text-gray-300 w-20">Season {season.season_number}:</span>
-                                                     <input
-                                                         type="text"
-                                                         value={toonplayUrls[season.season_number] || ''}
-                                                         onChange={(e) => setToonplayUrls({
-                                                             ...toonplayUrls,
-                                                             [season.season_number]: e.target.value
-                                                         })}
-                                                         className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
-                                                         placeholder={`Toonplay URL/ID for Season ${season.season_number}...`}
-                                                     />
-                                                     {season.id.toString().startsWith('virtual_') && (
-                                                         <button
-                                                             type="button"
-                                                             onClick={() => {
-                                                                 setScraperSeasons(prev => prev.filter(s => s.id !== season.id));
-                                                                 const updated = { ...toonplayUrls };
-                                                                 delete updated[season.season_number];
-                                                                 setToonplayUrls(updated);
-                                                             }}
-                                                             className="text-gray-400 hover:text-violet-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
-                                                             title="Remove season field"
-                                                         >
-                                                             ✕
-                                                         </button>
-                                                     )}
-                                                 </div>
-                                             ))
-                                         )}
-                                         <button
-                                             type="button"
-                                             onClick={() => {
-                                                 const nextSeasonNum = scraperSeasons.length > 0 
-                                                     ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 
-                                                     : 1;
-                                                 setScraperSeasons(prev => [
-                                                     ...prev,
-                                                     {
-                                                         id: `virtual_${nextSeasonNum}`,
-                                                         season_number: nextSeasonNum,
-                                                         season_title: `Season ${nextSeasonNum}`
-                                                     }
-                                                 ]);
-                                             }}
-                                             className="text-xs font-bold text-orange-500 hover:text-orange-400 flex items-center gap-1 mt-1 hover:underline"
-                                         >
-                                             ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
-                                         </button>
-                                     </div>
-                                 )}
-
-                                <div>
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Resolution</label>
-                                    <select
-                                        value={editingScraperMovie.toonplay_resolution || '720p'}
-                                        onChange={(e) => setEditingScraperMovie({
-                                            ...editingScraperMovie,
-                                            toonplay_resolution: e.target.value as any
-                                        })}
-                                        className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400 font-semibold"
-                                    >
-                                        <option value="360p">360p</option>
-                                        <option value="480p">480p</option>
-                                        <option value="720p">720p</option>
-                                        <option value="1080p">1080p</option>
-                                    </select>
-                                                            </div>
-
-                            {/* Accordion Sections for New Servers */}
-                            <div className="space-y-3 mt-4 border-t border-white/5 pt-4">
-                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">⚡ Additional Servers</h4>
-                                
-                                {[
-                                    { id: 'animeworld', name: 'AnimeWorld Server', color: 'text-green-400', mode: animeworldLinkMode, setMode: setAnimeworldLinkMode, val: animeworldUrl, setVal: setAnimeworldUrl, map: animeworldUrls, setMap: setAnimeworldUrls, episodeMap: animeworldEpisodeUrls, setEpisodeMap: setAnimeworldEpisodeUrls, placeholder: 'https://watchanimeworld.net/anime/...' },
-                                    { id: 'animixstream', name: 'AnimixStream Server', color: 'text-cyan-400', mode: animixstreamLinkMode, setMode: setAnimixstreamLinkMode, val: animixstreamUrl, setVal: setAnimixstreamUrl, map: animixstreamUrls, setMap: setAnimixstreamUrls, episodeMap: animixstreamEpisodeUrls, setEpisodeMap: setAnimixstreamEpisodeUrls, placeholder: 'https://animixstream.com/anime/...' },
-                                    { id: 'toonstream', name: 'ToonStream Server', color: 'text-purple-400', mode: toonstreamLinkMode, setMode: setToonstreamLinkMode, val: toonstreamUrl, setVal: setToonstreamUrl, map: toonstreamUrls, setMap: toonstreamUrls, episodeMap: toonstreamEpisodeUrls, setEpisodeMap: setToonstreamEpisodeUrls, placeholder: 'https://toonstream.vip/home/...' },
-                                    { id: 'rareanimes', name: 'RareAnimes (Hindi)', color: 'text-pink-400', mode: rareanimesLinkMode, setMode: setRareanimesLinkMode, val: rareanimesUrl, setVal: setRareanimesUrl, map: rareanimesUrls, setMap: setRareanimesUrls, episodeMap: rareanimesEpisodeUrls, setEpisodeMap: setRareanimesEpisodeUrls, placeholder: 'https://www.rareanimes.mov/hindi/...' }
-                                ].map((srv) => {
-                                    const isOpen = expandedSection === srv.id;
-                                    return (
-                                        <div key={srv.id} className="bg-black/30 border border-white/5 rounded-xl overflow-hidden transition-all">
-                                            {/* Accordion Toggle Header */}
-                                            <button
-                                                type="button"
-                                                onClick={() => setExpandedSection(isOpen ? null : srv.id)}
-                                                className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
-                                            >
-                                                <span className={`text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${srv.color}`}>
-                                                    <span>{srv.id === 'animeworld' ? '🌐' : srv.id === 'animixstream' ? '🚀' : srv.id === 'toonstream' ? '📺' : srv.id === 'rareanimes' ? '🎴' : '🔴'}</span>
-                                                    {srv.name}
-                                                </span>
-                                                <span className="text-gray-400 text-xs font-mono">{isOpen ? '▼' : '►'}</span>
-                                            </button>
-
-                                            {/* Accordion Body */}
-                                            {isOpen && (
-                                                <div className="p-4 border-t border-white/5 space-y-4 bg-dark-900/40">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Link Mode:</span>
-                                                        <select
-                                                            value={srv.mode}
-                                                            onChange={(e) => srv.setMode(e.target.value as any)}
-                                                            className="bg-dark-900 border border-white/10 rounded px-1.5 py-0.5 text-white text-[10px] focus:outline-none"
-                                                        >
-                                                            <option value="single">One Link All Seasons</option>
-                                                            <option value="separate">Separate Season Links</option>
-                                                            <option value="episode">Separate Episode Links</option>
-                                                        </select>
-                                                    </div>
-
-                                                    {srv.mode === 'single' ? (
-                                                        <div>
-                                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Scraper URL / ID</label>
-                                                            <input
-                                                                type="text"
-                                                                value={srv.val}
-                                                                onChange={(e) => srv.setVal(e.target.value)}
-                                                                className="w-full bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
-                                                                placeholder={srv.placeholder}
-                                                            />
-                                                        </div>
-                                                    ) : srv.mode === 'separate' ? (
-                                                        <div className="space-y-3">
-                                                            {scraperSeasons.length === 0 ? (
-                                                                <p className="text-[11px] text-gray-400 italic">No seasons configured. Click "+ Add Season Input" below to add fields.</p>
-                                                            ) : (
-                                                                scraperSeasons.map((season) => (
-                                                                    <div key={season.id} className="flex items-center gap-2">
-                                                                        <span className="text-xs font-bold text-gray-300 w-20">Season {season.season_number}:</span>
-                                                                        <input
-                                                                            type="text"
-                                                                            value={srv.map[season.season_number] || ''}
-                                                                            onChange={(e) => (srv.setMap as any)({
-                                                                                ...srv.map,
-                                                                                [season.season_number]: e.target.value
-                                                                            })}
-                                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
-                                                                            placeholder={`URL for Season ${season.season_number}...`}
-                                                                        />
-                                                                        {season.id.toString().startsWith('virtual_') && (
-                                                                            <button
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    setScraperSeasons(prev => prev.filter(s => s.id !== season.id));
-                                                                                    const updated = { ...srv.map };
-                                                                                    delete updated[season.season_number];
-                                                                                    (srv.setMap as any)(updated);
-                                                                                }}
-                                                                                className="text-gray-400 hover:text-violet-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
-                                                                                title="Remove season field"
-                                                                            >
-                                                                                ✕
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                ))
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const nextSeasonNum = scraperSeasons.length > 0 
-                                                                        ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 
-                                                                        : 1;
-                                                                    setScraperSeasons(prev => [
-                                                                        ...prev,
-                                                                        {
-                                                                            id: `virtual_${nextSeasonNum}`,
-                                                                            season_number: nextSeasonNum,
-                                                                            season_title: `Season ${nextSeasonNum}`
-                                                                        }
-                                                                    ]);
-                                                                }}
-                                                                className="text-xs font-bold text-orange-500 hover:text-orange-400 flex items-center gap-1 mt-1 hover:underline"
-                                                            >
-                                                                ➕ Add Season {scraperSeasons.length > 0 ? Math.max(...scraperSeasons.map(s => s.season_number)) + 1 : 1} Link
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <div className="space-y-3">
-                                                            {scraperEpisodes.length === 0 ? (
-                                                                <p className="text-[11px] text-gray-400 italic">No episodes configured. Click "+ Add Episode Link" below to add fields.</p>
-                                                            ) : (
-                                                                scraperEpisodes.map((episode) => {
-                                                                    const key = `${episode.season_number}_${episode.episode_number}`;
-                                                                    return (
-                                                                        <div key={episode.id || key} className="flex items-center gap-2">
-                                                                            <span className="text-xs font-bold text-gray-300 w-24">
-                                                                                S{episode.season_number} E{episode.episode_number}:
-                                                                            </span>
-                                                                            <input
-                                                                                type="text"
-                                                                                value={srv.episodeMap[key] || ''}
-                                                                                onChange={(e) => srv.setEpisodeMap({
-                                                                                    ...srv.episodeMap,
-                                                                                    [key]: e.target.value
-                                                                                })}
-                                                                                className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-violet-400"
-                                                                                placeholder={`Episode ${episode.episode_number} URL...`}
-                                                                            />
-                                                                            {episode.id?.toString().startsWith('virtual_ep_') && (
-                                                                                <button
-                                                                                    type="button"
-                                                                                    onClick={() => {
-                                                                                        setScraperEpisodes(prev => prev.filter(ep => ep.id !== episode.id));
-                                                                                        const updated = { ...srv.episodeMap };
-                                                                                        delete updated[key];
-                                                                                        srv.setEpisodeMap(updated);
-                                                                                    }}
-                                                                                    className="text-gray-400 hover:text-violet-300 text-xs font-bold px-1.5 py-1 hover:bg-white/5 rounded transition-all"
-                                                                                    title="Remove episode field"
-                                                                                >
-                                                                                    âœ•
-                                                                                </button>
-                                                                            )}
-                                                                        </div>
-                                                                    );
-                                                                })
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const defaultSeason = scraperSeasons[0]?.season_number || 1;
-                                                                    const seasonEpisodes = scraperEpisodes.filter(ep => ep.season_number === defaultSeason);
-                                                                    const nextEpisodeNum = seasonEpisodes.length > 0
-                                                                        ? Math.max(...seasonEpisodes.map(ep => ep.episode_number)) + 1
-                                                                        : 1;
-                                                                    setScraperEpisodes(prev => [
-                                                                        ...prev,
-                                                                        {
-                                                                            id: `virtual_ep_${defaultSeason}_${nextEpisodeNum}`,
-                                                                            season_number: defaultSeason,
-                                                                            episode_number: nextEpisodeNum,
-                                                                            episode_title: `Episode ${nextEpisodeNum}`
-                                                                        }
-                                                                    ]);
-                                                                }}
-                                                                className="text-xs font-bold text-orange-500 hover:text-orange-400 flex items-center gap-1 mt-1 hover:underline"
-                                                            >
-                                                                âž• Add Episode Link
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
+                                )}
                             </div>
                         </div>
 
@@ -2208,24 +1868,19 @@ export default function StreamingPage() {
                             >
                                 Cancel
                             </button>
-                                                        <button
+                            <button
                                 onClick={async () => {
                                     if (!editingScraperMovie) return;
                                     setScrapingLoader(true);
                                     try {
-                                        const tUrl = getToonplayUrlToSave();
-                                        const aUrl = getAnimerulzUrlToSave();
                                         const otherUrlsJson = getOtherScrapersJsonToSave();
 
                                         const { error: updateErr } = await supabase
                                             .from('movies')
                                             .update({
-                                                animerulz_url: aUrl,
-                                                animerulz_season: editingScraperMovie.animerulz_season || null,
-                                                animerulz_resolution: editingScraperMovie.animerulz_resolution || null,
-                                                toonplay_url: tUrl,
-                                                toonplay_season: editingScraperMovie.toonplay_season || null,
-                                                toonplay_resolution: editingScraperMovie.toonplay_resolution || null,
+                                                toonplay_url: null,
+                                                toonplay_season: null,
+                                                toonplay_resolution: null,
                                                 scraper_url: otherUrlsJson,
                                                 scraper_source: otherUrlsJson ? 'multi' : null,
                                                 updated_at: new Date().toISOString()
@@ -2234,12 +1889,9 @@ export default function StreamingPage() {
 
                                         if (updateErr) throw updateErr;
                                         await upsertStreamingRow(supabase, editingScraperMovie.id, {
-                                            animerulz_url: aUrl,
-                                            animerulz_season: editingScraperMovie.animerulz_season || undefined,
-                                            animerulz_resolution: editingScraperMovie.animerulz_resolution,
-                                            toonplay_url: tUrl,
-                                            toonplay_season: editingScraperMovie.toonplay_season || undefined,
-                                            toonplay_resolution: editingScraperMovie.toonplay_resolution,
+                                            toonplay_url: null,
+                                            toonplay_season: undefined,
+                                            toonplay_resolution: null,
                                             scraper_url: otherUrlsJson,
                                             scraper_source: otherUrlsJson ? 'multi' : undefined
                                         });
@@ -2247,12 +1899,9 @@ export default function StreamingPage() {
                                         // Update local state
                                         setMovies(prev => prev.map(m => m.id === editingScraperMovie.id ? {
                                             ...m,
-                                            animerulz_url: aUrl || undefined,
-                                            animerulz_season: editingScraperMovie.animerulz_season,
-                                            animerulz_resolution: editingScraperMovie.animerulz_resolution,
-                                            toonplay_url: tUrl || undefined,
-                                            toonplay_season: editingScraperMovie.toonplay_season,
-                                            toonplay_resolution: editingScraperMovie.toonplay_resolution,
+                                            toonplay_url: undefined,
+                                            toonplay_season: undefined,
+                                            toonplay_resolution: undefined,
                                             scraper_url: otherUrlsJson || undefined,
                                             scraper_source: otherUrlsJson ? 'multi' : undefined
                                         } : m));
@@ -2275,20 +1924,15 @@ export default function StreamingPage() {
                                     if (!editingScraperMovie) return;
                                     setScrapingLoader(true);
                                     try {
-                                        const tUrl = getToonplayUrlToSave();
-                                        const aUrl = getAnimerulzUrlToSave();
                                         const otherUrlsJson = getOtherScrapersJsonToSave();
 
                                         // 1. Save to DB
                                         const { error: updateErr } = await supabase
                                             .from('movies')
                                             .update({
-                                                animerulz_url: aUrl,
-                                                animerulz_season: editingScraperMovie.animerulz_season || null,
-                                                animerulz_resolution: editingScraperMovie.animerulz_resolution || null,
-                                                toonplay_url: tUrl,
-                                                toonplay_season: editingScraperMovie.toonplay_season || null,
-                                                toonplay_resolution: editingScraperMovie.toonplay_resolution || null,
+                                                toonplay_url: null,
+                                                toonplay_season: null,
+                                                toonplay_resolution: null,
                                                 scraper_url: otherUrlsJson,
                                                 scraper_source: otherUrlsJson ? 'multi' : null,
                                                 updated_at: new Date().toISOString()
@@ -2297,12 +1941,9 @@ export default function StreamingPage() {
 
                                         if (updateErr) throw updateErr;
                                         await upsertStreamingRow(supabase, editingScraperMovie.id, {
-                                            animerulz_url: aUrl,
-                                            animerulz_season: editingScraperMovie.animerulz_season || undefined,
-                                            animerulz_resolution: editingScraperMovie.animerulz_resolution,
-                                            toonplay_url: tUrl,
-                                            toonplay_season: editingScraperMovie.toonplay_season || undefined,
-                                            toonplay_resolution: editingScraperMovie.toonplay_resolution,
+                                            toonplay_url: null,
+                                            toonplay_season: undefined,
+                                            toonplay_resolution: null,
                                             scraper_url: otherUrlsJson,
                                             scraper_source: otherUrlsJson ? 'multi' : undefined
                                         });
@@ -2310,12 +1951,9 @@ export default function StreamingPage() {
                                         // Update local state
                                         setMovies(prev => prev.map(m => m.id === editingScraperMovie.id ? {
                                             ...m,
-                                            animerulz_url: aUrl || undefined,
-                                            animerulz_season: editingScraperMovie.animerulz_season,
-                                            animerulz_resolution: editingScraperMovie.animerulz_resolution,
-                                            toonplay_url: tUrl || undefined,
-                                            toonplay_season: editingScraperMovie.toonplay_season,
-                                            toonplay_resolution: editingScraperMovie.toonplay_resolution,
+                                            toonplay_url: undefined,
+                                            toonplay_season: undefined,
+                                            toonplay_resolution: undefined,
                                             scraper_url: otherUrlsJson || undefined,
                                             scraper_source: otherUrlsJson ? 'multi' : undefined
                                         } : m));
@@ -2361,7 +1999,6 @@ export default function StreamingPage() {
                                     </>
                                 )}
                             </button>
-                        </div>
                         </div>
                     </div>
                 </div>

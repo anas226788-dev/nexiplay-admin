@@ -247,7 +247,7 @@ export async function POST(request: Request) {
             // Retrieve current movie record to avoid overwriting existing non-null fields with null
             const { data: currentMovie, error: fetchErr } = await supabase
                 .from('movies')
-                .select('tmdb_id, imdb_id, mal_id, animerulz_url, animerulz_season, animerulz_resolution, toonplay_url, toonplay_season, toonplay_resolution, is_running, streaming_url')
+                .select('tmdb_id, imdb_id, mal_id, toonplay_url, toonplay_season, toonplay_resolution, is_running, streaming_url')
                 .eq('id', movieId)
                 .single();
 
@@ -268,51 +268,6 @@ export async function POST(request: Request) {
             dbPayload.mal_id = malId !== undefined ? cleanVal(malId) : (updates.mal_id || currentStreamingMovie.mal_id);
             dbPayload.streaming_url = streamingUrl !== undefined ? cleanVal(streamingUrl) : currentStreamingMovie.streaming_url;
 
-            // Auto-configure Animerulz scraper for anime if mal_id is present and has changed or scraper is empty
-            const finalMalId = dbPayload.mal_id;
-            if (type === 'anime' && finalMalId) {
-                if (!currentStreamingMovie.animerulz_url || currentStreamingMovie.mal_id !== finalMalId) {
-                    try {
-                        logs.push(`Querying AniList for MAL ID ${finalMalId}...`);
-                        const response = await fetch('https://graphql.anilist.co', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                query: `
-                                    query ($idMal: Int) {
-                                        Media (idMal: $idMal, type: ANIME) {
-                                            id
-                                        }
-                                    }
-                                `,
-                                variables: {
-                                    idMal: parseInt(finalMalId)
-                                }
-                            })
-                        });
-                        if (response.ok) {
-                            const data = await response.json();
-                            const anilistId = data?.data?.Media?.id;
-                            if (anilistId) {
-                                dbPayload.animerulz_url = String(anilistId);
-                                dbPayload.animerulz_season = currentStreamingMovie.animerulz_season || 1;
-                                dbPayload.animerulz_resolution = currentStreamingMovie.animerulz_resolution || '720p';
-                                logs.push(`Auto-configured Animerulz scraper with AniList ID: ${anilistId}`);
-                            }
-                        } else {
-                            logs.push(`AniList API query failed: ${response.status}`);
-                        }
-                    } catch (anilistErr: any) {
-                        logs.push(`AniList matching error: ${anilistErr.message}`);
-                    }
-                }
-            } else if (malId !== undefined && !finalMalId) {
-                // If mal_id is explicitly set to null/cleared, turn off animerulz scraper
-                dbPayload.animerulz_url = null;
-            }
 
             // Always try matching with ToonPlay (AnimeSalt) if it's an anime and not currently configured
             if (type === 'anime' && !currentStreamingMovie.toonplay_url && !dbPayload.toonplay_url) {
@@ -357,7 +312,6 @@ export async function POST(request: Request) {
                 }
             }
 
-            const activeAnimerulz = dbPayload.animerulz_url !== undefined ? dbPayload.animerulz_url : currentStreamingMovie.animerulz_url;
             const activeToonplay = dbPayload.toonplay_url !== undefined ? dbPayload.toonplay_url : currentStreamingMovie.toonplay_url;
 
             const { error: updateErr } = await supabase
@@ -376,16 +330,13 @@ export async function POST(request: Request) {
                 imdb_id: dbPayload.imdb_id,
                 mal_id: dbPayload.mal_id,
                 streaming_url: dbPayload.streaming_url,
-                animerulz_url: activeAnimerulz,
-                animerulz_season: dbPayload.animerulz_season !== undefined ? dbPayload.animerulz_season : currentStreamingMovie.animerulz_season,
-                animerulz_resolution: dbPayload.animerulz_resolution !== undefined ? dbPayload.animerulz_resolution : currentStreamingMovie.animerulz_resolution,
                 toonplay_url: activeToonplay,
                 toonplay_season: dbPayload.toonplay_season !== undefined ? dbPayload.toonplay_season : currentStreamingMovie.toonplay_season,
                 toonplay_resolution: dbPayload.toonplay_resolution !== undefined ? dbPayload.toonplay_resolution : currentStreamingMovie.toonplay_resolution,
             });
 
             // Trigger episode scraper immediately if any scraper is configured
-            if (activeAnimerulz || activeToonplay) {
+            if (activeToonplay) {
                 try {
                     logs.push(`Triggering scraper immediately...`);
                     const protocol = request.url.startsWith('https') ? 'https' : 'http';
@@ -423,9 +374,6 @@ export async function POST(request: Request) {
                     imdb_id: dbPayload.imdb_id,
                     mal_id: dbPayload.mal_id,
                     streaming_url: dbPayload.streaming_url,
-                    animerulz_url: activeAnimerulz,
-                    animerulz_season: dbPayload.animerulz_season !== undefined ? dbPayload.animerulz_season : currentStreamingMovie.animerulz_season,
-                    animerulz_resolution: dbPayload.animerulz_resolution !== undefined ? dbPayload.animerulz_resolution : currentStreamingMovie.animerulz_resolution,
                     toonplay_url: activeToonplay,
                     toonplay_season: dbPayload.toonplay_season !== undefined ? dbPayload.toonplay_season : currentStreamingMovie.toonplay_season,
                     toonplay_resolution: dbPayload.toonplay_resolution !== undefined ? dbPayload.toonplay_resolution : currentStreamingMovie.toonplay_resolution,
