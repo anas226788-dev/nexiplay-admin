@@ -7,10 +7,6 @@
         {
             "path": "/api/cron/check-episodes",
             "schedule": "0 0 * * *"
-        },
-        {
-            "path": "/api/cron/sync-novels",
-            "schedule": "*/30 * * * *"
         }
     ],
     "redirects": [
