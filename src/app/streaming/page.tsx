@@ -322,23 +322,33 @@ export default function StreamingPage() {
         }
     };
 
+    const STREAMING_SERVERS_CATALOG = [
+        { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
+        { id: 'circleftp', name: 'CircleFTP (BDIX)', icon: '🇧🇩', desc: 'BDIX 100Mbps Local FTP Stream' },
+        { id: 'moviebox', name: 'MovieBox HD', icon: '🎬', desc: 'Direct HLS/MP4 Cloud Stream' },
+        { id: 'rareanimes', name: 'RR Nexiplay (Hindi)', icon: '🎴', desc: 'Hindi Dub & Sub Anime Scraper', isHindi: true },
+        { id: 'animekhor', name: 'AnimeKhor (Hindi/Bangla)', icon: '🎌', desc: 'Bangla & Hindi Dubbed Anime', isHindi: true },
+        { id: 'screenscape', name: 'Nexi Hindi (Dubbed)', icon: '🎙️', desc: 'Hindi Dubbed Movies & Series', isHindi: true },
+        { id: 'multiembed', name: 'MultiEmbed (Hindi)', icon: '🇮🇳', desc: 'Hindi Audio Cloud Stream', isHindi: true },
+        { id: 'vixsrc', name: 'VixSrc (Multi-Lang)', icon: '🌐', desc: 'Multi-Language Audio (inc. Hindi)', isHindi: true },
+        { id: 'twoembed', name: '2Embed (Multi-Audio)', icon: '🎧', desc: 'Multi-Audio Stream (inc. Hindi)', isHindi: true },
+        { id: 'vidsrc_su', name: 'VidSrc SU (Multi)', icon: '🎧', desc: 'Multi-Audio Stream (inc. Hindi)', isHindi: true },
+        { id: 'anyembed', name: 'AnyEmbed (Multi-Audio)', icon: '🎧', desc: 'Multi-Audio Stream (inc. Hindi)', isHindi: true },
+        { id: 'atlantic', name: 'Nexi Wave (Multi)', icon: '🌊', desc: 'Multi-Audio Stream (inc. Hindi)', isHindi: true },
+        { id: 'miruro', name: 'Miruro Anime', icon: '⛩️', desc: 'Fast Anime Sub & Dub' },
+        { id: 'aniclover', name: 'Aniclover', icon: '🍀', desc: 'Direct Anime API Stream' },
+        { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
+        { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
+        { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
+        { id: 'vidmoly', name: 'Vidmoly Server', icon: '🎬', desc: 'Custom video host links' },
+        { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
+        { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
+        { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' }
+    ];
+
     const getEnabledServers = (code: string | undefined | null) => {
         if (code === undefined || code === null) {
-            return [
-                'custom',
-                'circleftp',
-                'moviebox',
-                'miruro',
-                'aniclover',
-                'animekhor',
-                'doodstream',
-                'streamtape',
-                'voe',
-                'abyss',
-                'vidsrc_to',
-                'vidsrc_me',
-                'rareanimes'
-            ];
+            return STREAMING_SERVERS_CATALOG.map(s => s.id);
         }
         if (code.trim() === '' || code.trim().toLowerCase() === 'none') {
             return [];
@@ -975,22 +985,7 @@ export default function StreamingPage() {
                                 </p>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
-                                {[
-                                    { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
-                                    { id: 'circleftp', name: 'CircleFTP (BDIX)', icon: '🇧🇩', desc: 'BDIX 100Mbps Local FTP Stream' },
-                                    { id: 'moviebox', name: 'MovieBox HD', icon: '🎬', desc: 'Direct HLS/MP4 Cloud Stream' },
-                                    { id: 'miruro', name: 'Miruro Anime', icon: '⛩️', desc: 'Fast Anime Sub & Dub' },
-                                    { id: 'aniclover', name: 'Aniclover', icon: '🍀', desc: 'Direct Anime API Stream' },
-                                    { id: 'animekhor', name: 'AnimeKhor', icon: '🎌', desc: 'Bangla & Hindi Dubbed Anime' },
-                                    { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
-                                    { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
-                                    { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
-                                    { id: 'vidmoly', name: 'Vidmoly Server', icon: '🎬', desc: 'Custom video host links' },
-                                    { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
-                                    { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
-                                    { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
-                                    { id: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', desc: 'RareAnimes Scraper' }
-                                ].map((server) => {
+                                {STREAMING_SERVERS_CATALOG.map((server) => {
                                     const isEnabled = getEnabledServers(settings.social_bar_code).includes(server.id);
                                     return (
                                         <div 
@@ -998,8 +993,16 @@ export default function StreamingPage() {
                                             className="flex flex-col justify-between p-3.5 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-all"
                                         >
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="text-xl">{server.icon}</span>
-                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className="text-xl shrink-0">{server.icon}</span>
+                                                    {server.isHindi && (
+                                                        <span className="px-1.5 py-0.5 text-[9px] font-black bg-amber-500/25 text-amber-300 border border-amber-500/40 rounded flex items-center gap-1 uppercase tracking-wider shrink-0">
+                                                            <span>🇮🇳</span>
+                                                            <span>HINDI</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer shrink-0">
                                                     <input
                                                         type="checkbox"
                                                         className="sr-only peer"
@@ -1031,22 +1034,7 @@ export default function StreamingPage() {
                                 </p>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
-                                {[
-                                    { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
-                                    { id: 'circleftp', name: 'CircleFTP (BDIX)', icon: '🇧🇩', desc: 'BDIX 100Mbps Local FTP Stream' },
-                                    { id: 'moviebox', name: 'MovieBox HD', icon: '🎬', desc: 'Direct HLS/MP4 Cloud Stream' },
-                                    { id: 'miruro', name: 'Miruro Anime', icon: '⛩️', desc: 'Fast Anime Sub & Dub' },
-                                    { id: 'aniclover', name: 'Aniclover', icon: '🍀', desc: 'Direct Anime API Stream' },
-                                    { id: 'animekhor', name: 'AnimeKhor', icon: '🎌', desc: 'Bangla & Hindi Dubbed Anime' },
-                                    { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
-                                    { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
-                                    { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
-                                    { id: 'vidmoly', name: 'Vidmoly Server', icon: '🎬', desc: 'Custom video host links' },
-                                    { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
-                                    { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
-                                    { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
-                                    { id: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', desc: 'RareAnimes Scraper' }
-                                ].map((server) => {
+                                {STREAMING_SERVERS_CATALOG.map((server) => {
                                     const appCode = settings.app_enabled_servers ?? settings.social_bar_code;
                                     const isEnabled = getEnabledServers(appCode).includes(server.id);
                                     return (
@@ -1055,8 +1043,16 @@ export default function StreamingPage() {
                                             className="flex flex-col justify-between p-3.5 bg-black/40 rounded-xl border border-white/5 hover:border-white/10 transition-all"
                                         >
                                             <div className="flex items-center justify-between mb-2">
-                                                <span className="text-xl">{server.icon}</span>
-                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className="text-xl shrink-0">{server.icon}</span>
+                                                    {server.isHindi && (
+                                                        <span className="px-1.5 py-0.5 text-[9px] font-black bg-amber-500/25 text-amber-300 border border-amber-500/40 rounded flex items-center gap-1 uppercase tracking-wider shrink-0">
+                                                            <span>🇮🇳</span>
+                                                            <span>HINDI</span>
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer shrink-0">
                                                     <input
                                                         type="checkbox"
                                                         className="sr-only peer"
@@ -1513,20 +1509,28 @@ export default function StreamingPage() {
                                 { key: 'custom', name: 'Direct / Custom Player Override', icon: '⭐', placeholder: 'https://cdn.example.com/movie.mp4 or embed URL...' },
                                 { key: 'circleftp', name: 'CircleFTP / BDIX Server', icon: '🇧🇩', placeholder: 'http://circleftp.net/... or http://new.circleftp.net:5000/api/...' },
                                 { key: 'moviebox', name: 'MovieBox HD Server', icon: '🎬', placeholder: 'https://movieboxhd.net/movies/... or detailPath' },
+                                { key: 'rareanimes', name: 'RR Nexiplay (Hindi Dub & Sub)', icon: '🎴', placeholder: 'https://rareanimes.mov/hindi/...', isHindi: true },
+                                { key: 'animekhor', name: 'AnimeKhor (Bangla & Hindi Dub)', icon: '🎌', placeholder: 'https://animekhor.org/...', isHindi: true },
                                 { key: 'miruro', name: 'Miruro Anime Server', icon: '⛩️', placeholder: 'https://www.miruro.to/watch?id=...' },
                                 { key: 'aniclover', name: 'Aniclover Server', icon: '🍀', placeholder: 'https://aniclover.cc/... or https://api.aniclover.cc/api/watch?...' },
-                                { key: 'animekhor', name: 'AnimeKhor Server', icon: '🎌', placeholder: 'https://animekhor.org/...' },
                                 { key: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', placeholder: 'https://doodstream.com/e/... or /d/...' },
                                 { key: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', placeholder: 'https://streamtape.com/e/... or /v/...' },
                                 { key: 'voe', name: 'Nexi Spark Server', icon: '🚀', placeholder: 'https://voe.sx/e/... or https://voe.sx/...' },
                                 { key: 'vidmoly', name: 'Vidmoly Server', icon: '🎬', placeholder: 'Paste the full Vidmoly share/embed link (for example, https://vidmoly.me/...)' },
-                                { key: 'abyss', name: 'Nexi Vault Server', icon: '🌌', placeholder: 'https://short.ink/... or https://dash.abyss.to/...' },
-                                { key: 'rareanimes', name: 'RR Nexiplay Server', icon: '🎴', placeholder: 'https://rareanimes.mov/...' }
+                                { key: 'abyss', name: 'Nexi Vault Server', icon: '🌌', placeholder: 'https://short.ink/... or https://dash.abyss.to/...' }
                             ].map((srv) => (
                                 <div key={srv.key} className="p-3.5 bg-black/40 rounded-xl border border-white/5 space-y-1.5">
-                                    <label className="text-xs font-bold text-gray-200 flex items-center gap-1.5">
-                                        <span>{srv.icon}</span>
-                                        <span>{srv.name}</span>
+                                    <label className="text-xs font-bold text-gray-200 flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5">
+                                            <span>{srv.icon}</span>
+                                            <span>{srv.name}</span>
+                                        </span>
+                                        {srv.isHindi && (
+                                            <span className="px-1.5 py-0.5 text-[9px] font-black bg-amber-500/25 text-amber-300 border border-amber-500/40 rounded flex items-center gap-1 uppercase tracking-wider">
+                                                <span>🇮🇳</span>
+                                                <span>HINDI</span>
+                                            </span>
+                                        )}
                                     </label>
                                     <input
                                         type="text"
@@ -1628,29 +1632,34 @@ export default function StreamingPage() {
                                         <span className="text-[10px] font-bold text-gray-400 uppercase mr-1">Edit Server URL:</span>
                                         {[
                                             { key: 'custom', label: 'Custom / Direct Override', color: 'bg-white/5 border-white/10 text-white' },
+                                            { key: 'rareanimes', label: 'RR Nexiplay (Hindi)', isHindi: true, color: 'bg-amber-500/10 border-amber-500/25 text-amber-400' },
+                                            { key: 'animekhor', label: 'AnimeKhor (Hindi/Bangla)', isHindi: true, color: 'bg-amber-500/10 border-amber-500/25 text-amber-400' },
                                             { key: 'circleftp', label: 'CircleFTP (BDIX)', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
                                             { key: 'moviebox', label: 'MovieBox HD', color: 'bg-indigo-500/10 border-indigo-500/25 text-indigo-400' },
                                             { key: 'miruro', label: 'Miruro Anime', color: 'bg-red-500/10 border-red-500/25 text-red-400' },
                                             { key: 'aniclover', label: 'Aniclover', color: 'bg-green-500/10 border-green-500/25 text-green-400' },
-                                            { key: 'animekhor', label: 'AnimeKhor', color: 'bg-amber-500/10 border-amber-500/25 text-amber-400' },
                                             { key: 'doodstream', label: 'Nexi Turbo', color: 'bg-orange-500/10 border-orange-500/25 text-orange-400' },
                                             { key: 'streamtape', label: 'Nexi Pulse', color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' },
                                             { key: 'voe', label: 'Nexi Spark', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
                                             { key: 'vidmoly', label: 'Vidmoly', color: 'bg-violet-500/10 border-violet-500/25 text-violet-400' },
-                                            { key: 'abyss', label: 'Nexi Vault', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
-                                            { key: 'rareanimes', label: 'RR Nexiplay Server', color: 'bg-pink-500/10 border-pink-500/25 text-pink-400' }
+                                            { key: 'abyss', label: 'Nexi Vault', color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' }
                                         ].map((srv) => (
                                             <button
                                                 key={srv.key}
                                                 type="button"
                                                 onClick={() => setEditingServerKey(srv.key)}
-                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${
+                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border flex items-center gap-1.5 ${
                                                     editingServerKey === srv.key
                                                     ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-900/30'
                                                     : 'bg-black/30 border-white/5 text-gray-400 hover:text-white hover:border-white/10'
                                                 }`}
                                             >
-                                                {srv.label}
+                                                <span>{srv.label}</span>
+                                                {srv.isHindi && (
+                                                    <span className="text-[8px] px-1 py-0.2 bg-amber-500/25 text-amber-300 rounded font-black border border-amber-500/35 uppercase">
+                                                        HINDI
+                                                    </span>
+                                                )}
                                             </button>
                                         ))}
                                     </div>
