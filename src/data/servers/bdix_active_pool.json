@@ -1,0 +1,74 @@
+[
+  {
+    "id": "bdix_59",
+    "url": "http://10.100.100.12",
+    "latency": 81,
+    "online": true
+  },
+  {
+    "id": "bdix_60",
+    "url": "http://10.100.100.13",
+    "latency": 81,
+    "online": true
+  },
+  {
+    "id": "bdix_40",
+    "url": "http://172.16.50.7",
+    "latency": 88,
+    "online": true
+  },
+  {
+    "id": "bdix_1",
+    "url": "http://172.16.50.4",
+    "latency": 160,
+    "online": true
+  },
+  {
+    "id": "bdix_2",
+    "url": "https://local.cyberftp.net",
+    "latency": 215,
+    "online": true
+  },
+  {
+    "id": "bdix_33",
+    "url": "http://new.circleftp.net",
+    "latency": 535,
+    "online": true
+  },
+  {
+    "id": "bdix_17",
+    "url": "http://www.bnet-bd.com",
+    "latency": 561,
+    "online": true
+  },
+  {
+    "id": "bdix_96",
+    "url": "http://103.91.144.230",
+    "latency": 575,
+    "online": true
+  },
+  {
+    "id": "bdix_35",
+    "url": "http://ftp4.circleftp.net",
+    "latency": 614,
+    "online": true
+  },
+  {
+    "id": "bdix_48",
+    "url": "https://www.discoverynetbd.com",
+    "latency": 688,
+    "online": true
+  },
+  {
+    "id": "bdix_54",
+    "url": "http://www.onesky.com.bd",
+    "latency": 737,
+    "online": true
+  },
+  {
+    "id": "bdix_56",
+    "url": "http://10.100.100.10",
+    "latency": 940,
+    "online": true
+  }
+]

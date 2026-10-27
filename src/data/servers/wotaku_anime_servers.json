@@ -1,0 +1,129 @@
+[
+  {
+    "id": "anime_miruro",
+    "name": "Miruro Anime",
+    "url": "https://www.miruro.to",
+    "mirror": "https://www.miruro.com",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_pahe",
+    "name": "AnimePahe",
+    "url": "https://animepahe.pw",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_anihq",
+    "name": "AniHQ",
+    "url": "https://anihq.cc",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_anipm",
+    "name": "ani.pm",
+    "url": "https://ani.pm",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_kaa",
+    "name": "KickassAnime",
+    "url": "https://kaa.lt",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_anizone",
+    "name": "AniZone",
+    "url": "https://anizone.to",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_reanime",
+    "name": "Re:ANIME",
+    "url": "https://reanime.to",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_stream",
+    "name": "AnimeStream",
+    "url": "https://anime.uniquestream.net",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_mkissa",
+    "name": "MKissa",
+    "url": "https://mkissa.to",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_animex",
+    "name": "AnimeX",
+    "url": "https://animex.one",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_cube",
+    "name": "Anime Cube",
+    "url": "https://animecube.live",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_khor",
+    "name": "AnimeKhor",
+    "url": "https://animekhor.org",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_xin",
+    "name": "AnimeXin",
+    "url": "https://animexin.dev",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_donghua",
+    "name": "Donghua Stream",
+    "url": "https://donghuastream.org",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_kisskh",
+    "name": "Kisskh",
+    "url": "https://kisskh.co",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_asiaflix",
+    "name": "Asiaflix",
+    "url": "https://asiaflix.net",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_goplay",
+    "name": "GoPlay Anime",
+    "url": "https://goplay.su",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  },
+  {
+    "id": "anime_lama",
+    "name": "LAMA Watch",
+    "url": "https://lama.watch",
+    "category": "anime",
+    "source": "Wotaku Wiki"
+  }
+]

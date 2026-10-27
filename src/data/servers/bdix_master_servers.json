@@ -1,0 +1,5834 @@
+[
+  {
+    "id": "bdix_1",
+    "url": "http://172.16.50.4"
+  },
+  {
+    "id": "bdix_2",
+    "url": "https://local.cyberftp.net"
+  },
+  {
+    "id": "bdix_3",
+    "url": "http://circleftp.net"
+  },
+  {
+    "id": "bdix_4",
+    "url": "http://dhakaftp.com"
+  },
+  {
+    "id": "bdix_5",
+    "url": "http://ftp.samonline.net"
+  },
+  {
+    "id": "bdix_6",
+    "url": "http://10.16.100.244"
+  },
+  {
+    "id": "bdix_7",
+    "url": "http://fs.ebox.live"
+  },
+  {
+    "id": "bdix_8",
+    "url": "http://10.100.100.100"
+  },
+  {
+    "id": "bdix_9",
+    "url": "http://discoveryftp.net"
+  },
+  {
+    "id": "bdix_10",
+    "url": "http://plex.amberit.com.bd"
+  },
+  {
+    "id": "bdix_11",
+    "url": "http://roarftp.com"
+  },
+  {
+    "id": "bdix_12",
+    "url": "http://naturalbd.com"
+  },
+  {
+    "id": "bdix_13",
+    "url": "http://moviemela.tv"
+  },
+  {
+    "id": "bdix_14",
+    "url": "http://showtimebd.com"
+  },
+  {
+    "id": "bdix_15",
+    "url": "http://103.102.27.170"
+  },
+  {
+    "id": "bdix_16",
+    "url": "http://ftp.carnival.com.bd"
+  },
+  {
+    "id": "bdix_17",
+    "url": "http://www.bnet-bd.com"
+  },
+  {
+    "id": "bdix_18",
+    "url": "http://ftpbd.net"
+  },
+  {
+    "id": "bdix_19",
+    "url": "http://103.58.73.6"
+  },
+  {
+    "id": "bdix_20",
+    "url": "http://103.58.73.7"
+  },
+  {
+    "id": "bdix_21",
+    "url": "http://103.58.73.8"
+  },
+  {
+    "id": "bdix_22",
+    "url": "http://103.58.73.9"
+  },
+  {
+    "id": "bdix_23",
+    "url": "http://103.58.73.10"
+  },
+  {
+    "id": "bdix_24",
+    "url": "http://103.58.73.10:8096"
+  },
+  {
+    "id": "bdix_25",
+    "url": "http://server1.ftpbd.net"
+  },
+  {
+    "id": "bdix_26",
+    "url": "http://server2.ftpbd.net"
+  },
+  {
+    "id": "bdix_27",
+    "url": "http://server3.ftpbd.net"
+  },
+  {
+    "id": "bdix_28",
+    "url": "http://server4.ftpbd.net"
+  },
+  {
+    "id": "bdix_29",
+    "url": "http://server5.ftpbd.net"
+  },
+  {
+    "id": "bdix_30",
+    "url": "http://media.ftpbd.net:8096"
+  },
+  {
+    "id": "bdix_31",
+    "url": "https://circlenetworkbd.net"
+  },
+  {
+    "id": "bdix_32",
+    "url": "http://103.170.204.84"
+  },
+  {
+    "id": "bdix_33",
+    "url": "http://new.circleftp.net"
+  },
+  {
+    "id": "bdix_34",
+    "url": "http://15.1.1.4"
+  },
+  {
+    "id": "bdix_35",
+    "url": "http://ftp4.circleftp.net"
+  },
+  {
+    "id": "bdix_36",
+    "url": "http://15.1.1.5"
+  },
+  {
+    "id": "bdix_37",
+    "url": "http://old.circleftp.net"
+  },
+  {
+    "id": "bdix_38",
+    "url": "http://emby.circleftp.net:8096"
+  },
+  {
+    "id": "bdix_39",
+    "url": "https://sambd.com"
+  },
+  {
+    "id": "bdix_40",
+    "url": "http://172.16.50.7"
+  },
+  {
+    "id": "bdix_41",
+    "url": "http://movie.sambd.net:8096"
+  },
+  {
+    "id": "bdix_42",
+    "url": "https://samftp.com"
+  },
+  {
+    "id": "bdix_43",
+    "url": "https://www.cogentbroadband.net"
+  },
+  {
+    "id": "bdix_44",
+    "url": "http://khulnaflix.net"
+  },
+  {
+    "id": "bdix_45",
+    "url": "http://103.153.175.254"
+  },
+  {
+    "id": "bdix_46",
+    "url": "http://bokasoka.net"
+  },
+  {
+    "id": "bdix_47",
+    "url": "http://file.khulnaflix.net"
+  },
+  {
+    "id": "bdix_48",
+    "url": "https://www.discoverynetbd.com"
+  },
+  {
+    "id": "bdix_49",
+    "url": "http://103.120.165.196"
+  },
+  {
+    "id": "bdix_50",
+    "url": "http://dflix.discoveryftp.net"
+  },
+  {
+    "id": "bdix_51",
+    "url": "http://cds1.discoveryftp.net"
+  },
+  {
+    "id": "bdix_52",
+    "url": "http://cds2.discoveryftp.net"
+  },
+  {
+    "id": "bdix_53",
+    "url": "http://cds3.discoveryftp.net"
+  },
+  {
+    "id": "bdix_54",
+    "url": "http://www.onesky.com.bd"
+  },
+  {
+    "id": "bdix_55",
+    "url": "https://www.1netbd.com"
+  },
+  {
+    "id": "bdix_56",
+    "url": "http://10.100.100.10"
+  },
+  {
+    "id": "bdix_57",
+    "url": "http://103.77.252.113"
+  },
+  {
+    "id": "bdix_58",
+    "url": "http://www.showtimebd.com"
+  },
+  {
+    "id": "bdix_59",
+    "url": "http://10.100.100.12"
+  },
+  {
+    "id": "bdix_60",
+    "url": "http://10.100.100.13"
+  },
+  {
+    "id": "bdix_61",
+    "url": "https://ddnbd.com"
+  },
+  {
+    "id": "bdix_62",
+    "url": "http://www.ddnbd.fun"
+  },
+  {
+    "id": "bdix_63",
+    "url": "http://ctgmovies.com"
+  },
+  {
+    "id": "bdix_64",
+    "url": "http://crazyctg.com"
+  },
+  {
+    "id": "bdix_65",
+    "url": "http://media.ctgfun.com"
+  },
+  {
+    "id": "bdix_66",
+    "url": "http://www.exordonline.com"
+  },
+  {
+    "id": "bdix_67",
+    "url": "http://103.49.168.107"
+  },
+  {
+    "id": "bdix_68",
+    "url": "http://fileserver.ebox.live"
+  },
+  {
+    "id": "bdix_69",
+    "url": "http://play.ebox.live"
+  },
+  {
+    "id": "bdix_70",
+    "url": "https://icc.com.bd"
+  },
+  {
+    "id": "bdix_71",
+    "url": "https://iccfios.net"
+  },
+  {
+    "id": "bdix_72",
+    "url": "https://icctalk.com"
+  },
+  {
+    "id": "bdix_73",
+    "url": "http://10.16.100.202"
+  },
+  {
+    "id": "bdix_74",
+    "url": "http://10.16.100.206"
+  },
+  {
+    "id": "bdix_75",
+    "url": "https://pastebin.com"
+  },
+  {
+    "id": "bdix_76",
+    "url": "https://www.antbd.com"
+  },
+  {
+    "id": "bdix_77",
+    "url": "http://www.antbd.net"
+  },
+  {
+    "id": "bdix_78",
+    "url": "http://103.237.37.181"
+  },
+  {
+    "id": "bdix_79",
+    "url": "http://dhakamovie.com"
+  },
+  {
+    "id": "bdix_80",
+    "url": "http://xpress.ltd"
+  },
+  {
+    "id": "bdix_81",
+    "url": "http://103.43.148.68"
+  },
+  {
+    "id": "bdix_82",
+    "url": "http://www.naturalbd.com"
+  },
+  {
+    "id": "bdix_83",
+    "url": "http://skyviewonlineltd.com"
+  },
+  {
+    "id": "bdix_84",
+    "url": "http://103.200.36.250"
+  },
+  {
+    "id": "bdix_85",
+    "url": "http://www.timepassbd.live"
+  },
+  {
+    "id": "bdix_86",
+    "url": "http://ftp.timepassbd.live"
+  },
+  {
+    "id": "bdix_87",
+    "url": "https://www.citycomnetwork.com.bd"
+  },
+  {
+    "id": "bdix_88",
+    "url": "http://11.11.11.11"
+  },
+  {
+    "id": "bdix_89",
+    "url": "http://103.204.244.70"
+  },
+  {
+    "id": "bdix_90",
+    "url": "https://carnival.com.bd"
+  },
+  {
+    "id": "bdix_91",
+    "url": "http://103.106.238.74"
+  },
+  {
+    "id": "bdix_92",
+    "url": "http://www.nagordola.com.bd"
+  },
+  {
+    "id": "bdix_93",
+    "url": "http://www.triangle.com.bd"
+  },
+  {
+    "id": "bdix_94",
+    "url": "http://www.elaach.com"
+  },
+  {
+    "id": "bdix_95",
+    "url": "https://uniquenetbd.com"
+  },
+  {
+    "id": "bdix_96",
+    "url": "http://103.91.144.230"
+  },
+  {
+    "id": "bdix_97",
+    "url": "http://www.uniquedownloadbd.com"
+  },
+  {
+    "id": "bdix_98",
+    "url": "https://sunonlinebd.com"
+  },
+  {
+    "id": "bdix_99",
+    "url": "http://103.85.235.254"
+  },
+  {
+    "id": "bdix_100",
+    "url": "https://www.mojaloss.stream"
+  },
+  {
+    "id": "bdix_101",
+    "url": "http://www.fnfonlinebd.com"
+  },
+  {
+    "id": "bdix_102",
+    "url": "https://fnfonline.wixsite.com"
+  },
+  {
+    "id": "bdix_103",
+    "url": "http://103.82.8.194"
+  },
+  {
+    "id": "bdix_104",
+    "url": "http://movies.fnfonlinebd.com"
+  },
+  {
+    "id": "bdix_105",
+    "url": "https://deshnetbd.com"
+  },
+  {
+    "id": "bdix_106",
+    "url": "http://103.152.18.18"
+  },
+  {
+    "id": "bdix_107",
+    "url": "https://inspirebroadband.net"
+  },
+  {
+    "id": "bdix_108",
+    "url": "http://ihub.live"
+  },
+  {
+    "id": "bdix_109",
+    "url": "http://sg-cdn.ihub.live:8787"
+  },
+  {
+    "id": "bdix_110",
+    "url": "http://www.colbd.com"
+  },
+  {
+    "id": "bdix_111",
+    "url": "https://fiber.colbd.com"
+  },
+  {
+    "id": "bdix_112",
+    "url": "http://www.smartflix.digital"
+  },
+  {
+    "id": "bdix_113",
+    "url": "http://www.smartstudio.digital"
+  },
+  {
+    "id": "bdix_114",
+    "url": "http://metromedia.digital"
+  },
+  {
+    "id": "bdix_115",
+    "url": "http://cloudone.com.bd"
+  },
+  {
+    "id": "bdix_116",
+    "url": "http://www.c1movies.com"
+  },
+  {
+    "id": "bdix_117",
+    "url": "http://bdmovies.net"
+  },
+  {
+    "id": "bdix_118",
+    "url": "https://linktech.net.bd"
+  },
+  {
+    "id": "bdix_119",
+    "url": "http://play.linkftp.com"
+  },
+  {
+    "id": "bdix_120",
+    "url": "http://cdn.linkftp.com"
+  },
+  {
+    "id": "bdix_121",
+    "url": "http://103.14.129.246"
+  },
+  {
+    "id": "bdix_122",
+    "url": "http://tajpata.com"
+  },
+  {
+    "id": "bdix_123",
+    "url": "http://file.tajpata.com"
+  },
+  {
+    "id": "bdix_124",
+    "url": "https://ksnetworkbd.com"
+  },
+  {
+    "id": "bdix_125",
+    "url": "http://172.27.27.83"
+  },
+  {
+    "id": "bdix_126",
+    "url": "http://172.27.27.84"
+  },
+  {
+    "id": "bdix_127",
+    "url": "http://172.27.27.26"
+  },
+  {
+    "id": "bdix_128",
+    "url": "http://172.27.27.124"
+  },
+  {
+    "id": "bdix_129",
+    "url": "http://172.27.27.244"
+  },
+  {
+    "id": "bdix_130",
+    "url": "http://172.27.27.245"
+  },
+  {
+    "id": "bdix_131",
+    "url": "http://172.27.27.248"
+  },
+  {
+    "id": "bdix_132",
+    "url": "http://172.27.27.250"
+  },
+  {
+    "id": "bdix_133",
+    "url": "http://172.27.27.251"
+  },
+  {
+    "id": "bdix_134",
+    "url": "http://172.27.27.252"
+  },
+  {
+    "id": "bdix_135",
+    "url": "https://www.mazedanetworks.net"
+  },
+  {
+    "id": "bdix_136",
+    "url": "http://172.22.22.100"
+  },
+  {
+    "id": "bdix_137",
+    "url": "http://172.22.22.101"
+  },
+  {
+    "id": "bdix_138",
+    "url": "http://ftpweb.mazedanetworks.net"
+  },
+  {
+    "id": "bdix_139",
+    "url": "http://172.22.22.105:8096"
+  },
+  {
+    "id": "bdix_140",
+    "url": "https://visiontechnologiesltd.com"
+  },
+  {
+    "id": "bdix_141",
+    "url": "https://sunplex.net"
+  },
+  {
+    "id": "bdix_142",
+    "url": "https://storage.sunplex.net"
+  },
+  {
+    "id": "bdix_143",
+    "url": "http://fn-bd.com"
+  },
+  {
+    "id": "bdix_144",
+    "url": "http://www.moviemela.live"
+  },
+  {
+    "id": "bdix_145",
+    "url": "http://amarnetsystem.com"
+  },
+  {
+    "id": "bdix_146",
+    "url": "http://103.205.233.70"
+  },
+  {
+    "id": "bdix_147",
+    "url": "http://172.17.172.242"
+  },
+  {
+    "id": "bdix_148",
+    "url": "http://www.freedownloadbd.com"
+  },
+  {
+    "id": "bdix_149",
+    "url": "https://www.dfnbd.net"
+  },
+  {
+    "id": "bdix_150",
+    "url": "http://media.dfnbd.net"
+  },
+  {
+    "id": "bdix_151",
+    "url": "http://mcbroadbandbd.com"
+  },
+  {
+    "id": "bdix_152",
+    "url": "http://172.17.254.2"
+  },
+  {
+    "id": "bdix_153",
+    "url": "https://planet3communication.com"
+  },
+  {
+    "id": "bdix_154",
+    "url": "http://www.candybd.net"
+  },
+  {
+    "id": "bdix_155",
+    "url": "http://candybd.net"
+  },
+  {
+    "id": "bdix_156",
+    "url": "https://www.mcnbd.com"
+  },
+  {
+    "id": "bdix_157",
+    "url": "http://ftp.mcnbd.com"
+  },
+  {
+    "id": "bdix_158",
+    "url": "http://fun.mcnbd.com"
+  },
+  {
+    "id": "bdix_159",
+    "url": "http://12.1.1.2"
+  },
+  {
+    "id": "bdix_160",
+    "url": "http://12.1.1.3"
+  },
+  {
+    "id": "bdix_161",
+    "url": "http://pollyflix.com"
+  },
+  {
+    "id": "bdix_162",
+    "url": "http://fs.amrbd.com"
+  },
+  {
+    "id": "bdix_163",
+    "url": "http://fs2.amrbd.com"
+  },
+  {
+    "id": "bdix_164",
+    "url": "http://come2speed.com"
+  },
+  {
+    "id": "bdix_165",
+    "url": "http://103.199.155.150"
+  },
+  {
+    "id": "bdix_166",
+    "url": "http://timenai.com"
+  },
+  {
+    "id": "bdix_167",
+    "url": "https://dnetbd.com"
+  },
+  {
+    "id": "bdix_168",
+    "url": "http://103.76.196.90"
+  },
+  {
+    "id": "bdix_169",
+    "url": "https://dnetdrive.com"
+  },
+  {
+    "id": "bdix_170",
+    "url": "https://www.rangdhanu.live"
+  },
+  {
+    "id": "bdix_171",
+    "url": "http://fs.rangdhanu.live"
+  },
+  {
+    "id": "bdix_172",
+    "url": "http://emby.rangdhanu.live"
+  },
+  {
+    "id": "bdix_173",
+    "url": "https://www.race.net.bd"
+  },
+  {
+    "id": "bdix_174",
+    "url": "http://moviedom.live"
+  },
+  {
+    "id": "bdix_175",
+    "url": "http://movie.moviedom.live"
+  },
+  {
+    "id": "bdix_176",
+    "url": "http://59.152.101.198"
+  },
+  {
+    "id": "bdix_177",
+    "url": "http://moviehaat.net"
+  },
+  {
+    "id": "bdix_178",
+    "url": "http://cdn2.moviehaat.net:8080"
+  },
+  {
+    "id": "bdix_179",
+    "url": "http://www.dotinternetbd.com"
+  },
+  {
+    "id": "bdix_180",
+    "url": "http://dflix.live"
+  },
+  {
+    "id": "bdix_181",
+    "url": "http://fs1.dflix.live"
+  },
+  {
+    "id": "bdix_182",
+    "url": "http://www.skyinfoonline.net"
+  },
+  {
+    "id": "bdix_183",
+    "url": "http://103.132.187.18"
+  },
+  {
+    "id": "bdix_184",
+    "url": "http://moviemaja.net"
+  },
+  {
+    "id": "bdix_185",
+    "url": "http://103.195.1.50"
+  },
+  {
+    "id": "bdix_186",
+    "url": "http://10.1.1.1"
+  },
+  {
+    "id": "bdix_187",
+    "url": "https://www.cityonlinebd.net"
+  },
+  {
+    "id": "bdix_188",
+    "url": "http://moviebazar.net"
+  },
+  {
+    "id": "bdix_189",
+    "url": "https://ibdplex.net"
+  },
+  {
+    "id": "bdix_190",
+    "url": "http://globalcommunicationbd.com"
+  },
+  {
+    "id": "bdix_191",
+    "url": "http://103.113.16.46"
+  },
+  {
+    "id": "bdix_192",
+    "url": "https://www.radisson-bd.net"
+  },
+  {
+    "id": "bdix_193",
+    "url": "http://45.123.41.54"
+  },
+  {
+    "id": "bdix_194",
+    "url": "http://flixhub.net"
+  },
+  {
+    "id": "bdix_195",
+    "url": "https://epnetbd.com"
+  },
+  {
+    "id": "bdix_196",
+    "url": "http://103.103.239.66"
+  },
+  {
+    "id": "bdix_197",
+    "url": "http://abcmoviesbd.com"
+  },
+  {
+    "id": "bdix_198",
+    "url": "http://abcflixbd.com"
+  },
+  {
+    "id": "bdix_199",
+    "url": "http://www.zerooneonline.net"
+  },
+  {
+    "id": "bdix_200",
+    "url": "http://ctgoz.com"
+  },
+  {
+    "id": "bdix_201",
+    "url": "https://www.briskinternet.com"
+  },
+  {
+    "id": "bdix_202",
+    "url": "http://smiledotnet.xyz"
+  },
+  {
+    "id": "bdix_203",
+    "url": "http://blurays2u.smiledotnet.xyz"
+  },
+  {
+    "id": "bdix_204",
+    "url": "http://www.alphabroadway.com"
+  },
+  {
+    "id": "bdix_205",
+    "url": "http://ftp.alphamediazone.com"
+  },
+  {
+    "id": "bdix_206",
+    "url": "http://asiancommunicationbd.com"
+  },
+  {
+    "id": "bdix_207",
+    "url": "http://asianftp.com"
+  },
+  {
+    "id": "bdix_208",
+    "url": "https://www.anosbd.com"
+  },
+  {
+    "id": "bdix_209",
+    "url": "https://asiannetworkbd.net"
+  },
+  {
+    "id": "bdix_210",
+    "url": "https://allserver.yolasite.com"
+  },
+  {
+    "id": "bdix_211",
+    "url": "https://alifanet.com"
+  },
+  {
+    "id": "bdix_212",
+    "url": "http://www.arafnetbd.com"
+  },
+  {
+    "id": "bdix_213",
+    "url": "https://www.applenetbd.com"
+  },
+  {
+    "id": "bdix_214",
+    "url": "https://activembd.com"
+  },
+  {
+    "id": "bdix_215",
+    "url": "http://www.agcommunication.net"
+  },
+  {
+    "id": "bdix_216",
+    "url": "http://202.4.96.121"
+  },
+  {
+    "id": "bdix_217",
+    "url": "http://www.binodonmela.net"
+  },
+  {
+    "id": "bdix_218",
+    "url": "http://118.179.223.51"
+  },
+  {
+    "id": "bdix_219",
+    "url": "http://content2.binodonmela.net"
+  },
+  {
+    "id": "bdix_220",
+    "url": "http://www.a1cyberlinkbd.com"
+  },
+  {
+    "id": "bdix_221",
+    "url": "http://arishabd.net"
+  },
+  {
+    "id": "bdix_222",
+    "url": "https://abibd.com"
+  },
+  {
+    "id": "bdix_223",
+    "url": "http://www.avabdnet.com"
+  },
+  {
+    "id": "bdix_224",
+    "url": "https://applelinkbd.net"
+  },
+  {
+    "id": "bdix_225",
+    "url": "http://www.as-bd.net"
+  },
+  {
+    "id": "bdix_226",
+    "url": "https://www.alibabanetwork.net"
+  },
+  {
+    "id": "bdix_227",
+    "url": "http://akkadukka.com"
+  },
+  {
+    "id": "bdix_228",
+    "url": "http://akkadukka.com:8096"
+  },
+  {
+    "id": "bdix_229",
+    "url": "https://www.abnctg.net"
+  },
+  {
+    "id": "bdix_230",
+    "url": "http://www.asblink.net"
+  },
+  {
+    "id": "bdix_231",
+    "url": "http://asmabroadbandnetwork.com"
+  },
+  {
+    "id": "bdix_232",
+    "url": "http://220.152.114.214"
+  },
+  {
+    "id": "bdix_233",
+    "url": "https://addanetwork.net"
+  },
+  {
+    "id": "bdix_234",
+    "url": "http://aknetworksbd.com"
+  },
+  {
+    "id": "bdix_235",
+    "url": "http://aktube.live"
+  },
+  {
+    "id": "bdix_236",
+    "url": "http://amaderftp.net"
+  },
+  {
+    "id": "bdix_237",
+    "url": "http://www.activenetworkbd.com"
+  },
+  {
+    "id": "bdix_238",
+    "url": "http://www.bossbd.net"
+  },
+  {
+    "id": "bdix_239",
+    "url": "http://bossbd.live"
+  },
+  {
+    "id": "bdix_240",
+    "url": "http://cdn.bossbd.net"
+  },
+  {
+    "id": "bdix_241",
+    "url": "http://cdn1.bossbd.net"
+  },
+  {
+    "id": "bdix_242",
+    "url": "http://cdn2.bossbd.net"
+  },
+  {
+    "id": "bdix_243",
+    "url": "http://www.bdlan.net"
+  },
+  {
+    "id": "bdix_244",
+    "url": "http://www.bitnetbd.com"
+  },
+  {
+    "id": "bdix_245",
+    "url": "http://www.bolmovies.com"
+  },
+  {
+    "id": "bdix_246",
+    "url": "http://103.112.63.21"
+  },
+  {
+    "id": "bdix_247",
+    "url": "https://bonsaihd.live"
+  },
+  {
+    "id": "bdix_248",
+    "url": "https://basnetbd.com"
+  },
+  {
+    "id": "bdix_249",
+    "url": "http://103.87.212.46"
+  },
+  {
+    "id": "bdix_250",
+    "url": "http://10.20.30.40"
+  },
+  {
+    "id": "bdix_251",
+    "url": "http://movie.basnetbd.com"
+  },
+  {
+    "id": "bdix_252",
+    "url": "http://www.bolbd.net"
+  },
+  {
+    "id": "bdix_253",
+    "url": "http://mars.bolbd.net"
+  },
+  {
+    "id": "bdix_254",
+    "url": "http://www.bograonlinebd.com"
+  },
+  {
+    "id": "bdix_255",
+    "url": "http://www.beeflix.biz"
+  },
+  {
+    "id": "bdix_256",
+    "url": "https://www.bmnetworkbd.tk"
+  },
+  {
+    "id": "bdix_257",
+    "url": "https://bondhuitbd.com"
+  },
+  {
+    "id": "bdix_258",
+    "url": "http://bmitbd.com"
+  },
+  {
+    "id": "bdix_259",
+    "url": "http://www.bhuiyan-online.com"
+  },
+  {
+    "id": "bdix_260",
+    "url": "http://bdplex.net"
+  },
+  {
+    "id": "bdix_261",
+    "url": "https://www.businesszone.com.bd"
+  },
+  {
+    "id": "bdix_262",
+    "url": "http://103.117.229.242"
+  },
+  {
+    "id": "bdix_263",
+    "url": "http://bdcineplex.com"
+  },
+  {
+    "id": "bdix_264",
+    "url": "https://bdflixlive.com"
+  },
+  {
+    "id": "bdix_265",
+    "url": "https://bhalukabroadband.com"
+  },
+  {
+    "id": "bdix_266",
+    "url": "https://binimoynet.com"
+  },
+  {
+    "id": "bdix_267",
+    "url": "http://www.beaconlink.net"
+  },
+  {
+    "id": "bdix_268",
+    "url": "http://www.bdminternet.com"
+  },
+  {
+    "id": "bdix_269",
+    "url": "https://www.cmclbd.com"
+  },
+  {
+    "id": "bdix_270",
+    "url": "http://tokis.xyz"
+  },
+  {
+    "id": "bdix_271",
+    "url": "http://www.sktraders.net"
+  },
+  {
+    "id": "bdix_272",
+    "url": "http://103.81.104.98"
+  },
+  {
+    "id": "bdix_273",
+    "url": "http://cinemabazar.net"
+  },
+  {
+    "id": "bdix_274",
+    "url": "http://www.cinebioscope.com"
+  },
+  {
+    "id": "bdix_275",
+    "url": "https://www.cybernetbd.com"
+  },
+  {
+    "id": "bdix_276",
+    "url": "https://cnetworkbd.net"
+  },
+  {
+    "id": "bdix_277",
+    "url": "http://www.mycybernest.com"
+  },
+  {
+    "id": "bdix_278",
+    "url": "https://cueclub.com.bd"
+  },
+  {
+    "id": "bdix_279",
+    "url": "https://crazynetbd.com"
+  },
+  {
+    "id": "bdix_280",
+    "url": "http://citynetbd.com"
+  },
+  {
+    "id": "bdix_281",
+    "url": "https://www.citynet.live"
+  },
+  {
+    "id": "bdix_282",
+    "url": "http://www.ctgtel.net"
+  },
+  {
+    "id": "bdix_283",
+    "url": "http://cnc.net.bd"
+  },
+  {
+    "id": "bdix_284",
+    "url": "https://clickonlinebd.com"
+  },
+  {
+    "id": "bdix_285",
+    "url": "http://www.cybernetcommunications.net"
+  },
+  {
+    "id": "bdix_286",
+    "url": "https://ccn5050.wixsite.com"
+  },
+  {
+    "id": "bdix_287",
+    "url": "http://creativait.net"
+  },
+  {
+    "id": "bdix_288",
+    "url": "http://10.10.10.10"
+  },
+  {
+    "id": "bdix_289",
+    "url": "http://cineflixbd.xyz"
+  },
+  {
+    "id": "bdix_290",
+    "url": "https://www.cygnusall.com"
+  },
+  {
+    "id": "bdix_291",
+    "url": "http://cns.net.bd"
+  },
+  {
+    "id": "bdix_292",
+    "url": "https://www.daulatpuronline.com"
+  },
+  {
+    "id": "bdix_293",
+    "url": "http://khulnaplex.net"
+  },
+  {
+    "id": "bdix_294",
+    "url": "https://dreamnetbd.com"
+  },
+  {
+    "id": "bdix_295",
+    "url": "http://bddreamnet.blogspot.com"
+  },
+  {
+    "id": "bdix_296",
+    "url": "http://deshonlinebd.com"
+  },
+  {
+    "id": "bdix_297",
+    "url": "http://www.dhakadownload.com"
+  },
+  {
+    "id": "bdix_298",
+    "url": "http://dhakaiptv.com"
+  },
+  {
+    "id": "bdix_299",
+    "url": "https://digitalbroadband.com.bd"
+  },
+  {
+    "id": "bdix_300",
+    "url": "http://103.96.104.14"
+  },
+  {
+    "id": "bdix_301",
+    "url": "http://diginetbd.net"
+  },
+  {
+    "id": "bdix_302",
+    "url": "https://ditbd.net"
+  },
+  {
+    "id": "bdix_303",
+    "url": "http://172.27.100.3"
+  },
+  {
+    "id": "bdix_304",
+    "url": "https://www.dolyitcorner.net"
+  },
+  {
+    "id": "bdix_305",
+    "url": "http://172.17.17.17"
+  },
+  {
+    "id": "bdix_306",
+    "url": "http://www.durantonetworkbd.com"
+  },
+  {
+    "id": "bdix_307",
+    "url": "https://www.didarit.com"
+  },
+  {
+    "id": "bdix_308",
+    "url": "https://dekhobd.com"
+  },
+  {
+    "id": "bdix_309",
+    "url": "http://dlnsbd.net"
+  },
+  {
+    "id": "bdix_310",
+    "url": "http://evolutionnet.info"
+  },
+  {
+    "id": "bdix_311",
+    "url": "http://www.evonetbd.com"
+  },
+  {
+    "id": "bdix_312",
+    "url": "http://103.25.120.118"
+  },
+  {
+    "id": "bdix_313",
+    "url": "http://fs.evonetbd.com"
+  },
+  {
+    "id": "bdix_314",
+    "url": "https://easyitbd.com"
+  },
+  {
+    "id": "bdix_315",
+    "url": "http://exploreonlinebd.net"
+  },
+  {
+    "id": "bdix_316",
+    "url": "http://103.222.20.150"
+  },
+  {
+    "id": "bdix_317",
+    "url": "http://www.ectlink.com"
+  },
+  {
+    "id": "bdix_318",
+    "url": "http://download.ectlink.com"
+  },
+  {
+    "id": "bdix_319",
+    "url": "http://www.enjoy.net.bd"
+  },
+  {
+    "id": "bdix_320",
+    "url": "http://103.115.82.254"
+  },
+  {
+    "id": "bdix_321",
+    "url": "https://ekushe.net"
+  },
+  {
+    "id": "bdix_322",
+    "url": "http://10.100.100.2:8096"
+  },
+  {
+    "id": "bdix_323",
+    "url": "http://ezisbd.com"
+  },
+  {
+    "id": "bdix_324",
+    "url": "http://43.246.200.82:8081"
+  },
+  {
+    "id": "bdix_325",
+    "url": "http://extremenetbd.com"
+  },
+  {
+    "id": "bdix_326",
+    "url": "http://203.96.191.70"
+  },
+  {
+    "id": "bdix_327",
+    "url": "http://plexbd.net"
+  },
+  {
+    "id": "bdix_328",
+    "url": "http://www.evillagectg.com"
+  },
+  {
+    "id": "bdix_329",
+    "url": "http://www.ctgflix.com"
+  },
+  {
+    "id": "bdix_330",
+    "url": "http://fs.evillagectg.com"
+  },
+  {
+    "id": "bdix_331",
+    "url": "http://www.ctghall.com"
+  },
+  {
+    "id": "bdix_332",
+    "url": "http://www.ctgstream.com"
+  },
+  {
+    "id": "bdix_333",
+    "url": "http://www.reignict.com.bd"
+  },
+  {
+    "id": "bdix_334",
+    "url": "http://funtimebd.com"
+  },
+  {
+    "id": "bdix_335",
+    "url": "http://ftp.com.bd"
+  },
+  {
+    "id": "bdix_336",
+    "url": "http://www.furiousnet.net"
+  },
+  {
+    "id": "bdix_337",
+    "url": "http://media.furiousnet.net"
+  },
+  {
+    "id": "bdix_338",
+    "url": "https://fastnetbd.com"
+  },
+  {
+    "id": "bdix_339",
+    "url": "https://fastplex.net"
+  },
+  {
+    "id": "bdix_340",
+    "url": "http://www.fnetctg.com"
+  },
+  {
+    "id": "bdix_341",
+    "url": "http://flashnetbd.com"
+  },
+  {
+    "id": "bdix_342",
+    "url": "http://www.focusonlinectg.com"
+  },
+  {
+    "id": "bdix_343",
+    "url": "https://fti.com.bd"
+  },
+  {
+    "id": "bdix_344",
+    "url": "http://www.freedomonlinebd.com"
+  },
+  {
+    "id": "bdix_345",
+    "url": "https://f4internetsolution.com"
+  },
+  {
+    "id": "bdix_346",
+    "url": "http://172.2.2.2"
+  },
+  {
+    "id": "bdix_347",
+    "url": "http://f4cineplex.myftp.org"
+  },
+  {
+    "id": "bdix_348",
+    "url": "http://www.fnfbd.net"
+  },
+  {
+    "id": "bdix_349",
+    "url": "http://www.friendsonlinebd.com"
+  },
+  {
+    "id": "bdix_350",
+    "url": "https://fastnetbd.org"
+  },
+  {
+    "id": "bdix_351",
+    "url": "http://192.168.100.5"
+  },
+  {
+    "id": "bdix_352",
+    "url": "http://filmguro.site"
+  },
+  {
+    "id": "bdix_353",
+    "url": "https://www.flynetbd.com"
+  },
+  {
+    "id": "bdix_354",
+    "url": "https://www.fastcyber.net"
+  },
+  {
+    "id": "bdix_355",
+    "url": "https://www.flixjar.com"
+  },
+  {
+    "id": "bdix_356",
+    "url": "http://www.bbl.net.bd"
+  },
+  {
+    "id": "bdix_357",
+    "url": "http://www.prisma.net.bd"
+  },
+  {
+    "id": "bdix_358",
+    "url": "http://124.6.236.254"
+  },
+  {
+    "id": "bdix_359",
+    "url": "http://124.6.236.254:8080"
+  },
+  {
+    "id": "bdix_360",
+    "url": "http://www.freemediabd.com"
+  },
+  {
+    "id": "bdix_361",
+    "url": "http://www.futurenet-bd.com"
+  },
+  {
+    "id": "bdix_362",
+    "url": "http://fcnetbd.net"
+  },
+  {
+    "id": "bdix_363",
+    "url": "https://frcbd.xyz"
+  },
+  {
+    "id": "bdix_364",
+    "url": "https://frcbd.net"
+  },
+  {
+    "id": "bdix_365",
+    "url": "http://s-flix.live"
+  },
+  {
+    "id": "bdix_366",
+    "url": "http://play.s-flix.live"
+  },
+  {
+    "id": "bdix_367",
+    "url": "http://cdn.s-flix.live"
+  },
+  {
+    "id": "bdix_368",
+    "url": "http://fiberx.me"
+  },
+  {
+    "id": "bdix_369",
+    "url": "https://fmnetworks.net"
+  },
+  {
+    "id": "bdix_370",
+    "url": "http://www.fnet.com.bd"
+  },
+  {
+    "id": "bdix_371",
+    "url": "http://gpisp.net"
+  },
+  {
+    "id": "bdix_372",
+    "url": "http://greetingsonlinebd.com"
+  },
+  {
+    "id": "bdix_373",
+    "url": "http://103.133.175.242"
+  },
+  {
+    "id": "bdix_374",
+    "url": "https://103.91.53.248"
+  },
+  {
+    "id": "bdix_375",
+    "url": "http://ghatailonline.net"
+  },
+  {
+    "id": "bdix_376",
+    "url": "https://www.gnetworkbd.com"
+  },
+  {
+    "id": "bdix_377",
+    "url": "https://www.gnetinternet.com"
+  },
+  {
+    "id": "bdix_378",
+    "url": "https://gk-network.net"
+  },
+  {
+    "id": "bdix_379",
+    "url": "https://gazipurns.com"
+  },
+  {
+    "id": "bdix_380",
+    "url": "https://gazipurns.webs.com"
+  },
+  {
+    "id": "bdix_381",
+    "url": "https://greenbytes.net.bd"
+  },
+  {
+    "id": "bdix_382",
+    "url": "https://www.gungchil.net"
+  },
+  {
+    "id": "bdix_383",
+    "url": "http://www.geniousnet.com"
+  },
+  {
+    "id": "bdix_384",
+    "url": "http://downloads.geniousnet.com"
+  },
+  {
+    "id": "bdix_385",
+    "url": "http://bdix.hitechisp.com"
+  },
+  {
+    "id": "bdix_386",
+    "url": "https://www.hkonline.com.bd"
+  },
+  {
+    "id": "bdix_387",
+    "url": "https://www.bdconnectctg.net"
+  },
+  {
+    "id": "bdix_388",
+    "url": "https://hasikhushi.net"
+  },
+  {
+    "id": "bdix_389",
+    "url": "http://www.hilsabd.com"
+  },
+  {
+    "id": "bdix_390",
+    "url": "http://203.190.8.210"
+  },
+  {
+    "id": "bdix_391",
+    "url": "http://hostxy.com"
+  },
+  {
+    "id": "bdix_392",
+    "url": "https://helloitbd.com"
+  },
+  {
+    "id": "bdix_393",
+    "url": "http://103.156.66.45"
+  },
+  {
+    "id": "bdix_394",
+    "url": "http://103.156.66.58"
+  },
+  {
+    "id": "bdix_395",
+    "url": "http://halum.net"
+  },
+  {
+    "id": "bdix_396",
+    "url": "http://www.net2bd.com"
+  },
+  {
+    "id": "bdix_397",
+    "url": "https://www.iflix.com"
+  },
+  {
+    "id": "bdix_398",
+    "url": "http://www.itbasebd.com"
+  },
+  {
+    "id": "bdix_399",
+    "url": "http://imonlineisp.net"
+  },
+  {
+    "id": "bdix_400",
+    "url": "http://www.intrepidbd.com"
+  },
+  {
+    "id": "bdix_401",
+    "url": "http://103.203.94.1:8065"
+  },
+  {
+    "id": "bdix_402",
+    "url": "http://inoxbd.com"
+  },
+  {
+    "id": "bdix_403",
+    "url": "https://ismart.net.bd"
+  },
+  {
+    "id": "bdix_404",
+    "url": "https://internetzonebd.com"
+  },
+  {
+    "id": "bdix_405",
+    "url": "http://www.itmandcommunication.com"
+  },
+  {
+    "id": "bdix_406",
+    "url": "http://103.151.118.10"
+  },
+  {
+    "id": "bdix_407",
+    "url": "http://www.icommunicationbd.net"
+  },
+  {
+    "id": "bdix_408",
+    "url": "https://iboxbd.club"
+  },
+  {
+    "id": "bdix_409",
+    "url": "http://103.135.208.2"
+  },
+  {
+    "id": "bdix_410",
+    "url": "http://iboxbd.online"
+  },
+  {
+    "id": "bdix_411",
+    "url": "https://ifra.network"
+  },
+  {
+    "id": "bdix_412",
+    "url": "http://103.110.126.146:8000"
+  },
+  {
+    "id": "bdix_413",
+    "url": "https://infolinkbd.com"
+  },
+  {
+    "id": "bdix_414",
+    "url": "https://itnetzone.com"
+  },
+  {
+    "id": "bdix_415",
+    "url": "http://192.168.100.16"
+  },
+  {
+    "id": "bdix_416",
+    "url": "http://192.168.100.16:8096"
+  },
+  {
+    "id": "bdix_417",
+    "url": "http://ibds.net.bd"
+  },
+  {
+    "id": "bdix_418",
+    "url": "http://chayachobi.net"
+  },
+  {
+    "id": "bdix_419",
+    "url": "https://www.itcnbd.com"
+  },
+  {
+    "id": "bdix_420",
+    "url": "http://bdix.itcnbd.com"
+  },
+  {
+    "id": "bdix_421",
+    "url": "http://www.ibd.net.bd"
+  },
+  {
+    "id": "bdix_422",
+    "url": "https://inetisp.net"
+  },
+  {
+    "id": "bdix_423",
+    "url": "https://infointernetservice.com"
+  },
+  {
+    "id": "bdix_424",
+    "url": "http://10.28.22.2"
+  },
+  {
+    "id": "bdix_425",
+    "url": "https://www.iranetbd.com"
+  },
+  {
+    "id": "bdix_426",
+    "url": "https://ccnetbd.com"
+  },
+  {
+    "id": "bdix_427",
+    "url": "http://162.12.215.254"
+  },
+  {
+    "id": "bdix_428",
+    "url": "http://www.jannatmirinternetservice.com"
+  },
+  {
+    "id": "bdix_429",
+    "url": "https://jonycable.com"
+  },
+  {
+    "id": "bdix_430",
+    "url": "https://www.jananibd.com"
+  },
+  {
+    "id": "bdix_431",
+    "url": "http://jakianetbd.com"
+  },
+  {
+    "id": "bdix_432",
+    "url": "https://jhenuk.net"
+  },
+  {
+    "id": "bdix_433",
+    "url": "https://khulnanet24.com"
+  },
+  {
+    "id": "bdix_434",
+    "url": "http://www.kazinetwork.net"
+  },
+  {
+    "id": "bdix_435",
+    "url": "https://kbnonlinebd.net"
+  },
+  {
+    "id": "bdix_436",
+    "url": "http://karsannet.com"
+  },
+  {
+    "id": "bdix_437",
+    "url": "http://103.219.232.190"
+  },
+  {
+    "id": "bdix_438",
+    "url": "https://kmnbd.net"
+  },
+  {
+    "id": "bdix_439",
+    "url": "https://kawsarit.net"
+  },
+  {
+    "id": "bdix_440",
+    "url": "https://kloud.com.bd"
+  },
+  {
+    "id": "bdix_441",
+    "url": "http://movies.kloud.com.bd"
+  },
+  {
+    "id": "bdix_442",
+    "url": "http://leadtechnologybd.com"
+  },
+  {
+    "id": "bdix_443",
+    "url": "http://www.linkinnet.net"
+  },
+  {
+    "id": "bdix_444",
+    "url": "https://www.lizaonlinebd.com"
+  },
+  {
+    "id": "bdix_445",
+    "url": "http://www.cinehub24.com"
+  },
+  {
+    "id": "bdix_446",
+    "url": "https://masternetbd.net"
+  },
+  {
+    "id": "bdix_447",
+    "url": "https://mediaonlinebd.com"
+  },
+  {
+    "id": "bdix_448",
+    "url": "http://mymoviebazar.net"
+  },
+  {
+    "id": "bdix_449",
+    "url": "http://mybdplex.com"
+  },
+  {
+    "id": "bdix_450",
+    "url": "http://mathanosto.top"
+  },
+  {
+    "id": "bdix_451",
+    "url": "http://movieboxbd.com"
+  },
+  {
+    "id": "bdix_452",
+    "url": "http://bd-networks.com"
+  },
+  {
+    "id": "bdix_453",
+    "url": "http://midiplex.net"
+  },
+  {
+    "id": "bdix_454",
+    "url": "http://cdn.midiplex.net"
+  },
+  {
+    "id": "bdix_455",
+    "url": "https://moviescounterhd.club"
+  },
+  {
+    "id": "bdix_456",
+    "url": "https://msmonlinebd.com"
+  },
+  {
+    "id": "bdix_457",
+    "url": "https://www.citechco.net"
+  },
+  {
+    "id": "bdix_458",
+    "url": "http://203.83.177.225"
+  },
+  {
+    "id": "bdix_459",
+    "url": "http://www.movieserver.net"
+  },
+  {
+    "id": "bdix_460",
+    "url": "https://mlwbd.mobi"
+  },
+  {
+    "id": "bdix_461",
+    "url": "http://mtbsl.com"
+  },
+  {
+    "id": "bdix_462",
+    "url": "http://bdix.mtbsl.com"
+  },
+  {
+    "id": "bdix_463",
+    "url": "https://moghbazar.net"
+  },
+  {
+    "id": "bdix_464",
+    "url": "http://mybdix.com"
+  },
+  {
+    "id": "bdix_465",
+    "url": "http://mahirbd.com"
+  },
+  {
+    "id": "bdix_466",
+    "url": "http://45.118.247.178"
+  },
+  {
+    "id": "bdix_467",
+    "url": "http://45.118.247.178:8096"
+  },
+  {
+    "id": "bdix_468",
+    "url": "http://www.mariumnetwork.com"
+  },
+  {
+    "id": "bdix_469",
+    "url": "https://aniknetwork.net"
+  },
+  {
+    "id": "bdix_470",
+    "url": "http://medialink24.net"
+  },
+  {
+    "id": "bdix_471",
+    "url": "http://mirpurnetbd.com"
+  },
+  {
+    "id": "bdix_472",
+    "url": "http://www.mixonbd.com"
+  },
+  {
+    "id": "bdix_473",
+    "url": "http://www.megaplexbd.com"
+  },
+  {
+    "id": "bdix_474",
+    "url": "https://moon2tv.webs.com"
+  },
+  {
+    "id": "bdix_475",
+    "url": "http://micnbd.com"
+  },
+  {
+    "id": "bdix_476",
+    "url": "https://moviefreak.xyz"
+  },
+  {
+    "id": "bdix_477",
+    "url": "http://www.mirpurtech.com"
+  },
+  {
+    "id": "bdix_478",
+    "url": "https://www.manikdicommunication.com"
+  },
+  {
+    "id": "bdix_479",
+    "url": "https://www.mayasoftbd.net"
+  },
+  {
+    "id": "bdix_480",
+    "url": "http://nsolution.com.bd"
+  },
+  {
+    "id": "bdix_481",
+    "url": "http://103.144.200.9"
+  },
+  {
+    "id": "bdix_482",
+    "url": "http://moviemela.xyz"
+  },
+  {
+    "id": "bdix_483",
+    "url": "http://www.mtnbd.net"
+  },
+  {
+    "id": "bdix_484",
+    "url": "https://mtnbdlink.blogspot.com"
+  },
+  {
+    "id": "bdix_485",
+    "url": "https://megaspeednet.com"
+  },
+  {
+    "id": "bdix_486",
+    "url": "https://microlinkbd.net"
+  },
+  {
+    "id": "bdix_487",
+    "url": "https://manetbd.com"
+  },
+  {
+    "id": "bdix_488",
+    "url": "http://www.metaphornet.net"
+  },
+  {
+    "id": "bdix_489",
+    "url": "https://www.netathomebd.com"
+  },
+  {
+    "id": "bdix_490",
+    "url": "http://www.netmatrixbd.com"
+  },
+  {
+    "id": "bdix_491",
+    "url": "https://netcomisp.net"
+  },
+  {
+    "id": "bdix_492",
+    "url": "http://103.85.160.7"
+  },
+  {
+    "id": "bdix_493",
+    "url": "http://netcode.live"
+  },
+  {
+    "id": "bdix_494",
+    "url": "https://www.novusnetworkbd.com"
+  },
+  {
+    "id": "bdix_495",
+    "url": "http://nbox.live"
+  },
+  {
+    "id": "bdix_496",
+    "url": "http://play.nbox.live"
+  },
+  {
+    "id": "bdix_497",
+    "url": "http://fs.nbox.live"
+  },
+  {
+    "id": "bdix_498",
+    "url": "http://neefit.net"
+  },
+  {
+    "id": "bdix_499",
+    "url": "http://www.netonlinebd.com"
+  },
+  {
+    "id": "bdix_500",
+    "url": "http://nowhdtime.com.bd"
+  },
+  {
+    "id": "bdix_501",
+    "url": "https://netpoint.com.bd"
+  },
+  {
+    "id": "bdix_502",
+    "url": "https://nis.com.bd"
+  },
+  {
+    "id": "bdix_503",
+    "url": "http://nedasabd.net"
+  },
+  {
+    "id": "bdix_504",
+    "url": "http://nms-bd.com"
+  },
+  {
+    "id": "bdix_505",
+    "url": "http://fs1.mebd.net"
+  },
+  {
+    "id": "bdix_506",
+    "url": "http://103.56.6.6"
+  },
+  {
+    "id": "bdix_507",
+    "url": "http://jhakkas.live"
+  },
+  {
+    "id": "bdix_508",
+    "url": "http://www.neobd.net"
+  },
+  {
+    "id": "bdix_509",
+    "url": "http://www.netplusbd.com"
+  },
+  {
+    "id": "bdix_510",
+    "url": "https://netcafe-bd.com"
+  },
+  {
+    "id": "bdix_511",
+    "url": "http://100.100.100.100"
+  },
+  {
+    "id": "bdix_512",
+    "url": "https://www.netconnectbd.com"
+  },
+  {
+    "id": "bdix_513",
+    "url": "http://nettig.net"
+  },
+  {
+    "id": "bdix_514",
+    "url": "http://www.ntech-bd.com"
+  },
+  {
+    "id": "bdix_515",
+    "url": "http://www.onnosomoy.com:8096"
+  },
+  {
+    "id": "bdix_516",
+    "url": "https://onsbd.net"
+  },
+  {
+    "id": "bdix_517",
+    "url": "http://202.94.164.102"
+  },
+  {
+    "id": "bdix_518",
+    "url": "http://osthir.net"
+  },
+  {
+    "id": "bdix_519",
+    "url": "https://www.okay.net.bd"
+  },
+  {
+    "id": "bdix_520",
+    "url": "http://www.oitbd.net"
+  },
+  {
+    "id": "bdix_521",
+    "url": "https://www.powernetbd.com"
+  },
+  {
+    "id": "bdix_522",
+    "url": "http://www.plus.net.bd"
+  },
+  {
+    "id": "bdix_523",
+    "url": "https://presslinkbd.net"
+  },
+  {
+    "id": "bdix_524",
+    "url": "https://the-potato.net"
+  },
+  {
+    "id": "bdix_525",
+    "url": "http://172.16.16.16"
+  },
+  {
+    "id": "bdix_526",
+    "url": "http://www.poshbd.net"
+  },
+  {
+    "id": "bdix_527",
+    "url": "http://plusnetbd.com"
+  },
+  {
+    "id": "bdix_528",
+    "url": "https://progotiit.com"
+  },
+  {
+    "id": "bdix_529",
+    "url": "https://quetelbd.net"
+  },
+  {
+    "id": "bdix_530",
+    "url": "http://quickonlineftp.com"
+  },
+  {
+    "id": "bdix_531",
+    "url": "https://www.rainbownetworkbd.com"
+  },
+  {
+    "id": "bdix_532",
+    "url": "http://cinemacity.live"
+  },
+  {
+    "id": "bdix_533",
+    "url": "http://www.roarzone.info"
+  },
+  {
+    "id": "bdix_534",
+    "url": "https://rioctg.blogspot.com"
+  },
+  {
+    "id": "bdix_535",
+    "url": "http://103.29.127.14"
+  },
+  {
+    "id": "bdix_536",
+    "url": "http://media.zerointernet.net"
+  },
+  {
+    "id": "bdix_537",
+    "url": "http://media.radiantbd.com"
+  },
+  {
+    "id": "bdix_538",
+    "url": "http://www.radiantbd.net"
+  },
+  {
+    "id": "bdix_539",
+    "url": "http://cdn2.radiantbd.com"
+  },
+  {
+    "id": "bdix_540",
+    "url": "https://realstation.live"
+  },
+  {
+    "id": "bdix_541",
+    "url": "https://rlcafenet.com"
+  },
+  {
+    "id": "bdix_542",
+    "url": "https://rsnetbd.com"
+  },
+  {
+    "id": "bdix_543",
+    "url": "http://103.251.247.147"
+  },
+  {
+    "id": "bdix_544",
+    "url": "http://www.rdconlinebd.net"
+  },
+  {
+    "id": "bdix_545",
+    "url": "https://www.runwaybroadband.com"
+  },
+  {
+    "id": "bdix_546",
+    "url": "http://lalbatte.net"
+  },
+  {
+    "id": "bdix_547",
+    "url": "http://rawshanarainternet.com"
+  },
+  {
+    "id": "bdix_548",
+    "url": "http://ftp.daffodilnet.com"
+  },
+  {
+    "id": "bdix_549",
+    "url": "https://rodelaonlinebd.com"
+  },
+  {
+    "id": "bdix_550",
+    "url": "http://www.rahulenterprise.com.bd"
+  },
+  {
+    "id": "bdix_551",
+    "url": "https://www.rapid.net.bd"
+  },
+  {
+    "id": "bdix_552",
+    "url": "https://rapidnetworkbd.wordpress.com"
+  },
+  {
+    "id": "bdix_553",
+    "url": "http://romsnetwork.com"
+  },
+  {
+    "id": "bdix_554",
+    "url": "https://ranonline.com.bd"
+  },
+  {
+    "id": "bdix_555",
+    "url": "https://www.rainbowd.net"
+  },
+  {
+    "id": "bdix_556",
+    "url": "http://103.3.226.208"
+  },
+  {
+    "id": "bdix_557",
+    "url": "http://www.swiftnetbd.com"
+  },
+  {
+    "id": "bdix_558",
+    "url": "https://www.sknetcity.com"
+  },
+  {
+    "id": "bdix_559",
+    "url": "https://slnisp.com.bd"
+  },
+  {
+    "id": "bdix_560",
+    "url": "https://www.skynetbd.net"
+  },
+  {
+    "id": "bdix_561",
+    "url": "http://sbnetworkbd.com"
+  },
+  {
+    "id": "bdix_562",
+    "url": "https://sparklinkbd.com"
+  },
+  {
+    "id": "bdix_563",
+    "url": "https://sparknetbd.com"
+  },
+  {
+    "id": "bdix_564",
+    "url": "https://ssonlinebd.com"
+  },
+  {
+    "id": "bdix_565",
+    "url": "http://serverbd247.com"
+  },
+  {
+    "id": "bdix_566",
+    "url": "https://www.skybizbd.net"
+  },
+  {
+    "id": "bdix_567",
+    "url": "https://supernetbd.com"
+  },
+  {
+    "id": "bdix_568",
+    "url": "http://supernetsenbag.com"
+  },
+  {
+    "id": "bdix_569",
+    "url": "https://skynetonlinebd.net"
+  },
+  {
+    "id": "bdix_570",
+    "url": "http://www.stargatebd.net"
+  },
+  {
+    "id": "bdix_571",
+    "url": "http://172.27.27.1"
+  },
+  {
+    "id": "bdix_572",
+    "url": "http://starplexbd.com"
+  },
+  {
+    "id": "bdix_573",
+    "url": "https://srnetworks.webs.com"
+  },
+  {
+    "id": "bdix_574",
+    "url": "https://speednetkhulna.com"
+  },
+  {
+    "id": "bdix_575",
+    "url": "http://speed4you.net"
+  },
+  {
+    "id": "bdix_576",
+    "url": "http://www.smartnetltd.com"
+  },
+  {
+    "id": "bdix_577",
+    "url": "http://movie.smartnetltd.com"
+  },
+  {
+    "id": "bdix_578",
+    "url": "http://sisbdisp.com"
+  },
+  {
+    "id": "bdix_579",
+    "url": "http://103.115.253.254"
+  },
+  {
+    "id": "bdix_580",
+    "url": "http://172.102.0.3"
+  },
+  {
+    "id": "bdix_581",
+    "url": "https://speedo.net.bd"
+  },
+  {
+    "id": "bdix_582",
+    "url": "https://snsbd.net"
+  },
+  {
+    "id": "bdix_583",
+    "url": "https://www.smiritycable.com"
+  },
+  {
+    "id": "bdix_584",
+    "url": "https://sardernet.com"
+  },
+  {
+    "id": "bdix_585",
+    "url": "http://smartonlinebd.com"
+  },
+  {
+    "id": "bdix_586",
+    "url": "https://ctgoz.com"
+  },
+  {
+    "id": "bdix_587",
+    "url": "http://megaflix.tv"
+  },
+  {
+    "id": "bdix_588",
+    "url": "http://sunlit.tv"
+  },
+  {
+    "id": "bdix_589",
+    "url": "http://swapnonetwork.net"
+  },
+  {
+    "id": "bdix_590",
+    "url": "https://www.sync.net.bd"
+  },
+  {
+    "id": "bdix_591",
+    "url": "http://103.107.160.36"
+  },
+  {
+    "id": "bdix_592",
+    "url": "http://103.107.160.37"
+  },
+  {
+    "id": "bdix_593",
+    "url": "http://kaat.pw"
+  },
+  {
+    "id": "bdix_594",
+    "url": "https://salamonline.com.bd"
+  },
+  {
+    "id": "bdix_595",
+    "url": "http://43.246.200.82:8082"
+  },
+  {
+    "id": "bdix_596",
+    "url": "http://speed2000bd.com"
+  },
+  {
+    "id": "bdix_597",
+    "url": "https://www.skylinectg.com"
+  },
+  {
+    "id": "bdix_598",
+    "url": "http://103.214.156.1"
+  },
+  {
+    "id": "bdix_599",
+    "url": "http://fs.satrong.live"
+  },
+  {
+    "id": "bdix_600",
+    "url": "http://www.saturninternetbd.com"
+  },
+  {
+    "id": "bdix_601",
+    "url": "http://www.netcitybd.com"
+  },
+  {
+    "id": "bdix_602",
+    "url": "https://s-netisp.com"
+  },
+  {
+    "id": "bdix_603",
+    "url": "http://smileit.xyz"
+  },
+  {
+    "id": "bdix_604",
+    "url": "https://scubenetworkbd.com"
+  },
+  {
+    "id": "bdix_605",
+    "url": "https://superlinkbd.xyz"
+  },
+  {
+    "id": "bdix_606",
+    "url": "https://www.speedplusisp.net"
+  },
+  {
+    "id": "bdix_607",
+    "url": "https://www.ssaliisp.net"
+  },
+  {
+    "id": "bdix_608",
+    "url": "http://103.80.70.60"
+  },
+  {
+    "id": "bdix_609",
+    "url": "http://digbazi.net"
+  },
+  {
+    "id": "bdix_610",
+    "url": "https://www.skynetchowmuhani.com"
+  },
+  {
+    "id": "bdix_611",
+    "url": "http://103.109.56.114"
+  },
+  {
+    "id": "bdix_612",
+    "url": "http://103.109.56.115"
+  },
+  {
+    "id": "bdix_613",
+    "url": "http://funtime.com.bd"
+  },
+  {
+    "id": "bdix_614",
+    "url": "http://www.starnetworkbd.com"
+  },
+  {
+    "id": "bdix_615",
+    "url": "https://www.skynet.com.bd"
+  },
+  {
+    "id": "bdix_616",
+    "url": "https://staronline.com.bd"
+  },
+  {
+    "id": "bdix_617",
+    "url": "http://www.come2speed.com"
+  },
+  {
+    "id": "bdix_618",
+    "url": "https://speedlinkbd.com"
+  },
+  {
+    "id": "bdix_619",
+    "url": "https://www.tetrasoftbd.com"
+  },
+  {
+    "id": "bdix_620",
+    "url": "http://tetraplex.net.bd"
+  },
+  {
+    "id": "bdix_621",
+    "url": "http://www.tnetftp.com"
+  },
+  {
+    "id": "bdix_622",
+    "url": "https://mytlinkbd.net"
+  },
+  {
+    "id": "bdix_623",
+    "url": "https://taltola.net"
+  },
+  {
+    "id": "bdix_624",
+    "url": "http://146.196.48.9"
+  },
+  {
+    "id": "bdix_625",
+    "url": "http://146.196.48.10"
+  },
+  {
+    "id": "bdix_626",
+    "url": "http://todayvisionbd.com"
+  },
+  {
+    "id": "bdix_627",
+    "url": "https://touchonline.net.bd"
+  },
+  {
+    "id": "bdix_628",
+    "url": "https://talukdernet.com"
+  },
+  {
+    "id": "bdix_629",
+    "url": "https://tnetwork.com.bd"
+  },
+  {
+    "id": "bdix_630",
+    "url": "http://tuhinenterprise.com"
+  },
+  {
+    "id": "bdix_631",
+    "url": "http://www.tufan.live"
+  },
+  {
+    "id": "bdix_632",
+    "url": "https://www.thenetheads.com"
+  },
+  {
+    "id": "bdix_633",
+    "url": "http://www.takerhatwifi.com"
+  },
+  {
+    "id": "bdix_634",
+    "url": "http://uturnbd.com"
+  },
+  {
+    "id": "bdix_635",
+    "url": "http://172.16.16.3"
+  },
+  {
+    "id": "bdix_636",
+    "url": "http://172.16.16.5"
+  },
+  {
+    "id": "bdix_637",
+    "url": "http://172.16.16.6"
+  },
+  {
+    "id": "bdix_638",
+    "url": "http://unique24.net"
+  },
+  {
+    "id": "bdix_639",
+    "url": "http://media.unique24.net"
+  },
+  {
+    "id": "bdix_640",
+    "url": "http://www.uniqueonlinebd.com"
+  },
+  {
+    "id": "bdix_641",
+    "url": "http://www.chillbd.net"
+  },
+  {
+    "id": "bdix_642",
+    "url": "http://www.updatenetworkbd.com"
+  },
+  {
+    "id": "bdix_643",
+    "url": "http://uturninternet.com"
+  },
+  {
+    "id": "bdix_644",
+    "url": "http://103.17.181.43"
+  },
+  {
+    "id": "bdix_645",
+    "url": "http://vdomela.com"
+  },
+  {
+    "id": "bdix_646",
+    "url": "https://velocity.net.bd"
+  },
+  {
+    "id": "bdix_647",
+    "url": "https://www.ctghub.com"
+  },
+  {
+    "id": "bdix_648",
+    "url": "http://videoelephantbd.com"
+  },
+  {
+    "id": "bdix_649",
+    "url": "http://172.17.17.19"
+  },
+  {
+    "id": "bdix_650",
+    "url": "http://172.17.17.14:82"
+  },
+  {
+    "id": "bdix_651",
+    "url": "https://www.vibebd.com"
+  },
+  {
+    "id": "bdix_652",
+    "url": "https://www.vcbd.net"
+  },
+  {
+    "id": "bdix_653",
+    "url": "http://www.winneritbd.com"
+  },
+  {
+    "id": "bdix_654",
+    "url": "http://103.92.213.55"
+  },
+  {
+    "id": "bdix_655",
+    "url": "https://www.worldbd.net"
+  },
+  {
+    "id": "bdix_656",
+    "url": "https://webrangers.net"
+  },
+  {
+    "id": "bdix_657",
+    "url": "https://www.wetube.com.bd"
+  },
+  {
+    "id": "bdix_658",
+    "url": "http://45.45.45.45"
+  },
+  {
+    "id": "bdix_659",
+    "url": "https://www.xplorenetbd.com"
+  },
+  {
+    "id": "bdix_660",
+    "url": "https://maxnetbd.com"
+  },
+  {
+    "id": "bdix_661",
+    "url": "http://xenialbb.net"
+  },
+  {
+    "id": "bdix_662",
+    "url": "https://www.yellownetbd.com"
+  },
+  {
+    "id": "bdix_663",
+    "url": "https://yesnetcommunication.com"
+  },
+  {
+    "id": "bdix_664",
+    "url": "http://www.yournetcommunications.net"
+  },
+  {
+    "id": "bdix_665",
+    "url": "http://www.zxonlinebd.com"
+  },
+  {
+    "id": "bdix_666",
+    "url": "http://zero4communication.com"
+  },
+  {
+    "id": "bdix_667",
+    "url": "http://103.96.36.115"
+  },
+  {
+    "id": "bdix_668",
+    "url": "https://zoomonlinebd.net"
+  },
+  {
+    "id": "bdix_669",
+    "url": "http://www.zipnetbd.com"
+  },
+  {
+    "id": "bdix_670",
+    "url": "http://www.zipcyber.com"
+  },
+  {
+    "id": "bdix_671",
+    "url": "http://zoomonline.com.bd"
+  },
+  {
+    "id": "bdix_672",
+    "url": "http://3netbd.com"
+  },
+  {
+    "id": "bdix_673",
+    "url": "https://3rcommunications.com"
+  },
+  {
+    "id": "bdix_674",
+    "url": "https://www.4gnetworkbd.com"
+  },
+  {
+    "id": "bdix_675",
+    "url": "http://www.29com.net"
+  },
+  {
+    "id": "bdix_676",
+    "url": "https://www.elite.net.bd"
+  },
+  {
+    "id": "bdix_677",
+    "url": "http://15.20.20.20"
+  },
+  {
+    "id": "bdix_678",
+    "url": "https://genvideos.org"
+  },
+  {
+    "id": "bdix_679",
+    "url": "http://media.ftpbd.net"
+  },
+  {
+    "id": "bdix_680",
+    "url": "http://15.1.1.1"
+  },
+  {
+    "id": "bdix_681",
+    "url": "http://15.1.1.6"
+  },
+  {
+    "id": "bdix_682",
+    "url": "http://hd.circleftp.net"
+  },
+  {
+    "id": "bdix_683",
+    "url": "http://emby.circleftp.net"
+  },
+  {
+    "id": "bdix_684",
+    "url": "http://172.16.50.5"
+  },
+  {
+    "id": "bdix_685",
+    "url": "http://www.bdspeed.com"
+  },
+  {
+    "id": "bdix_686",
+    "url": "http://www.btekinternet.com"
+  },
+  {
+    "id": "bdix_687",
+    "url": "https://www.dreamonlinebd.com"
+  },
+  {
+    "id": "bdix_688",
+    "url": "https://movitime.online"
+  },
+  {
+    "id": "bdix_689",
+    "url": "https://www.netinfobd.com"
+  },
+  {
+    "id": "bdix_690",
+    "url": "https://btekbd.com"
+  },
+  {
+    "id": "bdix_691",
+    "url": "http://www.rocketnetbd.com"
+  },
+  {
+    "id": "bdix_692",
+    "url": "http://skylinkdhaka.com"
+  },
+  {
+    "id": "bdix_693",
+    "url": "http://smileit.online"
+  },
+  {
+    "id": "bdix_694",
+    "url": "http://www.univisionbd.net"
+  },
+  {
+    "id": "bdix_695",
+    "url": "http://justmovie.live"
+  },
+  {
+    "id": "bdix_696",
+    "url": "http://117.103.80.101"
+  },
+  {
+    "id": "bdix_697",
+    "url": "http://103.85.197.10"
+  },
+  {
+    "id": "bdix_698",
+    "url": "http://103.213.238.70:8096"
+  },
+  {
+    "id": "bdix_699",
+    "url": "http://160.202.146.220"
+  },
+  {
+    "id": "bdix_700",
+    "url": "http://movies.discoveryftp.net"
+  },
+  {
+    "id": "bdix_701",
+    "url": "http://new.naturalbd.com"
+  },
+  {
+    "id": "bdix_702",
+    "url": "http://103.102.253.250"
+  },
+  {
+    "id": "bdix_703",
+    "url": "http://citycloudbd.com"
+  },
+  {
+    "id": "bdix_704",
+    "url": "http://103.200.36.242"
+  },
+  {
+    "id": "bdix_705",
+    "url": "http://ftp2.circleftp.net"
+  },
+  {
+    "id": "bdix_706",
+    "url": "https://mojaloss.net"
+  },
+  {
+    "id": "bdix_707",
+    "url": "http://fz.moviemela.live:8096"
+  },
+  {
+    "id": "bdix_708",
+    "url": "http://fs.moviemela.live:8096"
+  },
+  {
+    "id": "bdix_709",
+    "url": "http://patalpuri.com"
+  },
+  {
+    "id": "bdix_710",
+    "url": "http://www.tajpata.com"
+  },
+  {
+    "id": "bdix_711",
+    "url": "http://bitflixbd.com"
+  },
+  {
+    "id": "bdix_712",
+    "url": "http://uturnbd.live"
+  },
+  {
+    "id": "bdix_713",
+    "url": "http://103.70.140.14"
+  },
+  {
+    "id": "bdix_714",
+    "url": "http://www.flashnetbd.com"
+  },
+  {
+    "id": "bdix_715",
+    "url": "http://roarmediazone.com"
+  },
+  {
+    "id": "bdix_716",
+    "url": "https://rapidnetbd.com"
+  },
+  {
+    "id": "bdix_717",
+    "url": "https://mlwbd.pw"
+  },
+  {
+    "id": "bdix_718",
+    "url": "http://103.126.12.226"
+  },
+  {
+    "id": "bdix_719",
+    "url": "http://focusflix.com"
+  },
+  {
+    "id": "bdix_720",
+    "url": "http://103.214.200.94"
+  },
+  {
+    "id": "bdix_721",
+    "url": "http://data.kenecolor.com"
+  },
+  {
+    "id": "bdix_722",
+    "url": "http://spidercommunicationbd.com"
+  },
+  {
+    "id": "bdix_723",
+    "url": "https://mahirbd.com"
+  },
+  {
+    "id": "bdix_724",
+    "url": "http://portal.worldbd.net"
+  },
+  {
+    "id": "bdix_725",
+    "url": "http://172.20.0.19"
+  },
+  {
+    "id": "bdix_726",
+    "url": "http://172.20.0.20"
+  },
+  {
+    "id": "bdix_727",
+    "url": "http://mcplexbangla.com"
+  },
+  {
+    "id": "bdix_728",
+    "url": "http://172.30.2.14"
+  },
+  {
+    "id": "bdix_729",
+    "url": "http://www.adharalo.com"
+  },
+  {
+    "id": "bdix_730",
+    "url": "http://rahulenterprise.net"
+  },
+  {
+    "id": "bdix_731",
+    "url": "https://www.bd7hub.net"
+  },
+  {
+    "id": "bdix_732",
+    "url": "https://ftp1.bdix.com.bd"
+  },
+  {
+    "id": "bdix_733",
+    "url": "https://ftp2.bdix.com.bd"
+  },
+  {
+    "id": "bdix_734",
+    "url": "https://ftp3.bdix.com.bd"
+  },
+  {
+    "id": "bdix_735",
+    "url": "https://ftp4.bdix.com.bd"
+  },
+  {
+    "id": "bdix_736",
+    "url": "https://ftp5.bdix.com.bd"
+  },
+  {
+    "id": "bdix_737",
+    "url": "https://media.bdix.com.bd"
+  },
+  {
+    "id": "bdix_738",
+    "url": "https://movie.bdix.com.bd"
+  },
+  {
+    "id": "bdix_739",
+    "url": "https://bdix.com.bd"
+  },
+  {
+    "id": "bdix_740",
+    "url": "https://ibds.net.bd"
+  },
+  {
+    "id": "bdix_741",
+    "url": "http://kawsarit.com"
+  },
+  {
+    "id": "bdix_742",
+    "url": "http://10.100.100.2"
+  },
+  {
+    "id": "bdix_743",
+    "url": "http://103.86.200.7"
+  },
+  {
+    "id": "bdix_744",
+    "url": "http://10.10.10.10:8080"
+  },
+  {
+    "id": "bdix_745",
+    "url": "http://itpolly.iptv.digijadoo.net"
+  },
+  {
+    "id": "bdix_746",
+    "url": "http://jiocgehub.jio.ril.com"
+  },
+  {
+    "id": "bdix_747",
+    "url": "https://itpolly.iptv.digijadoo.net"
+  },
+  {
+    "id": "bdix_748",
+    "url": "http://158.69.124.9:1935"
+  },
+  {
+    "id": "bdix_749",
+    "url": "http://103.199.161.254"
+  },
+  {
+    "id": "bdix_750",
+    "url": "http://akaal.zecast.net"
+  },
+  {
+    "id": "bdix_751",
+    "url": "http://akaram.zecast.net"
+  },
+  {
+    "id": "bdix_752",
+    "url": "http://95eryw39dwn4-hls-live.wmncdn.net"
+  },
+  {
+    "id": "bdix_753",
+    "url": "https://a.jsrdn.com"
+  },
+  {
+    "id": "bdix_754",
+    "url": "http://live.agmediachandigarh.com"
+  },
+  {
+    "id": "bdix_755",
+    "url": "https://d1fi19tywmn14b.cloudfront.net"
+  },
+  {
+    "id": "bdix_756",
+    "url": "http://bit.ly"
+  },
+  {
+    "id": "bdix_757",
+    "url": "http://playhls.media.nic.in"
+  },
+  {
+    "id": "bdix_758",
+    "url": "http://live.wmncdn.net"
+  },
+  {
+    "id": "bdix_759",
+    "url": "http://cdn2.live247stream.com"
+  },
+  {
+    "id": "bdix_760",
+    "url": "http://edge-ind.inapcdn.in:1935"
+  },
+  {
+    "id": "bdix_761",
+    "url": "http://fash1043.cloudycdn.services"
+  },
+  {
+    "id": "bdix_762",
+    "url": "http://start.agmediachandigarh.com"
+  },
+  {
+    "id": "bdix_763",
+    "url": "https://5a9fe19ea6821.streamlock.net"
+  },
+  {
+    "id": "bdix_764",
+    "url": "http://cdncities.com"
+  },
+  {
+    "id": "bdix_765",
+    "url": "https://ibccomedy-origin.ibctamil.com"
+  },
+  {
+    "id": "bdix_766",
+    "url": "https://ibctamil-live.ibctamil.com"
+  },
+  {
+    "id": "bdix_767",
+    "url": "https://feeds.intoday.in"
+  },
+  {
+    "id": "bdix_768",
+    "url": "https://vidcdn.vidgyor.com"
+  },
+  {
+    "id": "bdix_769",
+    "url": "http://mydreams.livebox.co.in"
+  },
+  {
+    "id": "bdix_770",
+    "url": "http://103.199.160.85"
+  },
+  {
+    "id": "bdix_771",
+    "url": "http://abr.wmncdn.net"
+  },
+  {
+    "id": "bdix_772",
+    "url": "http://dammikartmp.tulix.tv"
+  },
+  {
+    "id": "bdix_773",
+    "url": "https://rtmp.smartstream.video"
+  },
+  {
+    "id": "bdix_774",
+    "url": "http://cdn27.live247stream.com"
+  },
+  {
+    "id": "bdix_775",
+    "url": "http://cdn9.live247stream.com"
+  },
+  {
+    "id": "bdix_776",
+    "url": "http://6284rn2xr7xv-hls-live.wmncdn.net"
+  },
+  {
+    "id": "bdix_777",
+    "url": "http://cdn61.liveonlineservices.com"
+  },
+  {
+    "id": "bdix_778",
+    "url": "http://rtmp.santhoratv.zecast.net"
+  },
+  {
+    "id": "bdix_779",
+    "url": "http://santhoratv.zecast.net"
+  },
+  {
+    "id": "bdix_780",
+    "url": "http://live.tamilvision.tv:8081"
+  },
+  {
+    "id": "bdix_781",
+    "url": "https://d39v9xz8f7n8tk.cloudfront.net"
+  },
+  {
+    "id": "bdix_782",
+    "url": "http://161.0.157.5"
+  },
+  {
+    "id": "bdix_783",
+    "url": "http://cdn.smartstream.video"
+  },
+  {
+    "id": "bdix_784",
+    "url": "http://95.211.211.168"
+  },
+  {
+    "id": "bdix_785",
+    "url": "https://jk3lz82elw79-hls-live.5centscdn.com"
+  },
+  {
+    "id": "bdix_786",
+    "url": "https://api.visionip.tv"
+  },
+  {
+    "id": "bdix_787",
+    "url": "http://vidnetcdn.vidgyor.com"
+  },
+  {
+    "id": "bdix_788",
+    "url": "https://dl.dropbox.com"
+  },
+  {
+    "id": "bdix_789",
+    "url": "http://dmisvthvll.cdn.mangomolo.com"
+  },
+  {
+    "id": "bdix_790",
+    "url": "http://dmithrvll.cdn.mangomolo.com"
+  },
+  {
+    "id": "bdix_791",
+    "url": "http://ott-live.olympicchannel.com"
+  },
+  {
+    "id": "bdix_792",
+    "url": "https://livechannel.shemaroome.com"
+  },
+  {
+    "id": "bdix_793",
+    "url": "http://92news.vdn.dstreamone.net"
+  },
+  {
+    "id": "bdix_794",
+    "url": "https://securecontributions.sechls01.visionip.tv"
+  },
+  {
+    "id": "bdix_795",
+    "url": "http://mlive.lahorenews.tv:1935"
+  },
+  {
+    "id": "bdix_796",
+    "url": "http://imob.dunyanews.tv"
+  },
+  {
+    "id": "bdix_797",
+    "url": "https://5ad386ff92705.streamlock.net"
+  },
+  {
+    "id": "bdix_798",
+    "url": "http://wowza-feed09-nasa.pluto.tv"
+  },
+  {
+    "id": "bdix_799",
+    "url": "http://ebsonair.ebs.co.kr:1935"
+  },
+  {
+    "id": "bdix_800",
+    "url": "http://161.0.157.51"
+  },
+  {
+    "id": "bdix_801",
+    "url": "http://203.162.235.41:16924"
+  },
+  {
+    "id": "bdix_802",
+    "url": "https://gma2.blab.email"
+  },
+  {
+    "id": "bdix_803",
+    "url": "http://212.47.252.54"
+  },
+  {
+    "id": "bdix_804",
+    "url": "https://live2.presstv.com"
+  },
+  {
+    "id": "bdix_805",
+    "url": "http://51.52.156.22:8888"
+  },
+  {
+    "id": "bdix_806",
+    "url": "https://content.uplynk.com"
+  },
+  {
+    "id": "bdix_807",
+    "url": "http://amdlive-ch01.ctnd.com.edgesuite.net"
+  },
+  {
+    "id": "bdix_808",
+    "url": "https://live.chdrstatic.com"
+  },
+  {
+    "id": "bdix_809",
+    "url": "https://news.cgtn.com"
+  },
+  {
+    "id": "bdix_810",
+    "url": "http://rt-news.secure.footprint.net"
+  },
+  {
+    "id": "bdix_811",
+    "url": "https://api.trtworld.com"
+  },
+  {
+    "id": "bdix_812",
+    "url": "https://liveprodapnortheast.global.ssl.fastly.net"
+  },
+  {
+    "id": "bdix_813",
+    "url": "http://45.58.62.92:8080"
+  },
+  {
+    "id": "bdix_814",
+    "url": "http://162.250.201.58:6211"
+  },
+  {
+    "id": "bdix_815",
+    "url": "https://playoutengine.sinclairstoryline.com"
+  },
+  {
+    "id": "bdix_816",
+    "url": "https://cinedigm.vo.llnwd.net"
+  },
+  {
+    "id": "bdix_817",
+    "url": "https://dai2.xumo.com"
+  },
+  {
+    "id": "bdix_818",
+    "url": "http://a.jsrdn.com"
+  },
+  {
+    "id": "bdix_819",
+    "url": "https://edge1.dashmedia.tv"
+  },
+  {
+    "id": "bdix_820",
+    "url": "https://vcnleomarkstudios.teleosmedia.com"
+  },
+  {
+    "id": "bdix_821",
+    "url": "https://nimble.dashmedia.tv"
+  },
+  {
+    "id": "bdix_822",
+    "url": "https://livedoc.cgtn.com"
+  },
+  {
+    "id": "bdix_823",
+    "url": "http://lmil.live-s.cdn.bitgravity.com"
+  },
+  {
+    "id": "bdix_824",
+    "url": "http://163.47.214.155:1935"
+  },
+  {
+    "id": "bdix_825",
+    "url": "http://mntv.livebox.co.in"
+  },
+  {
+    "id": "bdix_826",
+    "url": "http://vasanth.live.cdn.bitgravity.com"
+  },
+  {
+    "id": "bdix_827",
+    "url": "https://ibckids-origin.ibctamil.com"
+  },
+  {
+    "id": "bdix_828",
+    "url": "https://ddftztnzt6o79.cloudfront.net"
+  },
+  {
+    "id": "bdix_829",
+    "url": "https://dlau142f16b92.cloudfront.net"
+  },
+  {
+    "id": "bdix_830",
+    "url": "https://d3inlz9elsutjl.cloudfront.net"
+  },
+  {
+    "id": "bdix_831",
+    "url": "https://d2e1asnsl7br7b.cloudfront.net"
+  },
+  {
+    "id": "bdix_832",
+    "url": "https://d11h6a6nhl9kj9.cloudfront.net"
+  },
+  {
+    "id": "bdix_833",
+    "url": "http://edge.vediostream.com"
+  },
+  {
+    "id": "bdix_834",
+    "url": "https://agplayback03.aotg-video.astro.com.my"
+  },
+  {
+    "id": "bdix_835",
+    "url": "http://104.250.154.42:8080"
+  },
+  {
+    "id": "bdix_836",
+    "url": "https://2-fss-2.streamhoster.com"
+  },
+  {
+    "id": "bdix_837",
+    "url": "http://170.178.189.66:1935"
+  },
+  {
+    "id": "bdix_838",
+    "url": "http://rtmp.smartstream.video:1935"
+  },
+  {
+    "id": "bdix_839",
+    "url": "http://stream.pztv.online"
+  },
+  {
+    "id": "bdix_840",
+    "url": "http://cdn12.henico.net:8080"
+  },
+  {
+    "id": "bdix_841",
+    "url": "http://cdn.samtv.ca"
+  },
+  {
+    "id": "bdix_842",
+    "url": "http://fastway.ddns.net:6421"
+  },
+  {
+    "id": "bdix_843",
+    "url": "http://cdn19.live247stream.com"
+  },
+  {
+    "id": "bdix_844",
+    "url": "https://streamer12.vdn.dstreamone.net"
+  },
+  {
+    "id": "bdix_845",
+    "url": "http://cdn20.liveonlineservices.com"
+  },
+  {
+    "id": "bdix_846",
+    "url": "https://livestream.5centscdn.com"
+  },
+  {
+    "id": "bdix_847",
+    "url": "http://cdn11.live247stream.com"
+  },
+  {
+    "id": "bdix_848",
+    "url": "http://128.199.212.160"
+  },
+  {
+    "id": "bdix_849",
+    "url": "https://madnitv.vdn.dstreamone.net"
+  },
+  {
+    "id": "bdix_850",
+    "url": "https://edge01.iptv.digijadoo.net"
+  },
+  {
+    "id": "bdix_851",
+    "url": "http://103.205.133.19"
+  },
+  {
+    "id": "bdix_852",
+    "url": "http://45.249.187.238:8081"
+  },
+  {
+    "id": "bdix_853",
+    "url": "http://103.49.168.172:8081"
+  },
+  {
+    "id": "bdix_854",
+    "url": "http://103.205.133.14"
+  },
+  {
+    "id": "bdix_855",
+    "url": "http://iptv.kitv.live:1935"
+  },
+  {
+    "id": "bdix_856",
+    "url": "http://103.135.208.14"
+  },
+  {
+    "id": "bdix_857",
+    "url": "http://edge01.iptv.digijadoo.net"
+  },
+  {
+    "id": "bdix_858",
+    "url": "http://103.214.202.218:8081"
+  },
+  {
+    "id": "bdix_859",
+    "url": "http://pioneer.anytv.live:8080"
+  },
+  {
+    "id": "bdix_860",
+    "url": "http://43.231.22.238:8081"
+  },
+  {
+    "id": "bdix_861",
+    "url": "http://43.251.86.2:8080"
+  },
+  {
+    "id": "bdix_862",
+    "url": "http://livetv.colorsbd.com:8081"
+  },
+  {
+    "id": "bdix_863",
+    "url": "http://str24.l9574.com"
+  },
+  {
+    "id": "bdix_864",
+    "url": "http://162.244.81.142:1935"
+  },
+  {
+    "id": "bdix_865",
+    "url": "http://87.117.234.107:1935"
+  },
+  {
+    "id": "bdix_866",
+    "url": "http://210.210.155.35"
+  },
+  {
+    "id": "bdix_867",
+    "url": "http://45.126.83.51"
+  },
+  {
+    "id": "bdix_868",
+    "url": "https://delivery.macan.live"
+  },
+  {
+    "id": "bdix_869",
+    "url": "https://m-c066-j2apps.s.llnwi.net"
+  },
+  {
+    "id": "bdix_870",
+    "url": "http://stream-e30453a4b.nmbs.top"
+  },
+  {
+    "id": "bdix_871",
+    "url": "http://23.106.120.42:1934"
+  },
+  {
+    "id": "bdix_872",
+    "url": "http://appcdn.jagobd.com:1934"
+  },
+  {
+    "id": "bdix_873",
+    "url": "http://tempamb.jagobd.com:1934"
+  },
+  {
+    "id": "bdix_874",
+    "url": "http://182.48.69.162:1934"
+  },
+  {
+    "id": "bdix_875",
+    "url": "http://163.172.29.246:8081"
+  },
+  {
+    "id": "bdix_876",
+    "url": "http://vod.beeiptv.com:8081"
+  },
+  {
+    "id": "bdix_877",
+    "url": "https://2-fss-2.themediacdn.com"
+  },
+  {
+    "id": "bdix_878",
+    "url": "http://stream.telelivebd.com"
+  },
+  {
+    "id": "bdix_879",
+    "url": "http://m-c09-j2apps.s.llnwi.net"
+  },
+  {
+    "id": "bdix_880",
+    "url": "http://nandansyst.com"
+  },
+  {
+    "id": "bdix_881",
+    "url": "http://peacetv.ashttp22.visionip.tv"
+  },
+  {
+    "id": "bdix_882",
+    "url": "http://heela.ddns.net:2700"
+  },
+  {
+    "id": "bdix_883",
+    "url": "https://ws.flv.nimo.tv"
+  },
+  {
+    "id": "bdix_884",
+    "url": "http://ws.flv.nimo.tv"
+  },
+  {
+    "id": "bdix_885",
+    "url": "http://live-ng-01.more.tv"
+  },
+  {
+    "id": "bdix_886",
+    "url": "http://31.13.223.104:1935"
+  },
+  {
+    "id": "bdix_887",
+    "url": "https://chostv.mobie.in"
+  },
+  {
+    "id": "bdix_888",
+    "url": "http://94.46.195.170:9000"
+  },
+  {
+    "id": "bdix_889",
+    "url": "http://125.209.99.45:43568"
+  },
+  {
+    "id": "bdix_890",
+    "url": "http://216.144.250.174"
+  },
+  {
+    "id": "bdix_891",
+    "url": "http://www.elahmad.com"
+  },
+  {
+    "id": "bdix_892",
+    "url": "http://159.203.9.134"
+  },
+  {
+    "id": "bdix_893",
+    "url": "http://103.47.132.165"
+  },
+  {
+    "id": "bdix_894",
+    "url": "https://m-c036-j2apps.s.llnwi.net"
+  },
+  {
+    "id": "bdix_895",
+    "url": "https://bozztv.com"
+  },
+  {
+    "id": "bdix_896",
+    "url": "https://cdn20.liveonlineservices.com"
+  },
+  {
+    "id": "bdix_897",
+    "url": "https://cdn30.liveonlineservices.com"
+  },
+  {
+    "id": "bdix_898",
+    "url": "http://web.onair-radio.eu:1935"
+  },
+  {
+    "id": "bdix_899",
+    "url": "https://rutv.gcdn.co"
+  },
+  {
+    "id": "bdix_900",
+    "url": "https://m-c09-j2apps.s.llnwi.net"
+  },
+  {
+    "id": "bdix_901",
+    "url": "http://csm-e.tm.yospace.com"
+  },
+  {
+    "id": "bdix_902",
+    "url": "https://eco.streams.ovh"
+  },
+  {
+    "id": "bdix_903",
+    "url": "https://cmctv.ios.internapcdn.net"
+  },
+  {
+    "id": "bdix_904",
+    "url": "http://5.135.92.133:52841"
+  },
+  {
+    "id": "bdix_905",
+    "url": "http://ctgiptv.kitv.live:1935"
+  },
+  {
+    "id": "bdix_906",
+    "url": "https://i.imgur.com"
+  },
+  {
+    "id": "bdix_907",
+    "url": "https://i.ibb.co"
+  },
+  {
+    "id": "bdix_908",
+    "url": "http://www.jagobd.com"
+  },
+  {
+    "id": "bdix_909",
+    "url": "http://joyjatra.tv"
+  },
+  {
+    "id": "bdix_910",
+    "url": "https://i.ytimg.com"
+  },
+  {
+    "id": "bdix_911",
+    "url": "https://img.favpng.com"
+  },
+  {
+    "id": "bdix_912",
+    "url": "https://tvtolive.com"
+  },
+  {
+    "id": "bdix_913",
+    "url": "https://pcdn.jagobd.com"
+  },
+  {
+    "id": "bdix_914",
+    "url": "https://www.jagobd.com"
+  },
+  {
+    "id": "bdix_915",
+    "url": "https://i2.wp.com"
+  },
+  {
+    "id": "bdix_916",
+    "url": "http://www.sristytv.com"
+  },
+  {
+    "id": "bdix_917",
+    "url": "http://tempe.jagobd.com:1932"
+  },
+  {
+    "id": "bdix_918",
+    "url": "https://upload.wikimedia.org"
+  },
+  {
+    "id": "bdix_919",
+    "url": "https://encrypted-tbn0.gstatic.com"
+  },
+  {
+    "id": "bdix_920",
+    "url": "https://static.epg.best"
+  },
+  {
+    "id": "bdix_921",
+    "url": "https://is4-ssl.mzstatic.com"
+  },
+  {
+    "id": "bdix_922",
+    "url": "https://megaflix.tv"
+  },
+  {
+    "id": "bdix_923",
+    "url": "https://i.pinimg.com"
+  },
+  {
+    "id": "bdix_924",
+    "url": "https://seeklogo.com"
+  },
+  {
+    "id": "bdix_925",
+    "url": "https://s4.gifyu.com"
+  },
+  {
+    "id": "bdix_926",
+    "url": "https://www.pngkit.com"
+  },
+  {
+    "id": "bdix_927",
+    "url": "https://live-tv-channels.org"
+  },
+  {
+    "id": "bdix_928",
+    "url": "https://cdn.colorstv.com"
+  },
+  {
+    "id": "bdix_929",
+    "url": "https://www.v4stream.com"
+  },
+  {
+    "id": "bdix_930",
+    "url": "https://www.logodesignlove.com"
+  },
+  {
+    "id": "bdix_931",
+    "url": "https://i.postimg.cc"
+  },
+  {
+    "id": "bdix_932",
+    "url": "http://jiotv.catchup.cdn.jio.com"
+  },
+  {
+    "id": "bdix_933",
+    "url": "https://www.doomovie-hd.com"
+  },
+  {
+    "id": "bdix_934",
+    "url": "https://cdn6.aptoide.com"
+  },
+  {
+    "id": "bdix_935",
+    "url": "https://static.wixstatic.com"
+  },
+  {
+    "id": "bdix_936",
+    "url": "https://www.runia.com"
+  },
+  {
+    "id": "bdix_937",
+    "url": "https://www.onetvasia.com"
+  },
+  {
+    "id": "bdix_938",
+    "url": "https://www.paieterno.com.br"
+  },
+  {
+    "id": "bdix_939",
+    "url": "https://dl.dropboxusercontent.com"
+  },
+  {
+    "id": "bdix_940",
+    "url": "https://image3.mouthshut.com"
+  },
+  {
+    "id": "bdix_941",
+    "url": "https://broadcastprome.com"
+  },
+  {
+    "id": "bdix_942",
+    "url": "http://www.shemarookids.com"
+  },
+  {
+    "id": "bdix_943",
+    "url": "https://tv.bdtype.com"
+  },
+  {
+    "id": "bdix_944",
+    "url": "https://abudhabi3x3.files.wordpress.com"
+  },
+  {
+    "id": "bdix_945",
+    "url": "http://dz.heytv.org"
+  },
+  {
+    "id": "bdix_946",
+    "url": "https://pbs.twimg.com"
+  },
+  {
+    "id": "bdix_947",
+    "url": "https://1gr.cz"
+  },
+  {
+    "id": "bdix_948",
+    "url": "https://cdn-profiles.tunein.com"
+  },
+  {
+    "id": "bdix_949",
+    "url": "http://static.epg.best"
+  },
+  {
+    "id": "bdix_950",
+    "url": "https://teevee-hd.com"
+  },
+  {
+    "id": "bdix_951",
+    "url": "http://i.imgur.com"
+  },
+  {
+    "id": "bdix_952",
+    "url": "http://www.daserste.de"
+  },
+  {
+    "id": "bdix_953",
+    "url": "http://fanat.tv"
+  },
+  {
+    "id": "bdix_954",
+    "url": "http://www.trece.com.py"
+  },
+  {
+    "id": "bdix_955",
+    "url": "https://cdn.clipart.email"
+  },
+  {
+    "id": "bdix_956",
+    "url": "https://latestlearnerships.com"
+  },
+  {
+    "id": "bdix_957",
+    "url": "http://www.bntva.ru"
+  },
+  {
+    "id": "bdix_958",
+    "url": "https://vignette.wikia.nocookie.net"
+  },
+  {
+    "id": "bdix_959",
+    "url": "https://static.bengali.news18.com"
+  },
+  {
+    "id": "bdix_960",
+    "url": "https://shopping.shemaroo.com"
+  },
+  {
+    "id": "bdix_961",
+    "url": "http://primeasia.tv"
+  },
+  {
+    "id": "bdix_962",
+    "url": "http://www.5aabtv.ca"
+  },
+  {
+    "id": "bdix_963",
+    "url": "http://www.chsuk.tv"
+  },
+  {
+    "id": "bdix_964",
+    "url": "https://1.bp.blogspot.com"
+  },
+  {
+    "id": "bdix_965",
+    "url": "https://apktada.com"
+  },
+  {
+    "id": "bdix_966",
+    "url": "https://admango.cdn.mangomolo.com"
+  },
+  {
+    "id": "bdix_967",
+    "url": "https://www.beeduball.com"
+  },
+  {
+    "id": "bdix_968",
+    "url": "http://www.watanegypt.tv"
+  },
+  {
+    "id": "bdix_969",
+    "url": "https://teleon.tv"
+  },
+  {
+    "id": "bdix_970",
+    "url": "https://www.iipccanada.com"
+  },
+  {
+    "id": "bdix_971",
+    "url": "https://www.thenoor.tv"
+  },
+  {
+    "id": "bdix_972",
+    "url": "http://www.peacetv.tv"
+  },
+  {
+    "id": "bdix_973",
+    "url": "https://mst3k.com"
+  },
+  {
+    "id": "bdix_974",
+    "url": "https://www.nasa.gov"
+  },
+  {
+    "id": "bdix_975",
+    "url": "https://oklivetv.com"
+  },
+  {
+    "id": "bdix_976",
+    "url": "http://mhdtvworld.com"
+  },
+  {
+    "id": "bdix_977",
+    "url": "http://boxcinemedia.com"
+  },
+  {
+    "id": "bdix_978",
+    "url": "https://image.roku.com"
+  },
+  {
+    "id": "bdix_979",
+    "url": "https://dove.org"
+  },
+  {
+    "id": "bdix_980",
+    "url": "https://www.tvchannelpricelist.com"
+  },
+  {
+    "id": "bdix_981",
+    "url": "https://www.indiantelevision.com"
+  },
+  {
+    "id": "bdix_982",
+    "url": "https://myshowtime.net"
+  },
+  {
+    "id": "bdix_983",
+    "url": "https://www.the-ba-group.com"
+  },
+  {
+    "id": "bdix_984",
+    "url": "http://m2.tv"
+  },
+  {
+    "id": "bdix_985",
+    "url": "https://www.shanson.tv"
+  },
+  {
+    "id": "bdix_986",
+    "url": "http://www.careworldtv.com"
+  },
+  {
+    "id": "bdix_987",
+    "url": "https://madanichannel.tv"
+  },
+  {
+    "id": "bdix_988",
+    "url": "https://www.mta.tv"
+  },
+  {
+    "id": "bdix_989",
+    "url": "https://image.winudf.com"
+  },
+  {
+    "id": "bdix_990",
+    "url": "https://www.jantatv.com"
+  },
+  {
+    "id": "bdix_991",
+    "url": "https://www.khabrainabhitak.org"
+  },
+  {
+    "id": "bdix_992",
+    "url": "http://www.desichannel.in"
+  },
+  {
+    "id": "bdix_993",
+    "url": "http://www.hulchulradio.com"
+  },
+  {
+    "id": "bdix_994",
+    "url": "https://is3-ssl.mzstatic.com"
+  },
+  {
+    "id": "bdix_995",
+    "url": "https://www.jhanjartvindia.com"
+  },
+  {
+    "id": "bdix_996",
+    "url": "https://divign0fdw3sv.cloudfront.net"
+  },
+  {
+    "id": "bdix_997",
+    "url": "http://www.diario26.com"
+  },
+  {
+    "id": "bdix_998",
+    "url": "http://blive.imgix.net"
+  },
+  {
+    "id": "bdix_999",
+    "url": "https://www.datocms-assets.com"
+  },
+  {
+    "id": "bdix_1000",
+    "url": "http://image.roku.com"
+  },
+  {
+    "id": "bdix_1001",
+    "url": "http://upload.wikimedia.org"
+  },
+  {
+    "id": "bdix_1002",
+    "url": "http://ndhsaanow.com"
+  },
+  {
+    "id": "bdix_1003",
+    "url": "https://blog.roku.com"
+  },
+  {
+    "id": "bdix_1004",
+    "url": "http://static.boomtowncdn.com"
+  },
+  {
+    "id": "bdix_1005",
+    "url": "http://mediaweb.kirotv.com"
+  },
+  {
+    "id": "bdix_1006",
+    "url": "http://boston.cbslocal.com"
+  },
+  {
+    "id": "bdix_1007",
+    "url": "http://minnesota.cbslocal.com"
+  },
+  {
+    "id": "bdix_1008",
+    "url": "http://philadelphia.cbslocal.com"
+  },
+  {
+    "id": "bdix_1009",
+    "url": "http://losangeles.cbslocal.com"
+  },
+  {
+    "id": "bdix_1010",
+    "url": "http://sanfrancisco.cbslocal.com"
+  },
+  {
+    "id": "bdix_1011",
+    "url": "http://www.contv.com"
+  },
+  {
+    "id": "bdix_1012",
+    "url": "http://pmcvariety.files.wordpress.com"
+  },
+  {
+    "id": "bdix_1013",
+    "url": "https://www.ewtn.com"
+  },
+  {
+    "id": "bdix_1014",
+    "url": "http://www.fox23.com"
+  },
+  {
+    "id": "bdix_1015",
+    "url": "http://media.myfoxbostoncom.cmgdigital.com"
+  },
+  {
+    "id": "bdix_1016",
+    "url": "https://www.god.tv"
+  },
+  {
+    "id": "bdix_1017",
+    "url": "https://ofm6z46z825qpxk83fa00q1a-wpengine.netdna-ssl.com"
+  },
+  {
+    "id": "bdix_1018",
+    "url": "https://yt3.ggpht.com"
+  },
+  {
+    "id": "bdix_1019",
+    "url": "http://mediaweb.wpxi.com"
+  },
+  {
+    "id": "bdix_1020",
+    "url": "http://yournewsnet.com"
+  },
+  {
+    "id": "bdix_1021",
+    "url": "https://d2pggiv3o55wnc.cloudfront.net"
+  },
+  {
+    "id": "bdix_1022",
+    "url": "http://le1.cdn01.net"
+  },
+  {
+    "id": "bdix_1023",
+    "url": "https://wmfd.com"
+  },
+  {
+    "id": "bdix_1024",
+    "url": "http://kkdjradio.com"
+  },
+  {
+    "id": "bdix_1025",
+    "url": "https://cdn-images-1.medium.com"
+  },
+  {
+    "id": "bdix_1026",
+    "url": "http://akm-img-a-in.tosshub.com"
+  },
+  {
+    "id": "bdix_1027",
+    "url": "http://www.bloomberght.com"
+  },
+  {
+    "id": "bdix_1028",
+    "url": "http://miro.medium.com"
+  },
+  {
+    "id": "bdix_1029",
+    "url": "http://cdn.cnbcindonesia.com"
+  },
+  {
+    "id": "bdix_1030",
+    "url": "http://bsmedia.business-standard.com"
+  },
+  {
+    "id": "bdix_1031",
+    "url": "https://www.aljazeera.com"
+  },
+  {
+    "id": "bdix_1032",
+    "url": "http://kimelli.nfshost.com"
+  },
+  {
+    "id": "bdix_1033",
+    "url": "http://www.alhiwar.tv"
+  },
+  {
+    "id": "bdix_1034",
+    "url": "https://ui.cgtn.com"
+  },
+  {
+    "id": "bdix_1035",
+    "url": "http://content.osn.com"
+  },
+  {
+    "id": "bdix_1036",
+    "url": "http://onegolftv.com"
+  },
+  {
+    "id": "bdix_1037",
+    "url": "http://admango.cdn.mangomolo.com"
+  },
+  {
+    "id": "bdix_1038",
+    "url": "https://2upyml2xgast2pwf71r0ycaj-wpengine.netdna-ssl.com"
+  },
+  {
+    "id": "bdix_1039",
+    "url": "http://dstroscal1.s.llnwi.net"
+  },
+  {
+    "id": "bdix_1040",
+    "url": "https://www.fashiontv.com"
+  },
+  {
+    "id": "bdix_1041",
+    "url": "http://a3bikini.com"
+  },
+  {
+    "id": "bdix_1042",
+    "url": "https://www.parsatv.com"
+  },
+  {
+    "id": "bdix_1043",
+    "url": "http://actionsportsmusictv.com"
+  },
+  {
+    "id": "bdix_1044",
+    "url": "http://cdn-images-1.medium.com"
+  },
+  {
+    "id": "bdix_1045",
+    "url": "http://www.gravitasmovies.com"
+  },
+  {
+    "id": "bdix_1046",
+    "url": "http://images.squarespace-cdn.com"
+  },
+  {
+    "id": "bdix_1047",
+    "url": "http://www.maverickentertainment.cc"
+  },
+  {
+    "id": "bdix_1048",
+    "url": "http://app.digitickets.co.uk"
+  },
+  {
+    "id": "bdix_1049",
+    "url": "http://ecable.tv"
+  },
+  {
+    "id": "bdix_1050",
+    "url": "http://commodusprod.hooq.tv"
+  },
+  {
+    "id": "bdix_1051",
+    "url": "http://is4-ssl.mzstatic.com"
+  },
+  {
+    "id": "bdix_1052",
+    "url": "http://musicfouryou.com"
+  },
+  {
+    "id": "bdix_1053",
+    "url": "https://radiou.com"
+  },
+  {
+    "id": "bdix_1054",
+    "url": "http://dealood.com"
+  },
+  {
+    "id": "bdix_1055",
+    "url": "http://www.vibee.tv"
+  },
+  {
+    "id": "bdix_1056",
+    "url": "https://www.ausbiz.com.au"
+  },
+  {
+    "id": "bdix_1057",
+    "url": "https://www.fijione.tv"
+  },
+  {
+    "id": "bdix_1058",
+    "url": "http://c31.org.au"
+  },
+  {
+    "id": "bdix_1059",
+    "url": "http://www.rtvchannel.com.au"
+  },
+  {
+    "id": "bdix_1060",
+    "url": "http://www.foxtel.com.au"
+  },
+  {
+    "id": "bdix_1061",
+    "url": "http://www.freeviewnz.tv"
+  },
+  {
+    "id": "bdix_1062",
+    "url": "https://www.freeviewnz.tv"
+  },
+  {
+    "id": "bdix_1063",
+    "url": "https://jsat.tv"
+  },
+  {
+    "id": "bdix_1064",
+    "url": "https://www.comedy.co.uk"
+  },
+  {
+    "id": "bdix_1065",
+    "url": "https://imagenes.cablevisionfibertel.com.ar:7007"
+  },
+  {
+    "id": "bdix_1066",
+    "url": "http://content.iptvprivateserver.tv"
+  },
+  {
+    "id": "bdix_1067",
+    "url": "http://1.bp.blogspot.com"
+  },
+  {
+    "id": "bdix_1068",
+    "url": "http://3.bp.blogspot.com"
+  },
+  {
+    "id": "bdix_1069",
+    "url": "https://www.cn247.tv"
+  },
+  {
+    "id": "bdix_1070",
+    "url": "http://www.tvmana1.com"
+  },
+  {
+    "id": "bdix_1071",
+    "url": "http://argentinisimatv.com.ar"
+  },
+  {
+    "id": "bdix_1072",
+    "url": "http://directostv.teleame.com"
+  },
+  {
+    "id": "bdix_1073",
+    "url": "http://www.litustv.com.ar"
+  },
+  {
+    "id": "bdix_1074",
+    "url": "http://multivision.tv"
+  },
+  {
+    "id": "bdix_1075",
+    "url": "https://logostvargentina.files.wordpress.com"
+  },
+  {
+    "id": "bdix_1076",
+    "url": "https://static.iptv-epg.com"
+  },
+  {
+    "id": "bdix_1077",
+    "url": "https://www.foxtel.com.au"
+  },
+  {
+    "id": "bdix_1078",
+    "url": "https://iptvx.one"
+  },
+  {
+    "id": "bdix_1079",
+    "url": "http://redadvenir.org"
+  },
+  {
+    "id": "bdix_1080",
+    "url": "https://rec-onlinebolivia.com"
+  },
+  {
+    "id": "bdix_1081",
+    "url": "http://www.rtpbolivia.com.bo"
+  },
+  {
+    "id": "bdix_1082",
+    "url": "https://www.vibee.tv"
+  },
+  {
+    "id": "bdix_1083",
+    "url": "http://bayontv.com.kh"
+  },
+  {
+    "id": "bdix_1084",
+    "url": "http://www.phnompenhpost.com"
+  },
+  {
+    "id": "bdix_1085",
+    "url": "https://tv-online.im"
+  },
+  {
+    "id": "bdix_1086",
+    "url": "https://www.konsva.com"
+  },
+  {
+    "id": "bdix_1087",
+    "url": "http://cache.khmerlive.tv"
+  },
+  {
+    "id": "bdix_1088",
+    "url": "https://2.bp.blogspot.com"
+  },
+  {
+    "id": "bdix_1089",
+    "url": "http://khmer.fyi"
+  },
+  {
+    "id": "bdix_1090",
+    "url": "https://i.malimarcdn.com"
+  },
+  {
+    "id": "bdix_1091",
+    "url": "https://4.bp.blogspot.com"
+  },
+  {
+    "id": "bdix_1092",
+    "url": "http://roccotv.cl"
+  },
+  {
+    "id": "bdix_1093",
+    "url": "http://www.uestv.cl"
+  },
+  {
+    "id": "bdix_1094",
+    "url": "http://jio-tv.com"
+  },
+  {
+    "id": "bdix_1095",
+    "url": "http://www.canal21tv.cl"
+  },
+  {
+    "id": "bdix_1096",
+    "url": "http://images.eltelon.com"
+  },
+  {
+    "id": "bdix_1097",
+    "url": "http://tv.high.cl"
+  },
+  {
+    "id": "bdix_1098",
+    "url": "http://www.tv5.cl"
+  },
+  {
+    "id": "bdix_1099",
+    "url": "https://pipiolatodalavida.files.wordpress.com"
+  },
+  {
+    "id": "bdix_1100",
+    "url": "https://tendencias.tv"
+  },
+  {
+    "id": "bdix_1101",
+    "url": "http://www.graciatv.com"
+  },
+  {
+    "id": "bdix_1102",
+    "url": "http://www.66zhibo.net"
+  },
+  {
+    "id": "bdix_1103",
+    "url": "http://www.tvyan.com"
+  },
+  {
+    "id": "bdix_1104",
+    "url": "http://ku.90sjimg.com"
+  },
+  {
+    "id": "bdix_1105",
+    "url": "https://gss3.bdstatic.com"
+  },
+  {
+    "id": "bdix_1106",
+    "url": "https://www.ntdtv.com"
+  },
+  {
+    "id": "bdix_1107",
+    "url": "https://www.ttv.com.tw"
+  },
+  {
+    "id": "bdix_1108",
+    "url": "http://static2.tvzhe.com"
+  },
+  {
+    "id": "bdix_1109",
+    "url": "http://5b0988e595225.cdn.sohucs.com"
+  },
+  {
+    "id": "bdix_1110",
+    "url": "http://www.zhiboba.org"
+  },
+  {
+    "id": "bdix_1111",
+    "url": "http://i0.wp.com"
+  },
+  {
+    "id": "bdix_1112",
+    "url": "http://www.tvfashion.eu"
+  },
+  {
+    "id": "bdix_1113",
+    "url": "https://polar.cz"
+  },
+  {
+    "id": "bdix_1114",
+    "url": "https://prahatv.eu"
+  },
+  {
+    "id": "bdix_1115",
+    "url": "https://i0.wp.com"
+  },
+  {
+    "id": "bdix_1116",
+    "url": "https://www.o2tv.cz"
+  },
+  {
+    "id": "bdix_1117",
+    "url": "http://tv.wurtlitzer.com"
+  },
+  {
+    "id": "bdix_1118",
+    "url": "https://i.iinfo.cz"
+  },
+  {
+    "id": "bdix_1119",
+    "url": "https://www.slagrtv.cz"
+  },
+  {
+    "id": "bdix_1120",
+    "url": "https://www.starnet.cz"
+  },
+  {
+    "id": "bdix_1121",
+    "url": "http://tunisvista.com"
+  },
+  {
+    "id": "bdix_1122",
+    "url": "http://www.tvgelive.gq"
+  },
+  {
+    "id": "bdix_1123",
+    "url": "http://www.riknews.com.cy"
+  },
+  {
+    "id": "bdix_1124",
+    "url": "http://www.televisionslocales.com"
+  },
+  {
+    "id": "bdix_1125",
+    "url": "https://www.don-bosco.net"
+  },
+  {
+    "id": "bdix_1126",
+    "url": "http://nowtv.now.com"
+  },
+  {
+    "id": "bdix_1127",
+    "url": "http://www.centraltv.fr"
+  },
+  {
+    "id": "bdix_1128",
+    "url": "https://1tv.ge"
+  },
+  {
+    "id": "bdix_1129",
+    "url": "http://www.iptvdigital.com"
+  },
+  {
+    "id": "bdix_1130",
+    "url": "http://images.live-stream.tv"
+  },
+  {
+    "id": "bdix_1131",
+    "url": "http://www.youngspeech.de"
+  },
+  {
+    "id": "bdix_1132",
+    "url": "http://www.ok-magdeburg.de"
+  },
+  {
+    "id": "bdix_1133",
+    "url": "http://www.portmann-media.com"
+  },
+  {
+    "id": "bdix_1134",
+    "url": "http://greektv.pbworks.com"
+  },
+  {
+    "id": "bdix_1135",
+    "url": "https://goo.gl"
+  },
+  {
+    "id": "bdix_1136",
+    "url": "http://207.36.91.70"
+  },
+  {
+    "id": "bdix_1137",
+    "url": "https://www.cosmote.gr"
+  },
+  {
+    "id": "bdix_1138",
+    "url": "http://reloadplay.com"
+  },
+  {
+    "id": "bdix_1139",
+    "url": "https://propagandapress.files.wordpress.com"
+  },
+  {
+    "id": "bdix_1140",
+    "url": "http://guyanatimesgy.com"
+  },
+  {
+    "id": "bdix_1141",
+    "url": "http://wxtv.asia"
+  },
+  {
+    "id": "bdix_1142",
+    "url": "https://encrypted-tbn3.gstatic.com"
+  },
+  {
+    "id": "bdix_1143",
+    "url": "https://southasiandaily.com"
+  },
+  {
+    "id": "bdix_1144",
+    "url": "http://www.livenewsmag.com"
+  },
+  {
+    "id": "bdix_1145",
+    "url": "http://channeldivya.com"
+  },
+  {
+    "id": "bdix_1146",
+    "url": "https://streamvlog.com"
+  },
+  {
+    "id": "bdix_1147",
+    "url": "http://srilankanews.wpengine.netdna-cdn.com"
+  },
+  {
+    "id": "bdix_1148",
+    "url": "http://www.rupavahini.lk"
+  },
+  {
+    "id": "bdix_1149",
+    "url": "http://roku.jhanjartv.com"
+  },
+  {
+    "id": "bdix_1150",
+    "url": "https://www.subrangtv.com"
+  },
+  {
+    "id": "bdix_1151",
+    "url": "http://www.twsool.com"
+  },
+  {
+    "id": "bdix_1152",
+    "url": "http://pluspng.com"
+  },
+  {
+    "id": "bdix_1153",
+    "url": "https://www.digitaltveurope.com"
+  },
+  {
+    "id": "bdix_1154",
+    "url": "http://cycnow.com"
+  },
+  {
+    "id": "bdix_1155",
+    "url": "https://static.cnbctv18.com"
+  },
+  {
+    "id": "bdix_1156",
+    "url": "http://csat.tv"
+  },
+  {
+    "id": "bdix_1157",
+    "url": "https://files.company.fashiontv.com"
+  },
+  {
+    "id": "bdix_1158",
+    "url": "https://www.rt.com"
+  },
+  {
+    "id": "bdix_1159",
+    "url": "http://i65.tinypic.com"
+  },
+  {
+    "id": "bdix_1160",
+    "url": "http://www.vcoazzurratv.it"
+  },
+  {
+    "id": "bdix_1161",
+    "url": "http://www.jennigandolfi.com"
+  },
+  {
+    "id": "bdix_1162",
+    "url": "http://tv-online.in"
+  },
+  {
+    "id": "bdix_1163",
+    "url": "https://www.lactv.it"
+  },
+  {
+    "id": "bdix_1164",
+    "url": "https://www.m2o.it"
+  },
+  {
+    "id": "bdix_1165",
+    "url": "http://digitalradio.it"
+  },
+  {
+    "id": "bdix_1166",
+    "url": "http://www.motortrendtv.it"
+  },
+  {
+    "id": "bdix_1167",
+    "url": "http://www.simonachiavaccini.com"
+  },
+  {
+    "id": "bdix_1168",
+    "url": "http://media-assets-03.thedrum.com"
+  },
+  {
+    "id": "bdix_1169",
+    "url": "https://cdn.firstone.tv"
+  },
+  {
+    "id": "bdix_1170",
+    "url": "https://api.superguidatv.it"
+  },
+  {
+    "id": "bdix_1171",
+    "url": "http://www.nododigordio.org"
+  },
+  {
+    "id": "bdix_1172",
+    "url": "http://guidatv.sky.it"
+  },
+  {
+    "id": "bdix_1173",
+    "url": "http://www.telecalabria.it"
+  },
+  {
+    "id": "bdix_1174",
+    "url": "http://www.teveretv.it"
+  },
+  {
+    "id": "bdix_1175",
+    "url": "http://www.teleromagna.it"
+  },
+  {
+    "id": "bdix_1176",
+    "url": "https://www.dinamobasket.com"
+  },
+  {
+    "id": "bdix_1177",
+    "url": "http://paologoglio.com"
+  },
+  {
+    "id": "bdix_1178",
+    "url": "http://f.alrai.tv"
+  },
+  {
+    "id": "bdix_1179",
+    "url": "http://imageswoapi.whatsonindia.com"
+  },
+  {
+    "id": "bdix_1180",
+    "url": "http://www.freeetv.com"
+  },
+  {
+    "id": "bdix_1181",
+    "url": "http://i4.yhk0.net"
+  },
+  {
+    "id": "bdix_1182",
+    "url": "http://i5.satexpat.com"
+  },
+  {
+    "id": "bdix_1183",
+    "url": "http://www.1arablive.com"
+  },
+  {
+    "id": "bdix_1184",
+    "url": "http://oklivetv.com"
+  },
+  {
+    "id": "bdix_1185",
+    "url": "http://www.ktrk.kg"
+  },
+  {
+    "id": "bdix_1186",
+    "url": "https://aetlive.s3-us-west-2.amazonaws.com"
+  },
+  {
+    "id": "bdix_1187",
+    "url": "http://www.userlogos.org"
+  },
+  {
+    "id": "bdix_1188",
+    "url": "http://www.retv.lv"
+  },
+  {
+    "id": "bdix_1189",
+    "url": "http://futuretvnetwork.com"
+  },
+  {
+    "id": "bdix_1190",
+    "url": "https://www.tvikim.my"
+  },
+  {
+    "id": "bdix_1191",
+    "url": "http://www.mnb.mn"
+  },
+  {
+    "id": "bdix_1192",
+    "url": "http://www.fraja-maroc.net"
+  },
+  {
+    "id": "bdix_1193",
+    "url": "http://snrtlive.ma"
+  },
+  {
+    "id": "bdix_1194",
+    "url": "https://d2q0xv3544jvkb.cloudfront.net"
+  },
+  {
+    "id": "bdix_1195",
+    "url": "http://mahartv.com.mm"
+  },
+  {
+    "id": "bdix_1196",
+    "url": "http://iptv.matthuisman.nz"
+  },
+  {
+    "id": "bdix_1197",
+    "url": "https://dunyanews.tv"
+  },
+  {
+    "id": "bdix_1198",
+    "url": "http://dunyanews.tv"
+  },
+  {
+    "id": "bdix_1199",
+    "url": "https://www.rokuguide.com"
+  },
+  {
+    "id": "bdix_1200",
+    "url": "https://static.wirtualnemedia.pl"
+  },
+  {
+    "id": "bdix_1201",
+    "url": "http://www.toruntv.pl"
+  },
+  {
+    "id": "bdix_1202",
+    "url": "https://gl.weburg.net"
+  },
+  {
+    "id": "bdix_1203",
+    "url": "http://tv8crimea.ru"
+  },
+  {
+    "id": "bdix_1204",
+    "url": "http://www.tv-logo.com"
+  },
+  {
+    "id": "bdix_1205",
+    "url": "https://spiintl.com"
+  },
+  {
+    "id": "bdix_1206",
+    "url": "http://mtvmix.ru"
+  },
+  {
+    "id": "bdix_1207",
+    "url": "http://ru.tv"
+  },
+  {
+    "id": "bdix_1208",
+    "url": "https://pp.userapi.com"
+  },
+  {
+    "id": "bdix_1209",
+    "url": "https://www.guberniatv.ru"
+  },
+  {
+    "id": "bdix_1210",
+    "url": "http://eurasia.orsk.ru"
+  },
+  {
+    "id": "bdix_1211",
+    "url": "http://www.zhar-ptica.tv"
+  },
+  {
+    "id": "bdix_1212",
+    "url": "https://zagorodny.tv"
+  },
+  {
+    "id": "bdix_1213",
+    "url": "http://tonus.tv"
+  },
+  {
+    "id": "bdix_1214",
+    "url": "http://telezoo.tv"
+  },
+  {
+    "id": "bdix_1215",
+    "url": "http://acrotv.com"
+  },
+  {
+    "id": "bdix_1216",
+    "url": "http://kab.tv"
+  },
+  {
+    "id": "bdix_1217",
+    "url": "http://1tvcrimea.ru"
+  },
+  {
+    "id": "bdix_1218",
+    "url": "http://trk-luch.ru.opt-images.1c-bitrix-cdn.ru"
+  },
+  {
+    "id": "bdix_1219",
+    "url": "http://ladamedia.ru"
+  },
+  {
+    "id": "bdix_1220",
+    "url": "http://mirbelogorya.ru"
+  },
+  {
+    "id": "bdix_1221",
+    "url": "http://online-red.com"
+  },
+  {
+    "id": "bdix_1222",
+    "url": "http://xn--b1ats.xn--80asehdb"
+  },
+  {
+    "id": "bdix_1223",
+    "url": "http://kt.kg"
+  },
+  {
+    "id": "bdix_1224",
+    "url": "https://iptv.live"
+  },
+  {
+    "id": "bdix_1225",
+    "url": "https://hopetv.ru"
+  },
+  {
+    "id": "bdix_1226",
+    "url": "https://www.nebesatv7.com"
+  },
+  {
+    "id": "bdix_1227",
+    "url": "https://nikatv.ru"
+  },
+  {
+    "id": "bdix_1228",
+    "url": "http://strashnoe.tv"
+  },
+  {
+    "id": "bdix_1229",
+    "url": "http://www.ntvmir.ntv.ru"
+  },
+  {
+    "id": "bdix_1230",
+    "url": "http://saransk-tv.ru"
+  },
+  {
+    "id": "bdix_1231",
+    "url": "http://lion-tv.com"
+  },
+  {
+    "id": "bdix_1232",
+    "url": "http://145.239.78.42"
+  },
+  {
+    "id": "bdix_1233",
+    "url": "http://www.livenewsbox.com"
+  },
+  {
+    "id": "bdix_1234",
+    "url": "http://ryzhiy.tv"
+  },
+  {
+    "id": "bdix_1235",
+    "url": "https://sitv.ru"
+  },
+  {
+    "id": "bdix_1236",
+    "url": "http://sarafan-tv.ru"
+  },
+  {
+    "id": "bdix_1237",
+    "url": "http://lime-tv.ru"
+  },
+  {
+    "id": "bdix_1238",
+    "url": "http://www.visitnao.ru"
+  },
+  {
+    "id": "bdix_1239",
+    "url": "http://smilik.tv"
+  },
+  {
+    "id": "bdix_1240",
+    "url": "https://tv-soyuz.ru"
+  },
+  {
+    "id": "bdix_1241",
+    "url": "http://www.zelenodolsk.ru"
+  },
+  {
+    "id": "bdix_1242",
+    "url": "https://www.telecafe.ru"
+  },
+  {
+    "id": "bdix_1243",
+    "url": "https://webarmen.com"
+  },
+  {
+    "id": "bdix_1244",
+    "url": "https://www.3angels.ru"
+  },
+  {
+    "id": "bdix_1245",
+    "url": "http://www.football-tv.ru"
+  },
+  {
+    "id": "bdix_1246",
+    "url": "https://static.tildacdn.com"
+  },
+  {
+    "id": "bdix_1247",
+    "url": "https://www.cableman.ru"
+  },
+  {
+    "id": "bdix_1248",
+    "url": "http://tv41.ru"
+  },
+  {
+    "id": "bdix_1249",
+    "url": "http://www.rba.co.rw"
+  },
+  {
+    "id": "bdix_1250",
+    "url": "https://is2-ssl.mzstatic.com"
+  },
+  {
+    "id": "bdix_1251",
+    "url": "http://cinemaworld.asia"
+  },
+  {
+    "id": "bdix_1252",
+    "url": "https://s27.postimg.org"
+  },
+  {
+    "id": "bdix_1253",
+    "url": "http://7tvregiondemurcia.es"
+  },
+  {
+    "id": "bdix_1254",
+    "url": "http://alcarria.tv"
+  },
+  {
+    "id": "bdix_1255",
+    "url": "https://www.bonaresdigital.es"
+  },
+  {
+    "id": "bdix_1256",
+    "url": "https://ocio.lne.es"
+  },
+  {
+    "id": "bdix_1257",
+    "url": "http://www.lebrija.tv"
+  },
+  {
+    "id": "bdix_1258",
+    "url": "https://www.colectivosvip.com"
+  },
+  {
+    "id": "bdix_1259",
+    "url": "https://ik.imagekit.io"
+  },
+  {
+    "id": "bdix_1260",
+    "url": "https://saheltv.tn"
+  },
+  {
+    "id": "bdix_1261",
+    "url": "http://www.brtk.net"
+  },
+  {
+    "id": "bdix_1262",
+    "url": "https://soombo.com"
+  },
+  {
+    "id": "bdix_1263",
+    "url": "http://cantv.tv"
+  },
+  {
+    "id": "bdix_1264",
+    "url": "https://sport-tv-guide.live"
+  },
+  {
+    "id": "bdix_1265",
+    "url": "http://dersim62.tv"
+  },
+  {
+    "id": "bdix_1266",
+    "url": "http://www.rudaw.net"
+  },
+  {
+    "id": "bdix_1267",
+    "url": "http://webtvonlive.com"
+  },
+  {
+    "id": "bdix_1268",
+    "url": "http://tdh.gov.tm"
+  },
+  {
+    "id": "bdix_1269",
+    "url": "http://thedronemedia.ug"
+  },
+  {
+    "id": "bdix_1270",
+    "url": "http://xmtvplayer.com"
+  },
+  {
+    "id": "bdix_1271",
+    "url": "https://www.k1.ua"
+  },
+  {
+    "id": "bdix_1272",
+    "url": "https://lale.ws"
+  },
+  {
+    "id": "bdix_1273",
+    "url": "https://www.objectiv.tv"
+  },
+  {
+    "id": "bdix_1274",
+    "url": "https://tv5.zp.ua"
+  },
+  {
+    "id": "bdix_1275",
+    "url": "https://cdn.sat.tv"
+  },
+  {
+    "id": "bdix_1276",
+    "url": "https://ztv.zp.ua"
+  },
+  {
+    "id": "bdix_1277",
+    "url": "http://big-tv.org"
+  },
+  {
+    "id": "bdix_1278",
+    "url": "https://dumskaya.net"
+  },
+  {
+    "id": "bdix_1279",
+    "url": "http://zd.od.ua"
+  },
+  {
+    "id": "bdix_1280",
+    "url": "https://ntn.ua"
+  },
+  {
+    "id": "bdix_1281",
+    "url": "http://4.bp.blogspot.com"
+  },
+  {
+    "id": "bdix_1282",
+    "url": "https://sun9-18.userapi.com"
+  },
+  {
+    "id": "bdix_1283",
+    "url": "https://pravdatut.ua"
+  },
+  {
+    "id": "bdix_1284",
+    "url": "https://prm.ua"
+  },
+  {
+    "id": "bdix_1285",
+    "url": "https://i.i.ua"
+  },
+  {
+    "id": "bdix_1286",
+    "url": "http://reporter.odessa.ua"
+  },
+  {
+    "id": "bdix_1287",
+    "url": "http://www.tistv.news"
+  },
+  {
+    "id": "bdix_1288",
+    "url": "http://tretiy.tv"
+  },
+  {
+    "id": "bdix_1289",
+    "url": "https://khersontv.com"
+  },
+  {
+    "id": "bdix_1290",
+    "url": "https://www.sidewalkstv.com"
+  },
+  {
+    "id": "bdix_1291",
+    "url": "https://gray.tv"
+  },
+  {
+    "id": "bdix_1292",
+    "url": "https://www.tripsmarter.com"
+  },
+  {
+    "id": "bdix_1293",
+    "url": "http://www.cla.csulb.edu"
+  },
+  {
+    "id": "bdix_1294",
+    "url": "http://pluto.tv.s3.amazonaws.com"
+  },
+  {
+    "id": "bdix_1295",
+    "url": "https://s3.amazonaws.com"
+  },
+  {
+    "id": "bdix_1296",
+    "url": "https://media.myfoxbostoncom.cmgdigital.com"
+  },
+  {
+    "id": "bdix_1297",
+    "url": "http://www.butv10.com"
+  },
+  {
+    "id": "bdix_1298",
+    "url": "https://cdn.tvpassport.com"
+  },
+  {
+    "id": "bdix_1299",
+    "url": "https://cbsnews2.cbsistatic.com"
+  },
+  {
+    "id": "bdix_1300",
+    "url": "https://www.charlottecountyfl.gov"
+  },
+  {
+    "id": "bdix_1301",
+    "url": "https://www.pngfind.com"
+  },
+  {
+    "id": "bdix_1302",
+    "url": "https://image.xumo.com"
+  },
+  {
+    "id": "bdix_1303",
+    "url": "https://s3.us-east-2.amazonaws.com"
+  },
+  {
+    "id": "bdix_1304",
+    "url": "https://static1.squarespace.com"
+  },
+  {
+    "id": "bdix_1305",
+    "url": "https://sc.dish.com"
+  },
+  {
+    "id": "bdix_1306",
+    "url": "https://assets.tvplayer.com"
+  },
+  {
+    "id": "bdix_1307",
+    "url": "https://www.fcac.org"
+  },
+  {
+    "id": "bdix_1308",
+    "url": "https://static-media.streema.com"
+  },
+  {
+    "id": "bdix_1309",
+    "url": "https://www.glendaleaz.com"
+  },
+  {
+    "id": "bdix_1310",
+    "url": "http://www.huntchannel.tv"
+  },
+  {
+    "id": "bdix_1311",
+    "url": "https://m.media-amazon.com"
+  },
+  {
+    "id": "bdix_1312",
+    "url": "https://mediaweb.kirotv.com"
+  },
+  {
+    "id": "bdix_1313",
+    "url": "http://www.leominster.tv"
+  },
+  {
+    "id": "bdix_1314",
+    "url": "http://www.kyforward.com"
+  },
+  {
+    "id": "bdix_1315",
+    "url": "https://pmcvariety.files.wordpress.com"
+  },
+  {
+    "id": "bdix_1316",
+    "url": "https://ott-gateway.sinclairstoryline.com"
+  },
+  {
+    "id": "bdix_1317",
+    "url": "https://media.graytvinc.com"
+  },
+  {
+    "id": "bdix_1318",
+    "url": "http://www.destinationnetwork.com"
+  },
+  {
+    "id": "bdix_1319",
+    "url": "http://123tvgo.com"
+  },
+  {
+    "id": "bdix_1320",
+    "url": "https://newsymain-npgroup.netdna-ssl.com"
+  },
+  {
+    "id": "bdix_1321",
+    "url": "http://olelo.org"
+  },
+  {
+    "id": "bdix_1322",
+    "url": "https://app.digitickets.co.uk"
+  },
+  {
+    "id": "bdix_1323",
+    "url": "https://cdn2.iconfinder.com"
+  },
+  {
+    "id": "bdix_1324",
+    "url": "https://channels.roku.com"
+  },
+  {
+    "id": "bdix_1325",
+    "url": "http://cdn.iphoneincanada.ca"
+  },
+  {
+    "id": "bdix_1326",
+    "url": "https://www.viennava.gov"
+  },
+  {
+    "id": "bdix_1327",
+    "url": "https://mediaweb.wftv.com"
+  },
+  {
+    "id": "bdix_1328",
+    "url": "http://wpcommunitymedia.org"
+  },
+  {
+    "id": "bdix_1329",
+    "url": "http://tduc.tk"
+  },
+  {
+    "id": "bdix_1330",
+    "url": "http://brt.vn"
+  },
+  {
+    "id": "bdix_1331",
+    "url": "http://danangtv.vn"
+  },
+  {
+    "id": "bdix_1332",
+    "url": "https://uphinhnhanh.com"
+  },
+  {
+    "id": "bdix_1333",
+    "url": "http://www.quochoitv.vn"
+  },
+  {
+    "id": "bdix_1334",
+    "url": "https://s29.postimg.org"
+  },
+  {
+    "id": "bdix_1335",
+    "url": "http://tv.vnn.vn"
+  },
+  {
+    "id": "bdix_1336",
+    "url": "https://s23.postimg.org"
+  },
+  {
+    "id": "bdix_1337",
+    "url": "https://s24.postimg.org"
+  },
+  {
+    "id": "bdix_1338",
+    "url": "https://www.tivusat.tv"
+  },
+  {
+    "id": "bdix_1339",
+    "url": "https://www.105.net"
+  },
+  {
+    "id": "bdix_1340",
+    "url": "https://www.capital.it"
+  },
+  {
+    "id": "bdix_1341",
+    "url": "https://www.radiomontecarlo.net"
+  },
+  {
+    "id": "bdix_1342",
+    "url": "http://i66.tinypic.com"
+  },
+  {
+    "id": "bdix_1343",
+    "url": "http://www.sudestival.org"
+  },
+  {
+    "id": "bdix_1344",
+    "url": "http://www.tuttobasket.net"
+  },
+  {
+    "id": "bdix_1345",
+    "url": "https://www.canaledieci.it"
+  },
+  {
+    "id": "bdix_1346",
+    "url": "https://gentevip.it"
+  },
+  {
+    "id": "bdix_1347",
+    "url": "http://www.ottoetrenta.it"
+  },
+  {
+    "id": "bdix_1348",
+    "url": "http://www.porto.it"
+  },
+  {
+    "id": "bdix_1349",
+    "url": "http://static.radio.net"
+  },
+  {
+    "id": "bdix_1350",
+    "url": "https://ulango.tv"
+  },
+  {
+    "id": "bdix_1351",
+    "url": "https://3.bp.blogspot.com"
+  },
+  {
+    "id": "bdix_1352",
+    "url": "http://www.cinemabreve.org"
+  },
+  {
+    "id": "bdix_1353",
+    "url": "http://www.laurapuppato.it"
+  },
+  {
+    "id": "bdix_1354",
+    "url": "http://tvavicenza.gruppovideomedia.it"
+  },
+  {
+    "id": "bdix_1355",
+    "url": "http://www.veratv.it"
+  },
+  {
+    "id": "bdix_1356",
+    "url": "http://www.tvdream.net"
+  },
+  {
+    "id": "bdix_1357",
+    "url": "https://www.primocanale.it"
+  },
+  {
+    "id": "bdix_1358",
+    "url": "http://redeminas.tv"
+  },
+  {
+    "id": "bdix_1359",
+    "url": "http://www.kuriakos-tv.com"
+  },
+  {
+    "id": "bdix_1360",
+    "url": "http://www.agrobrasiltv.com.br"
+  },
+  {
+    "id": "bdix_1361",
+    "url": "https://i1.wp.com"
+  },
+  {
+    "id": "bdix_1362",
+    "url": "https://www.novotempo.com"
+  },
+  {
+    "id": "bdix_1363",
+    "url": "http://www.puctvgoias.com.br"
+  },
+  {
+    "id": "bdix_1364",
+    "url": "http://tvc16.com"
+  },
+  {
+    "id": "bdix_1365",
+    "url": "https://www.nossasaopaulo.org.br"
+  },
+  {
+    "id": "bdix_1366",
+    "url": "https://www.diariodosertao.com.br"
+  },
+  {
+    "id": "bdix_1367",
+    "url": "http://www.fcp.rs.gov.br"
+  },
+  {
+    "id": "bdix_1368",
+    "url": "https://www.gideoes.com.br"
+  },
+  {
+    "id": "bdix_1369",
+    "url": "https://portalguara.com"
+  },
+  {
+    "id": "bdix_1370",
+    "url": "http://www.paranaeducativa.pr.gov.br"
+  },
+  {
+    "id": "bdix_1371",
+    "url": "https://tvsolcomunidade.com.br"
+  },
+  {
+    "id": "bdix_1372",
+    "url": "https://www.terceiroanjo.com"
+  },
+  {
+    "id": "bdix_1373",
+    "url": "https://tvuniaobrasilia.com.br"
+  },
+  {
+    "id": "bdix_1374",
+    "url": "https://www.univervideo.com"
+  },
+  {
+    "id": "bdix_1375",
+    "url": "http://www.tvufg.org.br"
+  },
+  {
+    "id": "bdix_1376",
+    "url": "https://irdeb.ba.gov.br"
+  },
+  {
+    "id": "bdix_1377",
+    "url": "http://unitv.tv.br"
+  },
+  {
+    "id": "bdix_1378",
+    "url": "https://demo.cdn.tv.br"
+  },
+  {
+    "id": "bdix_1379",
+    "url": "https://9laloma.tv"
+  },
+  {
+    "id": "bdix_1380",
+    "url": "http://www.canal45tv.com"
+  },
+  {
+    "id": "bdix_1381",
+    "url": "http://www.levantetv.es"
+  },
+  {
+    "id": "bdix_1382",
+    "url": "http://www.laocho.tv"
+  },
+  {
+    "id": "bdix_1383",
+    "url": "http://rtvmarbella.tv"
+  },
+  {
+    "id": "bdix_1384",
+    "url": "http://www.molatv.cat"
+  },
+  {
+    "id": "bdix_1385",
+    "url": "https://www.navarratelevision.es"
+  },
+  {
+    "id": "bdix_1386",
+    "url": "https://www.telebilbao.es"
+  },
+  {
+    "id": "bdix_1387",
+    "url": "https://bopiweb.com"
+  },
+  {
+    "id": "bdix_1388",
+    "url": "https://www.radioextremacr.com"
+  },
+  {
+    "id": "bdix_1389",
+    "url": "https://telesurcostarica.com"
+  },
+  {
+    "id": "bdix_1390",
+    "url": "https://telecuracao.com"
+  },
+  {
+    "id": "bdix_1391",
+    "url": "https://tvdirect13.com"
+  },
+  {
+    "id": "bdix_1392",
+    "url": "https://wowelsalvador.com"
+  },
+  {
+    "id": "bdix_1393",
+    "url": "https://www.hechosecuador.com"
+  },
+  {
+    "id": "bdix_1394",
+    "url": "https://www.tencanal10.tv"
+  },
+  {
+    "id": "bdix_1395",
+    "url": "https://historiatv.files.wordpress.com"
+  },
+  {
+    "id": "bdix_1396",
+    "url": "http://www.ethnicchannels.com"
+  },
+  {
+    "id": "bdix_1397",
+    "url": "https://tvpacifico.mx"
+  },
+  {
+    "id": "bdix_1398",
+    "url": "http://www.tvmas.mx"
+  },
+  {
+    "id": "bdix_1399",
+    "url": "https://hosannavision.com"
+  },
+  {
+    "id": "bdix_1400",
+    "url": "https://pa.emedemujer.com"
+  },
+  {
+    "id": "bdix_1401",
+    "url": "http://www.unicanal.com.py"
+  },
+  {
+    "id": "bdix_1402",
+    "url": "http://www.cultura24.tv"
+  },
+  {
+    "id": "bdix_1403",
+    "url": "https://www.worldatlas.com"
+  },
+  {
+    "id": "bdix_1404",
+    "url": "http://paxtvmovil.org"
+  },
+  {
+    "id": "bdix_1405",
+    "url": "https://sc2.elpais.com.uy"
+  },
+  {
+    "id": "bdix_1406",
+    "url": "http://amgtv.tv"
+  },
+  {
+    "id": "bdix_1407",
+    "url": "http://static-11.sinclairstoryline.com"
+  },
+  {
+    "id": "bdix_1408",
+    "url": "http://epg4you.com"
+  },
+  {
+    "id": "bdix_1409",
+    "url": "http://23.237.68.58"
+  },
+  {
+    "id": "bdix_1410",
+    "url": "https://fitz.tmsimg.com"
+  },
+  {
+    "id": "bdix_1411",
+    "url": "https://web-cdn.blivenyc.com"
+  },
+  {
+    "id": "bdix_1412",
+    "url": "https://www.awetv.com"
+  },
+  {
+    "id": "bdix_1413",
+    "url": "https://atmosphere.tv"
+  },
+  {
+    "id": "bdix_1414",
+    "url": "https://images.pluto.tv"
+  },
+  {
+    "id": "bdix_1415",
+    "url": "https://www.chivemediagroup.com"
+  },
+  {
+    "id": "bdix_1416",
+    "url": "https://www.lowaboots.com"
+  },
+  {
+    "id": "bdix_1417",
+    "url": "https://d9hhrg4mnvzow.cloudfront.net"
+  },
+  {
+    "id": "bdix_1418",
+    "url": "https://www.glewed.tv"
+  },
+  {
+    "id": "bdix_1419",
+    "url": "http://images.pluto.tv"
+  },
+  {
+    "id": "bdix_1420",
+    "url": "https://lovenature.com"
+  },
+  {
+    "id": "bdix_1421",
+    "url": "https://magellantv-test-cloudfront.s3.amazonaws.com"
+  },
+  {
+    "id": "bdix_1422",
+    "url": "https://www.leadersinsport.com"
+  },
+  {
+    "id": "bdix_1423",
+    "url": "https://www.mobcrush.com"
+  },
+  {
+    "id": "bdix_1424",
+    "url": "https://dzm0ugdauank9.cloudfront.net"
+  },
+  {
+    "id": "bdix_1425",
+    "url": "https://www.outdooramerica.com"
+  },
+  {
+    "id": "bdix_1426",
+    "url": "https://shoutfactorytvlive.com"
+  },
+  {
+    "id": "bdix_1427",
+    "url": "https://www.tmsimg.com"
+  },
+  {
+    "id": "bdix_1428",
+    "url": "https://d3n8a8pro7vhmx.cloudfront.net"
+  },
+  {
+    "id": "bdix_1429",
+    "url": "https://www.5eurokueche.de"
+  },
+  {
+    "id": "bdix_1430",
+    "url": "https://kulturmd.de"
+  },
+  {
+    "id": "bdix_1431",
+    "url": "https://www.grandlille.tv"
+  },
+  {
+    "id": "bdix_1432",
+    "url": "https://www.tv78.com"
+  },
+  {
+    "id": "bdix_1433",
+    "url": "https://www.tvr.bzh"
+  },
+  {
+    "id": "bdix_1434",
+    "url": "https://esperia.tv"
+  },
+  {
+    "id": "bdix_1435",
+    "url": "https://www.radiolombardia.it"
+  },
+  {
+    "id": "bdix_1436",
+    "url": "https://www.radiosienatv.it"
+  },
+  {
+    "id": "bdix_1437",
+    "url": "http://www.sardegna1.tv"
+  },
+  {
+    "id": "bdix_1438",
+    "url": "https://www.teletricolore.it"
+  },
+  {
+    "id": "bdix_1439",
+    "url": "https://tvavicenza.gruppovideomedia.it"
+  },
+  {
+    "id": "bdix_1440",
+    "url": "https://www.3eeshalaan.net"
+  },
+  {
+    "id": "bdix_1441",
+    "url": "https://www.admedia.ae"
+  },
+  {
+    "id": "bdix_1442",
+    "url": "https://s3-eu-west-1.amazonaws.com"
+  },
+  {
+    "id": "bdix_1443",
+    "url": "http://www.qassimy.com"
+  },
+  {
+    "id": "bdix_1444",
+    "url": "http://m3u-iptv.ru"
+  },
+  {
+    "id": "bdix_1445",
+    "url": "https://cdn.countryflags.com"
+  },
+  {
+    "id": "bdix_1446",
+    "url": "http://www.falastini.tv"
+  },
+  {
+    "id": "bdix_1447",
+    "url": "http://firstmedia.com"
+  },
+  {
+    "id": "bdix_1448",
+    "url": "https://alchetron.com"
+  },
+  {
+    "id": "bdix_1449",
+    "url": "https://mncvision.id"
+  },
+  {
+    "id": "bdix_1450",
+    "url": "https://cdn.cnnindonesia.com"
+  },
+  {
+    "id": "bdix_1451",
+    "url": "http://www.daaitv.co.id"
+  },
+  {
+    "id": "bdix_1452",
+    "url": "https://astrocontent.s3.amazonaws.com"
+  },
+  {
+    "id": "bdix_1453",
+    "url": "https://cdn.techinasia.com"
+  },
+  {
+    "id": "bdix_1454",
+    "url": "http://tough.kix-tv.com"
+  },
+  {
+    "id": "bdix_1455",
+    "url": "http://u-channel.tv"
+  },
+  {
+    "id": "bdix_1456",
+    "url": "http://beta.dens.tv"
+  },
+  {
+    "id": "bdix_1457",
+    "url": "http://image.azuza.web.id"
+  },
+  {
+    "id": "bdix_1458",
+    "url": "https://m3u-editor.com"
+  }
+]

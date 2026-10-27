@@ -326,6 +326,11 @@ export default function StreamingPage() {
         if (code === undefined || code === null) {
             return [
                 'custom',
+                'circleftp',
+                'moviebox',
+                'miruro',
+                'aniclover',
+                'animekhor',
                 'doodstream',
                 'streamtape',
                 'voe',
@@ -972,6 +977,11 @@ export default function StreamingPage() {
                             <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                                 {[
                                     { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
+                                    { id: 'circleftp', name: 'CircleFTP (BDIX)', icon: '🇧🇩', desc: 'BDIX 100Mbps Local FTP Stream' },
+                                    { id: 'moviebox', name: 'MovieBox HD', icon: '🎬', desc: 'Direct HLS/MP4 Cloud Stream' },
+                                    { id: 'miruro', name: 'Miruro Anime', icon: '⛩️', desc: 'Fast Anime Sub & Dub' },
+                                    { id: 'aniclover', name: 'Aniclover', icon: '🍀', desc: 'Direct Anime API Stream' },
+                                    { id: 'animekhor', name: 'AnimeKhor', icon: '🎌', desc: 'Bangla & Hindi Dubbed Anime' },
                                     { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
                                     { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
                                     { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
@@ -1023,6 +1033,11 @@ export default function StreamingPage() {
                             <div className="grid grid-cols-2 sm:grid-cols-2 gap-3">
                                 {[
                                     { id: 'custom', name: 'Server Nexiplay', icon: '⭐', desc: 'Custom/Direct URLs' },
+                                    { id: 'circleftp', name: 'CircleFTP (BDIX)', icon: '🇧🇩', desc: 'BDIX 100Mbps Local FTP Stream' },
+                                    { id: 'moviebox', name: 'MovieBox HD', icon: '🎬', desc: 'Direct HLS/MP4 Cloud Stream' },
+                                    { id: 'miruro', name: 'Miruro Anime', icon: '⛩️', desc: 'Fast Anime Sub & Dub' },
+                                    { id: 'aniclover', name: 'Aniclover', icon: '🍀', desc: 'Direct Anime API Stream' },
+                                    { id: 'animekhor', name: 'AnimeKhor', icon: '🎌', desc: 'Bangla & Hindi Dubbed Anime' },
                                     { id: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', desc: 'Turbo Fast Stream' },
                                     { id: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', desc: 'Pulse HD Stream' },
                                     { id: 'voe', name: 'Nexi Spark Server', icon: '🚀', desc: 'Spark Pro Stream' },
@@ -1496,6 +1511,11 @@ export default function StreamingPage() {
 
                             {[
                                 { key: 'custom', name: 'Direct / Custom Player Override', icon: '⭐', placeholder: 'https://cdn.example.com/movie.mp4 or embed URL...' },
+                                { key: 'circleftp', name: 'CircleFTP / BDIX Server', icon: '🇧🇩', placeholder: 'http://circleftp.net/... or http://new.circleftp.net:5000/api/...' },
+                                { key: 'moviebox', name: 'MovieBox HD Server', icon: '🎬', placeholder: 'https://movieboxhd.net/movies/... or detailPath' },
+                                { key: 'miruro', name: 'Miruro Anime Server', icon: '⛩️', placeholder: 'https://www.miruro.to/watch?id=...' },
+                                { key: 'aniclover', name: 'Aniclover Server', icon: '🍀', placeholder: 'https://aniclover.cc/... or https://api.aniclover.cc/api/watch?...' },
+                                { key: 'animekhor', name: 'AnimeKhor Server', icon: '🎌', placeholder: 'https://animekhor.org/...' },
                                 { key: 'doodstream', name: 'Nexi Turbo Server', icon: '⚡', placeholder: 'https://doodstream.com/e/... or /d/...' },
                                 { key: 'streamtape', name: 'Nexi Pulse Server', icon: '📼', placeholder: 'https://streamtape.com/e/... or /v/...' },
                                 { key: 'voe', name: 'Nexi Spark Server', icon: '🚀', placeholder: 'https://voe.sx/e/... or https://voe.sx/...' },
@@ -1608,6 +1628,11 @@ export default function StreamingPage() {
                                         <span className="text-[10px] font-bold text-gray-400 uppercase mr-1">Edit Server URL:</span>
                                         {[
                                             { key: 'custom', label: 'Custom / Direct Override', color: 'bg-white/5 border-white/10 text-white' },
+                                            { key: 'circleftp', label: 'CircleFTP (BDIX)', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
+                                            { key: 'moviebox', label: 'MovieBox HD', color: 'bg-indigo-500/10 border-indigo-500/25 text-indigo-400' },
+                                            { key: 'miruro', label: 'Miruro Anime', color: 'bg-red-500/10 border-red-500/25 text-red-400' },
+                                            { key: 'aniclover', label: 'Aniclover', color: 'bg-green-500/10 border-green-500/25 text-green-400' },
+                                            { key: 'animekhor', label: 'AnimeKhor', color: 'bg-amber-500/10 border-amber-500/25 text-amber-400' },
                                             { key: 'doodstream', label: 'Nexi Turbo', color: 'bg-orange-500/10 border-orange-500/25 text-orange-400' },
                                             { key: 'streamtape', label: 'Nexi Pulse', color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' },
                                             { key: 'voe', label: 'Nexi Spark', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
