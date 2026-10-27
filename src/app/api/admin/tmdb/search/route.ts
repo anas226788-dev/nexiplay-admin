@@ -39,18 +39,26 @@ export async function GET(req: Request) {
 
     const params = new URL(req.url).searchParams;
     const query = params.get('query')?.trim() ?? '';
-    const media = params.get('media') === 'tv' ? 'tv' : 'movie';
+    const rawMedia = params.get('media')?.toLowerCase();
+    const media = rawMedia === 'tv' ? 'tv' : rawMedia === 'movie' ? 'movie' : 'multi';
     const page = Math.min(500, Math.max(1, Number(params.get('page')) || 1));
     if (query.length < 2 || query.length > 100) {
         return NextResponse.json({ error: 'Enter a title between 2 and 100 characters.' }, { status: 400 });
     }
 
     try {
-        const url = new URL(`https://api.themoviedb.org/3/search/${media}`);
-        url.searchParams.set('query', query);
-        url.searchParams.set('language', 'en-US');
-        url.searchParams.set('include_adult', 'false');
-        url.searchParams.set('page', String(page));
+        const isImdbId = /^tt\d+$/i.test(query);
+        let url: URL;
+        if (isImdbId) {
+            url = new URL(`https://api.themoviedb.org/3/find/${query}`);
+            url.searchParams.set('external_source', 'imdb_id');
+        } else {
+            url = new URL(`https://api.themoviedb.org/3/search/${media}`);
+            url.searchParams.set('query', query);
+            url.searchParams.set('language', 'en-US');
+            url.searchParams.set('include_adult', 'false');
+            url.searchParams.set('page', String(page));
+        }
         url.searchParams.set('api_key', apiKey);
         const response = await fetch(url, {
             headers: { accept: 'application/json' },
@@ -64,24 +72,37 @@ export async function GET(req: Request) {
                 : 'TMDB search is temporarily unavailable. Try again shortly.' }, { status: response.status === 401 ? 503 : 502 });
         }
 
-        const payload = await response.json() as { results?: TmdbSearchItem[]; total_pages?: number; total_results?: number };
-        const results = (payload.results ?? []).map(item => {
-            const title = item.title || item.name || 'Untitled';
-            const date = item.release_date || item.first_air_date || '';
-            return {
-                id: item.id,
-                media,
-                title,
-                originalTitle: item.original_title || item.original_name || title,
-                overview: item.overview || '',
-                posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
-                backdropUrl: item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : null,
-                releaseYear: date.slice(0, 4) || null,
-                language: item.original_language || null,
-                rating: typeof item.vote_average === 'number' ? item.vote_average : null,
-                adult: Boolean(item.adult),
-            };
-        });
+        const payload = await response.json() as { 
+            results?: TmdbSearchItem[]; 
+            movie_results?: TmdbSearchItem[];
+            tv_results?: TmdbSearchItem[];
+            total_pages?: number; 
+            total_results?: number 
+        };
+        const rawList = isImdbId
+            ? [...(payload.movie_results ?? []).map(r => ({ ...r, media_type: 'movie' })), ...(payload.tv_results ?? []).map(r => ({ ...r, media_type: 'tv' }))]
+            : (payload.results ?? []);
+
+        const results = rawList
+            .filter(item => item.media_type !== 'person')
+            .map(item => {
+                const itemMedia = item.media_type === 'tv' ? 'tv' : item.media_type === 'movie' ? 'movie' : media === 'tv' ? 'tv' : 'movie';
+                const title = item.title || item.name || 'Untitled';
+                const date = item.release_date || item.first_air_date || '';
+                return {
+                    id: item.id,
+                    media: itemMedia,
+                    title,
+                    originalTitle: item.original_title || item.original_name || title,
+                    overview: item.overview || '',
+                    posterUrl: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+                    backdropUrl: item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : null,
+                    releaseYear: date.slice(0, 4) || null,
+                    language: item.original_language || null,
+                    rating: typeof item.vote_average === 'number' ? item.vote_average : null,
+                    adult: Boolean(item.adult),
+                };
+            });
 
         // Cross-reference with Supabase to detect if title already exists in DB
         let existingByTmdbId = new Map<string, { id: string; title: string; slug: string; type: string }>();

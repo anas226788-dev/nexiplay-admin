@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     if (!apiKey) return NextResponse.json({ error: 'TMDB is not configured on this server. Add TMDB_API_KEY to the admin environment.' }, { status: 503 });
 
     try {
-        const body = await req.json() as { tmdbId?: unknown; media?: unknown; contentType?: unknown };
+        const body = await req.json() as { tmdbId?: unknown; media?: unknown; contentType?: unknown; isPinned?: unknown };
         const tmdbId = Number(body.tmdbId);
         const media = body.media === 'tv' ? 'tv' : body.media === 'movie' ? 'movie' : null;
         const contentType = ['movie', 'series', 'anime'].includes(String(body.contentType)) ? String(body.contentType) : null;
@@ -71,7 +71,8 @@ export async function POST(req: Request) {
             video.site === 'YouTube' && video.key && video.type === 'Trailer' && video.official
         ) ?? (detail.videos?.results ?? []).find(video => video.site === 'YouTube' && video.key && video.type === 'Trailer');
 
-        const payload = {
+        const isPinned = body.isPinned === true;
+        const payload: Record<string, any> = {
             title,
             description: detail.overview || null,
             poster_url: detail.poster_path ? `https://image.tmdb.org/t/p/w500${detail.poster_path}` : null,
@@ -83,32 +84,37 @@ export async function POST(req: Request) {
             trailer_url: trailer?.key ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
             tmdb_id: String(tmdbId),
             is_adult: Boolean(detail.adult),
+            ...(body.isPinned !== undefined ? { admin_note: isPinned ? 'pinned' : null } : {})
         };
 
         const db = getAdminSupabase();
         const { data: matches, error: matchError } = await db.from('movies')
-            .select('id, slug').eq('tmdb_id', String(tmdbId)).limit(2);
+            .select('id, slug, admin_note').eq('tmdb_id', String(tmdbId)).limit(2);
         if (matchError) throw matchError;
         const existing = matches?.[0];
         let movieId: string;
         let action: 'created' | 'updated';
+        let savedMovie: any = null;
         if (existing) {
-            const { data, error } = await db.from('movies').update(payload).eq('id', existing.id).select('id').single();
+            const { data, error } = await db.from('movies').update(payload).eq('id', existing.id).select('*').single();
             if (error) throw error;
             movieId = data.id;
+            savedMovie = data;
             action = 'updated';
         } else {
             const yearSuffix = year ? `-${year}` : '';
             let slug = `${slugify(title)}${yearSuffix}`;
-            const { data, error } = await db.from('movies').insert({ ...payload, slug }).select('id').single();
+            const { data, error } = await db.from('movies').insert({ ...payload, slug }).select('*').single();
             if (error?.code === '23505') {
                 slug = `${slug}-${tmdbId}`;
-                const retry = await db.from('movies').insert({ ...payload, slug }).select('id').single();
+                const retry = await db.from('movies').insert({ ...payload, slug }).select('*').single();
                 if (retry.error) throw retry.error;
                 movieId = retry.data.id;
+                savedMovie = retry.data;
             } else {
                 if (error) throw error;
                 movieId = data.id;
+                savedMovie = data;
             }
             action = 'created';
         }
@@ -126,7 +132,14 @@ export async function POST(req: Request) {
             if (error) throw error;
         }
 
-        return NextResponse.json({ ok: true, action, movieId, title }, { headers: { 'Cache-Control': 'no-store' } });
+        return NextResponse.json({ 
+            ok: true, 
+            action, 
+            movieId, 
+            title, 
+            is_pinned: Boolean(savedMovie?.admin_note === 'pinned' || payload.admin_note === 'pinned'),
+            movie: savedMovie 
+        }, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
         console.error('[TMDB catalog] Import failed:', error);
         return NextResponse.json({ error: 'Could not save this title. Check the database configuration and try again.' }, { status: 500 });
