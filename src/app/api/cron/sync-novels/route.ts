@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
             const updatedRes = await fetch('https://golponir.com/api/books', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ page: 1, per_page: 30, completion_status: 'all' }),
+                body: JSON.stringify({ page: 1, per_page: 50, completion_status: 'all' }),
                 cache: 'no-store'
             });
 
@@ -141,7 +141,7 @@ export async function GET(request: NextRequest) {
             console.warn('[Cron Sync Novels] Could not fetch global books feed:', fetchErr.message);
         }
 
-        // 6. Merge lists: Put database's ongoing novels FIRST, then newly discovered books from Golponir
+        // 6. Merge lists: Put updated books from Golponir FIRST (PRIORITY 1: because they have new chapters!)
         const booksToProcess: Array<{
             slug: string;
             name: string;
@@ -155,22 +155,7 @@ export async function GET(request: NextRequest) {
 
         const seenSlugs = new Set<string>();
 
-        // Add DB ongoing novels first
-        for (const on of ongoingSupaNovels) {
-            if (!on.slug) continue;
-            const sKey = on.slug.toLowerCase().trim();
-            seenSlugs.add(sKey);
-            booksToProcess.push({
-                slug: on.slug,
-                name: on.title,
-                author: on.author,
-                image: on.cover_url,
-                genres: on.genre,
-                existingNovel: on
-            });
-        }
-
-        // Add updated books from Golponir
+        // 1. Add updated books from Golponir FIRST (Highest priority)
         for (const b of updatedBooks) {
             if (!b.slug) continue;
             const sKey = b.slug.toLowerCase().trim();
@@ -185,6 +170,26 @@ export async function GET(request: NextRequest) {
                     completion_status: b.completion_status,
                     episode_count: b.episode_count,
                     existingNovel: supaBySlug.get(sKey) || supaByTitle.get((b.name || '').toLowerCase().trim())
+                });
+            }
+        }
+
+        // 2. Add ongoing DB novels next with time-based rotation (so all 500+ get checked across runs)
+        const offset = (Math.floor(Date.now() / (1000 * 60 * 15))) % Math.max(1, ongoingSupaNovels.length);
+        const rotatedOngoing = [...ongoingSupaNovels.slice(offset), ...ongoingSupaNovels.slice(0, offset)];
+
+        for (const on of rotatedOngoing) {
+            if (!on.slug) continue;
+            const sKey = on.slug.toLowerCase().trim();
+            if (!seenSlugs.has(sKey)) {
+                seenSlugs.add(sKey);
+                booksToProcess.push({
+                    slug: on.slug,
+                    name: on.title,
+                    author: on.author,
+                    image: on.cover_url,
+                    genres: on.genre,
+                    existingNovel: on
                 });
             }
         }
