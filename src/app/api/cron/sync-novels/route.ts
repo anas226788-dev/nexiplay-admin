@@ -102,14 +102,23 @@ export async function GET(request: NextRequest) {
         // 2. Obtain session cookies from Golponir
         const headers = await getGolponirSession();
 
-        // 3. Fetch all existing novels in Supabase
-        const { data: supaNovels, error: supaErr } = await supabaseNovels
-            .from('novels')
-            .select('id, title, slug, status, cover_url, author, genre')
-            .limit(2000);
+        // 3. Fetch all existing novels in Supabase (paginated to bypass PostgREST 1000 limit)
+        const supaNovels: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+            const { data, error: supaErr } = await supabaseNovels
+                .from('novels')
+                .select('id, title, slug, status, cover_url, author, genre')
+                .range(from, from + PAGE_SIZE - 1);
 
-        if (supaErr || !supaNovels) {
-            throw new Error(`Failed to load Supabase novels: ${supaErr?.message}`);
+            if (supaErr) {
+                throw new Error(`Failed to load Supabase novels: ${supaErr.message}`);
+            }
+            if (!data || data.length === 0) break;
+            supaNovels.push(...data);
+            if (data.length < PAGE_SIZE) break;
+            from += PAGE_SIZE;
         }
 
         const supaBySlug = new Map<string, any>();
@@ -123,25 +132,40 @@ export async function GET(request: NextRequest) {
         const ongoingSupaNovels = supaNovels.filter(n => n.status === 'ongoing' || !n.status);
         console.log(`[Cron Sync Novels] Found ${ongoingSupaNovels.length} ongoing novel(s) in Supabase.`);
 
-        // 5. Fetch recently updated books from Golponir feed (PRIORITY 2: for new discoveries)
+        // 5. Fetch running and recently updated books from Golponir feeds
         let updatedBooks: any[] = [];
         try {
-            const updatedRes = await fetch('https://golponir.com/api/books', {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({ page: 1, per_page: 50, completion_status: 'all' }),
-                cache: 'no-store'
-            });
+            const [runningRes, allRes] = await Promise.all([
+                fetch('https://golponir.com/api/books', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ page: 1, per_page: 50, completion_status: 'running' }),
+                    cache: 'no-store'
+                }),
+                fetch('https://golponir.com/api/books', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ page: 1, per_page: 50, completion_status: 'all' }),
+                    cache: 'no-store'
+                })
+            ]);
 
-            if (updatedRes.ok) {
-                const updatedJson = await updatedRes.json();
-                updatedBooks = updatedJson.data || [];
+            const runningJson = runningRes.ok ? await runningRes.json() : null;
+            const allJson = allRes.ok ? await allRes.json() : null;
+
+            const mergedFeed = [...(runningJson?.data || []), ...(allJson?.data || [])];
+            const feedSlugs = new Set<string>();
+            for (const b of mergedFeed) {
+                if (b?.slug && !feedSlugs.has(b.slug)) {
+                    feedSlugs.add(b.slug);
+                    updatedBooks.push(b);
+                }
             }
         } catch (fetchErr: any) {
             console.warn('[Cron Sync Novels] Could not fetch global books feed:', fetchErr.message);
         }
 
-        // 6. Merge lists: Put updated books from Golponir FIRST (PRIORITY 1: because they have new chapters!)
+        // 6. Merge lists: Put updated & running books from Golponir FIRST (Highest priority)
         const booksToProcess: Array<{
             slug: string;
             name: string;
@@ -155,7 +179,7 @@ export async function GET(request: NextRequest) {
 
         const seenSlugs = new Set<string>();
 
-        // 1. Add updated books from Golponir FIRST (Highest priority)
+        // 1. Add running & updated books from Golponir FIRST
         for (const b of updatedBooks) {
             if (!b.slug) continue;
             const sKey = b.slug.toLowerCase().trim();
@@ -174,7 +198,7 @@ export async function GET(request: NextRequest) {
             }
         }
 
-        // 2. Add ongoing DB novels next with time-based rotation (so all 500+ get checked across runs)
+        // 2. Add ongoing DB novels next with time-based rotation (so all ongoing get checked across runs)
         const offset = (Math.floor(Date.now() / (1000 * 60 * 15))) % Math.max(1, ongoingSupaNovels.length);
         const rotatedOngoing = [...ongoingSupaNovels.slice(offset), ...ongoingSupaNovels.slice(0, offset)];
 
@@ -196,30 +220,10 @@ export async function GET(request: NextRequest) {
 
         console.log(`[Cron Sync Novels] Total books queued for update check: ${booksToProcess.length}`);
 
-        // 7. Batch-fetch existing chapter numbers for all known novels
-        const knownNovelIds = booksToProcess
-            .map(b => b.existingNovel?.id)
-            .filter(Boolean) as string[];
-
-        const existingChaptersMap = new Map<string, Set<number>>();
-        if (knownNovelIds.length > 0) {
-            const { data: allChapterRows } = await supabaseNovels
-                .from('novel_chapters')
-                .select('novel_id, chapter_number')
-                .in('novel_id', knownNovelIds);
-
-            for (const row of allChapterRows || []) {
-                if (!existingChaptersMap.has(row.novel_id)) {
-                    existingChaptersMap.set(row.novel_id, new Set<number>());
-                }
-                existingChaptersMap.get(row.novel_id)!.add(row.chapter_number);
-            }
-        }
-
         let totalNewChaptersAdded = 0;
         const syncDetails: Array<{ novel: string; chaptersAdded: number; chapterNumbers: number[] }> = [];
 
-        // 8. Process each book
+        // 7. Process each book
         for (const book of booksToProcess) {
             if (Date.now() - startTime > MAX_TIME_MS) {
                 console.warn(`[Cron Sync Novels] Time threshold reached (${Date.now() - startTime}ms), completing response gracefully.`);
@@ -254,18 +258,38 @@ export async function GET(request: NextRequest) {
                 novel = newNovelData;
                 supaBySlug.set(slugKey, novel);
                 supaByTitle.set(titleKey, novel);
-                existingChaptersMap.set(novelId, new Set<number>());
                 console.log(`[Cron Sync Novels] Created new novel "${book.name}" (ID: ${novelId})`);
             } else if (book.image && (!novel.cover_url || novel.cover_url.trim() === '')) {
                 await supabaseNovels.from('novels').update({ cover_url: book.image }).eq('id', novelId);
             }
 
-            const existingNums = existingChaptersMap.get(novelId) || new Set<number>();
+            // Sync completion status if Golponir marks it completed
+            if (book.completion_status === 'completed' && novel.status !== 'completed') {
+                await supabaseNovels.from('novels').update({ status: 'completed' }).eq('id', novelId);
+                novel.status = 'completed';
+            }
+
+            // Fetch existing chapter numbers for this novel directly from DB
+            let existingNums = new Set<number>();
+            if (novelId) {
+                const { data: chapRows } = await supabaseNovels
+                    .from('novel_chapters')
+                    .select('chapter_number')
+                    .eq('novel_id', novelId)
+                    .limit(5000);
+
+                if (chapRows) {
+                    existingNums = new Set<number>(chapRows.map((r: any) => r.chapter_number));
+                }
+            }
 
             // Fast skip if book has known episode_count and our DB already has that many chapters
             if (book.episode_count && book.episode_count > 0 && existingNums.size >= book.episode_count) {
                 continue;
             }
+
+            // Calculate target page on Golponir (Golponir strictly caps 50 episodes per page)
+            const targetEpPage = Math.max(1, Math.floor(existingNums.size / 50) + 1);
 
             // Fetch episodes list for this book from Golponir
             let episodes: any[] = [];
@@ -273,22 +297,47 @@ export async function GET(request: NextRequest) {
                 const epRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episodes`, {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ page: 1, per_page: 100 }),
+                    body: JSON.stringify({ page: targetEpPage, per_page: 50 }),
                     cache: 'no-store'
                 });
-                if (!epRes.ok) continue;
-                const epJson = await epRes.json();
-                episodes = epJson.data || [];
+                if (epRes.ok) {
+                    const epJson = await epRes.json();
+                    episodes = epJson.data || [];
+                }
             } catch (epErr: any) {
-                console.warn(`[Cron Sync Novels] Could not fetch episodes for "${book.name}":`, epErr.message);
+                console.warn(`[Cron Sync Novels] Could not fetch episodes page ${targetEpPage} for "${book.name}":`, epErr.message);
                 continue;
             }
 
             // Identify missing episodes
-            const missingEpisodes = episodes.filter((ep: any) => {
+            let missingEpisodes = episodes.filter((ep: any) => {
                 const num = ep.episode_number || (episodes.indexOf(ep) + 1);
                 return !existingNums.has(num);
             });
+
+            // If target page had 0 missing, but we know there are more episodes, try next page
+            if (missingEpisodes.length === 0 && book.episode_count && existingNums.size < book.episode_count) {
+                try {
+                    const nextRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episodes`, {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ page: targetEpPage + 1, per_page: 50 }),
+                        cache: 'no-store'
+                    });
+                    if (nextRes.ok) {
+                        const nextJson = await nextRes.json();
+                        const nextEpisodes = nextJson.data || [];
+                        const nextMissing = nextEpisodes.filter((ep: any) => {
+                            const num = ep.episode_number || (nextEpisodes.indexOf(ep) + 1);
+                            return !existingNums.has(num);
+                        });
+                        if (nextMissing.length > 0) {
+                            episodes = nextEpisodes;
+                            missingEpisodes = nextMissing;
+                        }
+                    }
+                } catch {}
+            }
 
             if (missingEpisodes.length === 0) {
                 continue;
