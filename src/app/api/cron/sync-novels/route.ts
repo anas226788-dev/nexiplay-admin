@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     try {
         console.log('[Cron Sync Novels] Starting automatic synchronization with Golponir...');
 
-        const MAX_TIME_MS = 25000; // 25-second safety deadline to avoid cron-job.org / Vercel timeout
+        const MAX_TIME_MS = 52000; // 52-second safety deadline for 60s maxDuration
 
         // 2. Obtain session cookies from Golponir
         const headers = await getGolponirSession();
@@ -128,37 +128,41 @@ export async function GET(request: NextRequest) {
             if (n.title) supaByTitle.set(n.title.toLowerCase().trim(), n);
         }
 
-        // 4. Collect running/ongoing novels from our database (PRIORITY 1)
+        // 4. Collect running/ongoing novels from our database
         const ongoingSupaNovels = supaNovels.filter(n => n.status === 'ongoing' || !n.status);
         console.log(`[Cron Sync Novels] Found ${ongoingSupaNovels.length} ongoing novel(s) in Supabase.`);
 
-        // 5. Fetch running and recently updated books from Golponir feeds
+        // 5. Fetch running books from Golponir across pages 1 to 10 in parallel
         let updatedBooks: any[] = [];
         try {
-            const [runningRes, allRes] = await Promise.all([
+            const pagePromises = Array.from({ length: 10 }, (_, i) => i + 1).map(p =>
                 fetch('https://golponir.com/api/books', {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ page: 1, per_page: 50, completion_status: 'running' }),
+                    body: JSON.stringify({ page: p, per_page: 50, completion_status: 'running' }),
                     cache: 'no-store'
-                }),
+                }).then(r => r.ok ? r.json() : null).catch(() => null)
+            );
+
+            // Also check page 1 of 'all' feed for newly published or trending books
+            pagePromises.push(
                 fetch('https://golponir.com/api/books', {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({ page: 1, per_page: 50, completion_status: 'all' }),
                     cache: 'no-store'
-                })
-            ]);
+                }).then(r => r.ok ? r.json() : null).catch(() => null)
+            );
 
-            const runningJson = runningRes.ok ? await runningRes.json() : null;
-            const allJson = allRes.ok ? await allRes.json() : null;
-
-            const mergedFeed = [...(runningJson?.data || []), ...(allJson?.data || [])];
+            const allPagesResults = await Promise.all(pagePromises);
             const feedSlugs = new Set<string>();
-            for (const b of mergedFeed) {
-                if (b?.slug && !feedSlugs.has(b.slug)) {
-                    feedSlugs.add(b.slug);
-                    updatedBooks.push(b);
+
+            for (const res of allPagesResults) {
+                for (const b of res?.data || []) {
+                    if (b?.slug && !feedSlugs.has(b.slug)) {
+                        feedSlugs.add(b.slug);
+                        updatedBooks.push(b);
+                    }
                 }
             }
         } catch (fetchErr: any) {
@@ -263,8 +267,11 @@ export async function GET(request: NextRequest) {
                 await supabaseNovels.from('novels').update({ cover_url: book.image }).eq('id', novelId);
             }
 
-            // Sync completion status if Golponir marks it completed
-            if (book.completion_status === 'completed' && novel.status !== 'completed') {
+            // Sync completion status: if Golponir marks it ongoing, ensure DB marks it ongoing
+            if ((book.completion_status === 'ongoing' || book.completion_status === 'running') && novel.status !== 'ongoing') {
+                await supabaseNovels.from('novels').update({ status: 'ongoing' }).eq('id', novelId);
+                novel.status = 'ongoing';
+            } else if (book.completion_status === 'completed' && novel.status !== 'completed') {
                 await supabaseNovels.from('novels').update({ status: 'completed' }).eq('id', novelId);
                 novel.status = 'completed';
             }
@@ -399,14 +406,14 @@ export async function GET(request: NextRequest) {
                             }
                         }
 
-                        // Store in Supabase: keep content in DB if R2 is not used, so chapters are never lost
+                        // Store in Supabase: keep content in DB for instant reliable access & fallback
                         supaRowsToInsert.push({
                             id: chapterId,
                             novel_id: novelId,
                             chapter_number: epNum,
                             title,
                             slug: chapterSlug,
-                            content: uploadedToR2 ? '' : content,
+                            content: content,
                             created_at: new Date().toISOString()
                         });
 
