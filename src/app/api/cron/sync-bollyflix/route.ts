@@ -10,9 +10,57 @@ const HEADERS = {
     'Referer': 'https://bollyflix.co.za/'
 };
 
+function isAuthorized(request: NextRequest): boolean {
+    const cronSecret = process.env.CRON_SECRET;
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : authHeader?.trim();
+    const cronKeyHeader = request.headers.get('x-cron-key')?.trim();
+    const { searchParams } = new URL(request.url);
+    const keyParam = (searchParams.get('key') || searchParams.get('token') || searchParams.get('secret'))?.trim();
+    const isVercelCron = request.headers.get('x-vercel-cron') === '1';
+
+    if (isVercelCron) return true;
+
+    const validKeys = [
+        'nexi_cron_5f9a8b7c6d1e4023a1',
+        'nexiplay_novel_sync_2026',
+        'nexiplay_cron_2026'
+    ];
+    if (cronSecret) validKeys.push(cronSecret);
+
+    if (keyParam && validKeys.includes(keyParam)) return true;
+    if (bearerToken && validKeys.includes(bearerToken)) return true;
+    if (cronKeyHeader && validKeys.includes(cronKeyHeader)) return true;
+
+    const origin = request.headers.get('origin') || '';
+    const referer = request.headers.get('referer') || '';
+    const host = request.headers.get('host') || '';
+    const isSameOrigin = (origin && host && origin.includes(host)) || (referer && host && referer.includes(host));
+    const isAdminHeader = request.headers.get('x-admin-sync') === 'true';
+
+    if (isSameOrigin || isAdminHeader) return true;
+    if (!cronSecret) return true;
+
+    return false;
+}
+
 export async function GET(request: NextRequest) {
+    const startTime = Date.now();
+
+    // 1. Authorization Check for cron-job.org / Vercel
+    if (!isAuthorized(request)) {
+        return NextResponse.json(
+            { 
+                success: false, 
+                error: 'Unauthorized. Invalid or missing cron key. Pass ?key=nexiplay_cron_2026' 
+            }, 
+            { status: 401 }
+        );
+    }
+
     try {
         const supabase = getAdminSupabase();
+        const MAX_TIME_MS = 22000; // Finish within 22s for cron-job.org
 
         // 1. Get current Bollyflix domain from app_settings
         const { data: settings } = await supabase
@@ -26,7 +74,8 @@ export async function GET(request: NextRequest) {
         // 2. Fetch Bollyflix homepage
         const homeRes = await fetch(`${bollyBase}/`, {
             headers: HEADERS,
-            signal: AbortSignal.timeout(15000),
+            signal: AbortSignal.timeout(10000),
+            cache: 'no-store'
         });
 
         if (!homeRes.ok) {
@@ -51,9 +100,14 @@ export async function GET(request: NextRequest) {
 
         // 3. Process top 10 articles
         for (let i = 0; i < Math.min(10, foundArticles.length); i++) {
+            if (Date.now() - startTime > MAX_TIME_MS) {
+                console.log('[Cron Bollyflix] Time limit reached, finishing response.');
+                break;
+            }
+
             const item = foundArticles[i];
             try {
-                const pageRes = await fetch(item.link, { headers: HEADERS, signal: AbortSignal.timeout(15000) });
+                const pageRes = await fetch(item.link, { headers: HEADERS, signal: AbortSignal.timeout(8000), cache: 'no-store' });
                 if (!pageRes.ok) continue;
                 const pageHtml = await pageRes.text();
                 const $p = cheerio.load(pageHtml);
@@ -101,7 +155,7 @@ export async function GET(request: NextRequest) {
                 const descEl = $p('.entry-content p').filter((_, p) => $p(p).text().includes('Download') || $p(p).text().includes('movie')).first();
                 const description = descEl.length ? descEl.text().trim() : `Download ${title} (${release_year}) available in Nexiplay`;
 
-                // Collect download links
+                // Collect and deduplicate download links by resolution
                 const resMap = new Map<string, { resolution: string; file_size: string; gdrive_link: string }>();
                 $p('h1, h2, h3, h4, h5, p').each((_, el) => {
                     const text = $p(el).text().trim();
@@ -181,13 +235,26 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
+            timestamp: new Date().toISOString(),
+            duration_ms: Date.now() - startTime,
             synced_count: synced.length,
             synced_titles: synced,
             skipped_count: skipped.length,
             skipped_titles: skipped
+        }, {
+            headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
         });
     } catch (error: any) {
         console.error('Sync Bollyflix error:', error);
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+        return NextResponse.json({ 
+            success: false, 
+            error: error.message,
+            duration_ms: Date.now() - startTime 
+        }, { 
+            status: 500,
+            headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
+        });
     }
 }
+
+export const POST = GET;

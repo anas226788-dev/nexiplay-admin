@@ -6,7 +6,6 @@ import crypto from 'crypto';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const CRON_SECRET = process.env.CRON_SECRET;
 const R2_BUCKET = process.env.R2_BUCKET || 'nexiplay-novels';
 const HAS_R2 = !!(process.env.R2_ENDPOINT && process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY);
 
@@ -24,22 +23,25 @@ const s3 = HAS_R2
 function isAuthorized(request: NextRequest): boolean {
     const cronSecret = process.env.CRON_SECRET;
     const authHeader = request.headers.get('authorization');
-    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : authHeader?.trim();
+    const cronKeyHeader = request.headers.get('x-cron-key')?.trim();
     const { searchParams } = new URL(request.url);
-    const keyParam = searchParams.get('key');
+    const keyParam = (searchParams.get('key') || searchParams.get('token') || searchParams.get('secret'))?.trim();
     const isVercelCron = request.headers.get('x-vercel-cron') === '1';
 
     if (isVercelCron) return true;
 
-    // Supported secret keys (includes env secret and default keys)
+    // Supported secret keys (for cron-job.org, manual webhook, or Vercel cron)
     const validKeys = [
         'nexi_cron_5f9a8b7c6d1e4023a1',
-        'nexiplay_novel_sync_2026'
+        'nexiplay_novel_sync_2026',
+        'nexiplay_cron_2026'
     ];
     if (cronSecret) validKeys.push(cronSecret);
 
     if (keyParam && validKeys.includes(keyParam)) return true;
     if (bearerToken && validKeys.includes(bearerToken)) return true;
+    if (cronKeyHeader && validKeys.includes(cronKeyHeader)) return true;
 
     // Allow requests originating from the admin UI
     const origin = request.headers.get('origin') || '';
@@ -50,37 +52,67 @@ function isAuthorized(request: NextRequest): boolean {
 
     if (isSameOrigin || isAdminHeader) return true;
 
-    // If no secret configured at all in Vercel, allow operation
+    // If no secret configured in environment, allow operation
     if (!cronSecret) return true;
 
     return false;
 }
 
-async function getGolponirSession() {
-    const initRes = await fetch('https://golponir.com/books', {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-        cache: 'no-store'
-    });
-    
-    // Extract Set-Cookie headers
-    const cookiesHeader = initRes.headers.getSetCookie 
-        ? initRes.headers.getSetCookie() 
-        : [initRes.headers.get('set-cookie') || ''];
-        
-    const cookieString = cookiesHeader.filter(Boolean).map(c => c.split(';')[0]).join('; ');
-    const xsrfMatch = cookieString.match(/XSRF-TOKEN=([^;]+)/);
-    const xsrfToken = xsrfMatch ? decodeURIComponent(xsrfMatch[1]) : '';
+async function getGolponirSession(): Promise<Record<string, string>> {
+    try {
+        const initRes = await fetch('https://golponir.com/books', {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(8000)
+        });
 
-    return {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json, text/plain, */*',
-        'X-Requested-With': 'XMLHttpRequest',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Referer': 'https://golponir.com/books',
-        'Origin': 'https://golponir.com',
-        'Cookie': cookieString,
-        'X-XSRF-TOKEN': xsrfToken
-    };
+        // Extract Set-Cookie headers
+        const cookiesHeader = initRes.headers.getSetCookie 
+            ? initRes.headers.getSetCookie() 
+            : [initRes.headers.get('set-cookie') || ''];
+            
+        const cookieString = cookiesHeader.filter(Boolean).map(c => c.split(';')[0].trim()).join('; ');
+        const xsrfMatch = cookieString.match(/XSRF-TOKEN=([^;]+)/);
+        const xsrfToken = xsrfMatch ? decodeURIComponent(xsrfMatch[1]) : '';
+
+        return {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, text/plain, */*',
+            'X-Requested-With': 'XMLHttpRequest',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Referer': 'https://golponir.com/books',
+            'Origin': 'https://golponir.com',
+            'Cookie': cookieString,
+            'X-XSRF-TOKEN': xsrfToken
+        };
+    } catch {
+        // Fallback default headers if session fetch times out
+        return {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        };
+    }
+}
+
+// Fallback search to find true Golponir slug if original slug 404s
+async function searchGolponirSlug(title: string, headers: Record<string, string>): Promise<string | null> {
+    try {
+        const cleanTitle = title.replace(/\(.*?\)/g, '').replace(/\[.*?\]/g, '').trim();
+        const res = await fetch('https://golponir.com/api/books', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ page: 1, per_page: 5, search: cleanTitle }),
+            cache: 'no-store',
+            signal: AbortSignal.timeout(5000)
+        });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const found = json.data?.[0];
+        return found?.slug || null;
+    } catch {
+        return null;
+    }
 }
 
 export async function GET(request: NextRequest) {
@@ -89,7 +121,10 @@ export async function GET(request: NextRequest) {
     // 1. Validate Secret Authorization
     if (!isAuthorized(request)) {
         return NextResponse.json(
-            { success: false, error: 'Unauthorized. Invalid or missing cron key.' },
+            { 
+                success: false, 
+                error: 'Unauthorized. Invalid or missing cron key. Pass ?key=nexiplay_cron_2026 or ?key=nexi_cron_5f9a8b7c6d1e4023a1' 
+            },
             { status: 401 }
         );
     }
@@ -97,12 +132,14 @@ export async function GET(request: NextRequest) {
     try {
         console.log('[Cron Sync Novels] Starting automatic synchronization with Golponir...');
 
-        const MAX_TIME_MS = 52000; // 52-second safety deadline for 60s maxDuration
+        // 22-second safety deadline: cron-job.org times out at 30s!
+        // Finishing within 22s guarantees a reliable 200 OK every time.
+        const MAX_TIME_MS = 22000;
 
         // 2. Obtain session cookies from Golponir
         const headers = await getGolponirSession();
 
-        // 3. Fetch all existing novels in Supabase (paginated to bypass PostgREST 1000 limit)
+        // 3. Fetch existing novels from Supabase (paginated to bypass 1000 limit)
         const supaNovels: any[] = [];
         let from = 0;
         const PAGE_SIZE = 1000;
@@ -128,36 +165,29 @@ export async function GET(request: NextRequest) {
             if (n.title) supaByTitle.set(n.title.toLowerCase().trim(), n);
         }
 
-        // 4. Collect running/ongoing novels from our database
-        const ongoingSupaNovels = supaNovels.filter(n => n.status === 'ongoing' || !n.status);
-        console.log(`[Cron Sync Novels] Found ${ongoingSupaNovels.length} ongoing novel(s) in Supabase.`);
-
-        // 5. Fetch running books from Golponir across pages 1 to 10 in parallel
-        let updatedBooks: any[] = [];
+        // 4. Fetch Page 1 and Page 2 of Golponir books (the 100 most recently updated books)
+        const updatedBooks: any[] = [];
         try {
-            const pagePromises = Array.from({ length: 10 }, (_, i) => i + 1).map(p =>
+            const [p1Res, p2Res] = await Promise.all([
                 fetch('https://golponir.com/api/books', {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ page: p, per_page: 50, completion_status: 'running' }),
-                    cache: 'no-store'
-                }).then(r => r.ok ? r.json() : null).catch(() => null)
-            );
+                    body: JSON.stringify({ page: 1, per_page: 50, completion_status: 'running' }),
+                    cache: 'no-store',
+                    signal: AbortSignal.timeout(7000)
+                }).then(r => r.ok ? r.json() : null).catch(() => null),
 
-            // Also check page 1 of 'all' feed for newly published or trending books
-            pagePromises.push(
                 fetch('https://golponir.com/api/books', {
                     method: 'POST',
                     headers,
-                    body: JSON.stringify({ page: 1, per_page: 50, completion_status: 'all' }),
-                    cache: 'no-store'
+                    body: JSON.stringify({ page: 2, per_page: 50, completion_status: 'running' }),
+                    cache: 'no-store',
+                    signal: AbortSignal.timeout(7000)
                 }).then(r => r.ok ? r.json() : null).catch(() => null)
-            );
+            ]);
 
-            const allPagesResults = await Promise.all(pagePromises);
             const feedSlugs = new Set<string>();
-
-            for (const res of allPagesResults) {
+            for (const res of [p1Res, p2Res]) {
                 for (const b of res?.data || []) {
                     if (b?.slug && !feedSlugs.has(b.slug)) {
                         feedSlugs.add(b.slug);
@@ -169,7 +199,9 @@ export async function GET(request: NextRequest) {
             console.warn('[Cron Sync Novels] Could not fetch global books feed:', fetchErr.message);
         }
 
-        // 6. Merge lists: Put updated & running books from Golponir FIRST (Highest priority)
+        // 5. Build prioritized books queue:
+        // Priority 1: Newly updated books from Golponir feed (top 100)
+        // Priority 2: Ongoing novels from our DB with rotating offset
         const booksToProcess: Array<{
             slug: string;
             name: string;
@@ -183,10 +215,11 @@ export async function GET(request: NextRequest) {
 
         const seenSlugs = new Set<string>();
 
-        // 1. Add running & updated books from Golponir FIRST
+        // 1. Add active feed from Golponir FIRST
         for (const b of updatedBooks) {
             if (!b.slug) continue;
             const sKey = b.slug.toLowerCase().trim();
+            const tKey = (b.name || '').toLowerCase().trim();
             if (!seenSlugs.has(sKey)) {
                 seenSlugs.add(sKey);
                 booksToProcess.push({
@@ -197,13 +230,14 @@ export async function GET(request: NextRequest) {
                     genres: b.genres,
                     completion_status: b.completion_status,
                     episode_count: b.episode_count,
-                    existingNovel: supaBySlug.get(sKey) || supaByTitle.get((b.name || '').toLowerCase().trim())
+                    existingNovel: supaBySlug.get(sKey) || supaByTitle.get(tKey)
                 });
             }
         }
 
-        // 2. Add ongoing DB novels next with time-based rotation (so all ongoing get checked across runs)
-        const offset = (Math.floor(Date.now() / (1000 * 60 * 15))) % Math.max(1, ongoingSupaNovels.length);
+        // 2. Add ongoing DB novels next with time-based rotation
+        const ongoingSupaNovels = supaNovels.filter(n => n.status === 'ongoing' || !n.status);
+        const offset = (Math.floor(Date.now() / (1000 * 60 * 10))) % Math.max(1, ongoingSupaNovels.length);
         const rotatedOngoing = [...ongoingSupaNovels.slice(offset), ...ongoingSupaNovels.slice(0, offset)];
 
         for (const on of rotatedOngoing) {
@@ -227,10 +261,10 @@ export async function GET(request: NextRequest) {
         let totalNewChaptersAdded = 0;
         const syncDetails: Array<{ novel: string; chaptersAdded: number; chapterNumbers: number[] }> = [];
 
-        // 7. Process each book
+        // 6. Process each book
         for (const book of booksToProcess) {
             if (Date.now() - startTime > MAX_TIME_MS) {
-                console.warn(`[Cron Sync Novels] Time threshold reached (${Date.now() - startTime}ms), completing response gracefully.`);
+                console.log(`[Cron Sync Novels] 22-second limit reached (${Date.now() - startTime}ms), finishing gracefully.`);
                 break;
             }
 
@@ -242,6 +276,7 @@ export async function GET(request: NextRequest) {
             // If completely new novel discovered on Golponir, insert into Supabase
             if (!novel) {
                 novelId = crypto.randomUUID();
+                const nowIso = new Date().toISOString();
                 const newNovelData = {
                     id: novelId,
                     title: book.name,
@@ -251,7 +286,8 @@ export async function GET(request: NextRequest) {
                     cover_url: book.image || null,
                     description: `${book.name} - ${book.author || 'Golponir'} এর উপন্যাস।`,
                     status: book.completion_status === 'completed' ? 'completed' : 'ongoing',
-                    created_at: new Date().toISOString()
+                    created_at: nowIso,
+                    updated_at: nowIso
                 };
 
                 const { error: createErr } = await supabaseNovels.from('novels').insert(newNovelData);
@@ -267,7 +303,7 @@ export async function GET(request: NextRequest) {
                 await supabaseNovels.from('novels').update({ cover_url: book.image }).eq('id', novelId);
             }
 
-            // Sync completion status: if Golponir marks it ongoing, ensure DB marks it ongoing
+            // Sync completion status: ensure ongoing novels are marked ongoing
             if ((book.completion_status === 'ongoing' || book.completion_status === 'running') && novel.status !== 'ongoing') {
                 await supabaseNovels.from('novels').update({ status: 'ongoing' }).eq('id', novelId);
                 novel.status = 'ongoing';
@@ -276,7 +312,7 @@ export async function GET(request: NextRequest) {
                 novel.status = 'completed';
             }
 
-            // Fetch existing chapter numbers for this novel directly from DB
+            // Fetch existing chapter numbers directly from Supabase
             let existingNums = new Set<number>();
             if (novelId) {
                 const { data: chapRows } = await supabaseNovels
@@ -295,24 +331,42 @@ export async function GET(request: NextRequest) {
                 continue;
             }
 
-            // Calculate target page on Golponir (Golponir strictly caps 50 episodes per page)
+            // Determine target page on Golponir (50 episodes per page)
             const targetEpPage = Math.max(1, Math.floor(existingNums.size / 50) + 1);
+            let activeSlug = book.slug;
 
             // Fetch episodes list for this book from Golponir
             let episodes: any[] = [];
             try {
-                const epRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episodes`, {
+                let epRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(activeSlug)}/episodes`, {
                     method: 'POST',
                     headers,
                     body: JSON.stringify({ page: targetEpPage, per_page: 50 }),
-                    cache: 'no-store'
+                    cache: 'no-store',
+                    signal: AbortSignal.timeout(6000)
                 });
+
+                // Fallback: if 404, search Golponir for the true slug
+                if (epRes.status === 404) {
+                    const fallbackSlug = await searchGolponirSlug(book.name, headers);
+                    if (fallbackSlug && fallbackSlug !== activeSlug) {
+                        activeSlug = fallbackSlug;
+                        epRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(activeSlug)}/episodes`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({ page: targetEpPage, per_page: 50 }),
+                            cache: 'no-store',
+                            signal: AbortSignal.timeout(6000)
+                        });
+                    }
+                }
+
                 if (epRes.ok) {
                     const epJson = await epRes.json();
                     episodes = epJson.data || [];
                 }
             } catch (epErr: any) {
-                console.warn(`[Cron Sync Novels] Could not fetch episodes page ${targetEpPage} for "${book.name}":`, epErr.message);
+                console.warn(`[Cron Sync Novels] Could not fetch episodes for "${book.name}":`, epErr.message);
                 continue;
             }
 
@@ -322,14 +376,15 @@ export async function GET(request: NextRequest) {
                 return !existingNums.has(num);
             });
 
-            // If target page had 0 missing, but we know there are more episodes, try next page
+            // If target page had 0 missing, but we know Golponir has more episodes, try next page
             if (missingEpisodes.length === 0 && book.episode_count && existingNums.size < book.episode_count) {
                 try {
-                    const nextRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episodes`, {
+                    const nextRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(activeSlug)}/episodes`, {
                         method: 'POST',
                         headers,
                         body: JSON.stringify({ page: targetEpPage + 1, per_page: 50 }),
-                        cache: 'no-store'
+                        cache: 'no-store',
+                        signal: AbortSignal.timeout(6000)
                     });
                     if (nextRes.ok) {
                         const nextJson = await nextRes.json();
@@ -355,7 +410,7 @@ export async function GET(request: NextRequest) {
             const addedNumbers: number[] = [];
             const supaRowsToInsert: any[] = [];
 
-            // Ingest missing episodes in parallel chunks
+            // Ingest missing episodes in small batches
             const CHUNK_SIZE = 4;
             for (let i = 0; i < missingEpisodes.length; i += CHUNK_SIZE) {
                 if (Date.now() - startTime > MAX_TIME_MS) break;
@@ -367,18 +422,17 @@ export async function GET(request: NextRequest) {
                     const chapterSlug = `chapter-${epNum}`;
 
                     try {
-                        const detailRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(book.slug)}/episode/${ep.id}`, {
+                        const detailRes = await fetch(`https://golponir.com/api/books/${encodeURIComponent(activeSlug)}/episode/${ep.id}`, {
                             method: 'POST',
                             headers,
                             body: JSON.stringify({}),
-                            cache: 'no-store'
+                            cache: 'no-store',
+                            signal: AbortSignal.timeout(7000)
                         });
                         if (!detailRes.ok) return;
                         const detailJson = await detailRes.json();
                         const content = detailJson.data?.content || '';
-                        const title = detailJson.data?.title || ep.name || `Chapter ${epNum}`;
-
-                        let uploadedToR2 = false;
+                        const title = detailJson.data?.name || detailJson.data?.title || ep.name || `Chapter ${epNum}`;
 
                         // Upload to Cloudflare R2 if configured
                         if (s3 && HAS_R2) {
@@ -400,7 +454,6 @@ export async function GET(request: NextRequest) {
                                     ContentType: 'application/json'
                                 });
                                 await s3.send(cmd);
-                                uploadedToR2 = true;
                             } catch (r2Err: any) {
                                 console.warn(`[Cron Sync Novels] R2 upload failed for ${book.name} ep ${epNum}:`, r2Err.message);
                             }
@@ -413,7 +466,7 @@ export async function GET(request: NextRequest) {
                             chapter_number: epNum,
                             title,
                             slug: chapterSlug,
-                            content: content,
+                            content,
                             created_at: new Date().toISOString()
                         });
 
@@ -439,6 +492,12 @@ export async function GET(request: NextRequest) {
                         chaptersAdded: addedNumbers.length,
                         chapterNumbers: addedNumbers
                     });
+
+                    // CRUCIAL: Touch updated_at so newly updated running novels immediately jump to the top!
+                    await supabaseNovels.from('novels').update({
+                        updated_at: new Date().toISOString(),
+                        status: 'ongoing'
+                    }).eq('id', novelId);
                 }
             }
         }
@@ -457,7 +516,7 @@ export async function GET(request: NextRequest) {
                 ? `Successfully synced ${totalNewChaptersAdded} new chapter(s).`
                 : 'All running novels are up to date with Golponir.'
         }, {
-            headers: { 'Cache-Control': 'no-store' }
+            headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
         });
 
     } catch (error: any) {
@@ -466,7 +525,10 @@ export async function GET(request: NextRequest) {
             success: false,
             error: error.message || 'Unknown error occurred during sync',
             duration_ms: Date.now() - startTime
-        }, { status: 500 });
+        }, { 
+            status: 500,
+            headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
+        });
     }
 }
 
