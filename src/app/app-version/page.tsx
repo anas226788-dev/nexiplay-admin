@@ -16,7 +16,7 @@ interface WebLaunchModalState {
 }
 
 const DEFAULT_WEB_MODAL: WebLaunchModalState = {
-    enabled: true,
+    enabled: false,
     version_name: '1.0.0',
     apk_url: '',
     title: 'NexiPlay Android is here',
