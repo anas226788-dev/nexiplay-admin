@@ -344,6 +344,7 @@ export default function StreamingPage() {
         { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
         { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
         { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
+        { id: 'upcloud', name: 'UpCloud (HDToday)', icon: '☁️', desc: 'Direct 1080p HTML5 Fast Stream' },
         { id: 'flixer', name: 'Flixer (Mythology HLS)', icon: '🏛️', desc: 'Flixer 26-Mythology Cluster Auto-Switch HLS' },
         { id: 'vidcore', name: 'VidCore (Ultra)', icon: '⚡', desc: 'Direct 1080p HTML5 Video Stream' },
         { id: 'vidnest', name: 'VidNest (Ad-Free)', icon: '⚡', desc: 'Ad-Free 1080p HLS Stream' },
