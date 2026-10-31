@@ -343,7 +343,13 @@ export default function StreamingPage() {
         { id: 'vidmoly', name: 'Vidmoly Server', icon: '🎬', desc: 'Custom video host links' },
         { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
         { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
-        { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' }
+        { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
+        { id: 'primesrc', name: 'PrimeSrc (MyFlixer)', icon: '🌟', desc: 'Fast 1080p CDN Stream' },
+        { id: 'vidspark', name: 'VidSpark (MegaCloud)', icon: '☁️', desc: 'MegaCloud 1080p Multi-Sub' },
+        { id: 'vidstuck', name: 'VidStuck (Freekz)', icon: '⚡', desc: '1080p Ultra Fast Multi-Dub' },
+        { id: 'cinemaos', name: 'CinemaOS (NetPrime)', icon: '🍿', desc: 'Multi-Source HD Stream' },
+        { id: 'vidplay', name: 'VidPlay (YTHD)', icon: '🎬', desc: '1080p Stable Multi-Audio' },
+        { id: 'vidfast', name: 'VidFast', icon: '⚡', desc: 'Fast 1080p HLS Stream' }
     ];
 
     const getEnabledServers = (code: string | undefined | null) => {
