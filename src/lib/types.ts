@@ -388,3 +388,12 @@ export interface AppConfig {
     min_version_code: number;
     updated_at: string;
 }
+
+
+export interface WebLaunchModalConfig {
+    title: string;
+    subtitle: string;
+    features: string[];
+    download_btn_text: string;
+    dismiss_btn_text: string;
+}
