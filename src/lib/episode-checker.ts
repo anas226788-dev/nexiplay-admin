@@ -280,7 +280,7 @@ async function autoMatchStreaming(
 
 type CheckMode = 'running' | 'streaming';
 
-export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'running') {
+export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMode = 'running', limit?: number) {
     const results: any[] = [];
     const isStreamingMode = mode === 'streaming';
     
@@ -292,7 +292,11 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
     } else if (!isStreamingMode) {
         query = query
             .eq('is_running', true)
-            .eq('running_status', 'Ongoing');
+            .eq('running_status', 'Ongoing')
+            .order('updated_at', { ascending: true });
+        if (limit && limit > 0) {
+            query = query.limit(limit);
+        }
     }
 
     const { data: movies, error: fetchError } = await query;

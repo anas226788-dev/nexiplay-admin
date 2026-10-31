@@ -49,8 +49,10 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url);
         const movieId = searchParams.get('movieId') || undefined;
         const mode = searchParams.get('mode') === 'streaming' ? 'streaming' : 'running';
+        const limitParam = parseInt(searchParams.get('limit') || '0', 10);
+        const limit = limitParam > 0 ? limitParam : (movieId ? undefined : 2);
         
-        const results = await handleCheckEpisodes(movieId, mode);
+        const results = await handleCheckEpisodes(movieId, mode, limit);
         return NextResponse.json({ success: true, results });
     } catch (err: any) {
         console.error('Cron job failed:', err);
