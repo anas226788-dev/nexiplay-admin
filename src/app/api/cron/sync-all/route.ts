@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GET as getBollyflix } from '../sync-bollyflix/route';
 import { GET as getNovels } from '../sync-novels/route';
+import { GET as getTmdb } from '../sync-tmdb/route';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -13,7 +14,18 @@ export async function GET(request: NextRequest) {
     const results: Record<string, any> = {};
 
     try {
-        // 1. Run Bollyflix Sync
+        // 1. Run TMDB Daily Releases & Trending Sync
+        try {
+            const tmdbReq = new NextRequest(new URL(`/api/cron/sync-tmdb?key=${encodeURIComponent(key)}&limit=3`, request.url), {
+                headers: request.headers
+            });
+            const tmdbRes = await getTmdb(tmdbReq);
+            results.tmdb = await tmdbRes.json();
+        } catch (tErr: any) {
+            results.tmdb = { success: false, error: tErr.message };
+        }
+
+        // 2. Run Bollyflix Sync
         try {
             const bollyReq = new NextRequest(new URL(`/api/cron/sync-bollyflix?key=${encodeURIComponent(key)}`, request.url), {
                 headers: request.headers
@@ -24,7 +36,7 @@ export async function GET(request: NextRequest) {
             results.bollyflix = { success: false, error: bErr.message };
         }
 
-        // 2. Run Novel Sync
+        // 3. Run Novel Sync
         try {
             const novelReq = new NextRequest(new URL(`/api/cron/sync-novels?key=${encodeURIComponent(key)}`, request.url), {
                 headers: request.headers
