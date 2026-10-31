@@ -344,6 +344,7 @@ export default function StreamingPage() {
         { id: 'abyss', name: 'Nexi Vault Server', icon: '🌌', desc: 'Vault CDN Stream' },
         { id: 'vidsrc_to', name: 'VidSrc (Pro)', icon: '🔥', desc: 'Auto Embed' },
         { id: 'vidsrc_me', name: 'VidSrc.me', icon: '🚀', desc: 'Auto Embed' },
+        { id: 'vidnest', name: 'VidNest (Ad-Free)', icon: '⚡', desc: 'Ad-Free 1080p HLS Stream' },
         { id: 'primesrc', name: 'PrimeSrc (MyFlixer)', icon: '🌟', desc: 'Fast 1080p CDN Stream' },
         { id: 'vidspark', name: 'VidSpark (MegaCloud)', icon: '☁️', desc: 'MegaCloud 1080p Multi-Sub' },
         { id: 'vidstuck', name: 'VidStuck (Freekz)', icon: '⚡', desc: '1080p Ultra Fast Multi-Dub' },
