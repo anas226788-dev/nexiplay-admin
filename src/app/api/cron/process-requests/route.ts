@@ -50,13 +50,28 @@ export async function GET(request: NextRequest) {
     const host = request.headers.get('host') || '';
     const isSameOrigin = (origin && host && origin.includes(host)) || (referer && host && referer.includes(host));
 
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : authHeader?.trim();
+    const cronKeyHeader = request.headers.get('x-cron-key')?.trim();
+
+    // Supported secret keys (for cron-job.org, manual webhook, or Vercel cron)
+    const validKeys = [
+        'nexi_cron_5f9a8b7c6d1e4023a1',
+        'nexiplay_novel_sync_2026',
+        'nexiplay_cron_2026'
+    ];
+    if (cronSecret) validKeys.push(cronSecret);
+
     const isAuthorized = !cronSecret ||
         isVercelCron ||
         isSameOrigin ||
-        (!!cronSecret && (authHeader === `Bearer ${cronSecret}` || keyParam === cronSecret));
+        (!!keyParam && validKeys.includes(keyParam)) ||
+        (!!bearerToken && validKeys.includes(bearerToken)) ||
+        (!!cronKeyHeader && validKeys.includes(cronKeyHeader));
 
     if (!isAuthorized) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return NextResponse.json({
+            error: 'Unauthorized. Invalid or missing cron key. Pass ?key=nexiplay_novel_sync_2026 or ?key=nexiplay_cron_2026'
+        }, { status: 401 });
     }
 
     const startedAt = Date.now();
