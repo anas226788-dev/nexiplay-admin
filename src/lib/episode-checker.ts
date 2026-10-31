@@ -313,7 +313,21 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
         : movies;
 
     // 2. Loop Through Movies and Process
+    // Time-budget safety guard: limits execution to ~20s so cron-job.org (30s limit) never times out!
+    const loopStartTime = Date.now();
+    const MAX_CRON_EXECUTION_MS = 20000;
+
     for (const movie of targetMovies) {
+        if (!targetMovieId && (Date.now() - loopStartTime > MAX_CRON_EXECUTION_MS)) {
+            console.log('[Cron Episode Checker] 20s time budget reached. Returning 200 OK to cron-job.org.');
+            results.push({
+                id: 'time_limit_reached',
+                title: 'Time budget reached (20s cron guard)',
+                status: 'info',
+                reason: 'Remaining series will be processed on the next scheduled run.'
+            });
+            break;
+        }
         const movieTitle = movie.title;
         const movieId = movie.id;
         
