@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase-admin';
 import * as cheerio from 'cheerio';
+import { enrichFromTMDB } from '@/lib/metadata-enrichment';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -113,7 +114,8 @@ export async function GET(request: NextRequest) {
                 const $p = cheerio.load(pageHtml);
 
                 const rawTitle = $p('h1.entry-title, h1.title').first().text().trim() || $p('title').text().trim();
-                const poster = $p('.entry-content img, .post-content img, article img').first().attr('src') || item.poster || '';
+                let poster = $p('.entry-content img, .post-content img, article img').first().attr('src') || item.poster || '';
+
 
                 const yearMatch = rawTitle.match(/\b(202\d|201\d|19\d\d)\b/);
                 const release_year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
@@ -126,6 +128,17 @@ export async function GET(request: NextRequest) {
                     .replace(/\(.*?\)/g, '')
                     .replace(/\s*Movie$/i, '')
                     .trim() || rawTitle;
+
+                let tmdbId: string | null = null;
+                try {
+                    const enriched = await enrichFromTMDB(title, release_year);
+                    if (enriched?.posterUrl) {
+                        poster = enriched.posterUrl;
+                    }
+                    if (enriched?.externalIds?.tmdb_id) {
+                        tmdbId = enriched.externalIds.tmdb_id;
+                    }
+                } catch {}
 
                 const isSeries = /series|season|drama|kdrama/i.test(rawTitle) || /series|season/i.test(item.link);
                 const type = isSeries ? 'series' : 'movie';
@@ -186,6 +199,7 @@ export async function GET(request: NextRequest) {
                         type,
                         release_year,
                         poster_url: poster,
+                        tmdb_id: tmdbId,
                         description,
                         language,
                         source: 'WEB-DL',

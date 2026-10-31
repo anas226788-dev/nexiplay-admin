@@ -363,7 +363,8 @@ export async function GET(request: NextRequest) {
                         if (enriched.description && !scrapedData.description) {
                             scrapedData.description = enriched.description;
                         }
-                        if (enriched.posterUrl && !scrapedData.poster_url) {
+                        // Always prefer high-quality official vertical 2:3 theatrical poster from TMDB over blog screenshots/vlcsnaps
+                        if (enriched.posterUrl) {
                             scrapedData.poster_url = enriched.posterUrl;
                         }
                         if (enriched.releaseYear && scrapedData.release_year === new Date().getFullYear()) {
