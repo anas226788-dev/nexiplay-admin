@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         const movieId = searchParams.get('movieId') || undefined;
         const mode = searchParams.get('mode') === 'streaming' ? 'streaming' : 'running';
         const limitParam = parseInt(searchParams.get('limit') || '0', 10);
-        const limit = limitParam > 0 ? limitParam : (movieId ? undefined : 2);
+        const limit = limitParam > 0 ? limitParam : undefined;
         
         const results = await handleCheckEpisodes(movieId, mode, limit);
         return NextResponse.json({ success: true, results });

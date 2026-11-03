@@ -313,16 +313,17 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
         : movies;
 
     // 2. Loop Through Movies and Process
-    // Time-budget safety guard: limits execution to ~20s so cron-job.org (30s limit) never times out!
+    // Time-budget safety guard: limits execution to ~55s on Vercel (60s max) or 10m on CLI/GHA
     const loopStartTime = Date.now();
-    const MAX_CRON_EXECUTION_MS = 20000;
+    const isCliOrGha = process.env.GITHUB_ACTIONS === 'true' || !process.env.VERCEL;
+    const MAX_CRON_EXECUTION_MS = isCliOrGha ? 600000 : 55000;
 
     for (const movie of targetMovies) {
         if (!targetMovieId && (Date.now() - loopStartTime > MAX_CRON_EXECUTION_MS)) {
-            console.log('[Cron Episode Checker] 20s time budget reached. Returning 200 OK to cron-job.org.');
+            console.log('[Cron Episode Checker] Time budget reached. Returning cleanly.');
             results.push({
                 id: 'time_limit_reached',
-                title: 'Time budget reached (20s cron guard)',
+                title: 'Time budget reached (cron guard)',
                 status: 'info',
                 reason: 'Remaining series will be processed on the next scheduled run.'
             });
@@ -475,7 +476,8 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                 const scraperSeason = movie.scraper_season || 1;
 
                 // Scrape legacy source
-                const scrapeResult = await scrapeSource(scraperUrl, scraperSource);
+                const skipEpisodesList: (string | number)[] = (dbEpisodesList || []).map(ep => ep.episode_number);
+                const scrapeResult = await scrapeSource(scraperUrl, scraperSource, skipEpisodesList, { targetSeason: scraperSeason });
                 const scrapedEpisodes = scrapeResult.episodes;
                 const pendingSubEpisodes = scrapeResult.pendingSubEpisodes || [];
                 if (scrapeResult.warnings) {
@@ -513,13 +515,16 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                     const isRareanimes = scraperSource === 'rareanimes';
                     
                     if (scraperSource !== 'animerulz' && scraperSource !== 'toonplay') {
-                        await upsertDownloadLink(
-                            episodeId,
-                            scraperResolution,
-                            ep.link,
-                            isRareanimes ? 'dub' : null,
-                            'approved'
-                        );
+                        if (ep.link) {
+                            await upsertDownloadLink(
+                                episodeId,
+                                scraperResolution,
+                                ep.link,
+                                isRareanimes ? (ep.languageType || 'dub') : null,
+                                'approved'
+                            );
+                            importedLegacyCount++;
+                        }
                     }
 
                     if (ep.streamingUrl) {
@@ -532,7 +537,6 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                         }
                     }
 
-                    importedLegacyCount++;
                     if (ep.number > maxScrapedEpNum) {
                         maxScrapedEpNum = ep.number;
                     }

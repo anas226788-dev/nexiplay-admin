@@ -928,8 +928,20 @@ export async function scrapeSource(
             const batch = selectedEpisodes.slice(i, i + BATCH_SIZE);
             await Promise.all(batch.map(async (ep) => {
                 try {
-                    const resolved = await resolveZipperToMegaStrict(ep.zipperUrl);
                     const epNum = parseInt(ep.title.match(/\d+/)?.[0] || '0', 10);
+                    if (shouldSkipEpisode(skipEpisodes, epNum, seasonNum)) {
+                        episodes.push({
+                            season: seasonNum,
+                            number: epNum,
+                            title: ep.title,
+                            link: '',
+                            streamingUrl: ep.streamingUrl,
+                            languageType: useSubFallback ? 'sub' : 'dub',
+                        });
+                        return;
+                    }
+
+                    const resolved = await resolveZipperToMegaStrict(ep.zipperUrl);
                     let resolvedStreamingUrl = ep.streamingUrl;
                     if (ep.streamingUrl) {
                         resolvedStreamingUrl = await resolveStreamingEmbed(ep.streamingUrl);
@@ -939,7 +951,7 @@ export async function scrapeSource(
                         return;
                     }
                     if (useSubFallback) {
-                        pendingSubEpisodes.push({
+                        episodes.push({
                             season: seasonNum,
                             number: epNum,
                             title: ep.title,
@@ -947,6 +959,7 @@ export async function scrapeSource(
                             languageType: 'sub',
                             streamingUrl: resolvedStreamingUrl,
                         });
+                        resolvedCount++;
                     } else {
                         episodes.push({
                             season: seasonNum,
