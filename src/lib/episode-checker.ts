@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { scrapeSource } from '@/lib/scraper-utils';
-import { mergeMoviesWithStreaming, upsertStreamingRow } from '@/lib/streaming-table';
+import { scrapeSource } from './scraper-utils';
+import { mergeMoviesWithStreaming, upsertStreamingRow } from './streaming-table';
 
 /**
  * Smart Supabase client for episode-checker.
@@ -49,7 +49,7 @@ const supabase = new Proxy({} as SupabaseClient, {
 });
 
 
-const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix']);
+const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix', 'multi']);
 const isRunningScraperSource = (source?: string | null) => !!source && RUNNING_SCRAPER_SOURCES.has(source);
 const DISABLED_STREAMING_SCRAPER_SOURCES = new Set(['muse_india', 'anione_india']);
 
@@ -353,7 +353,13 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
         }
         
         try {
-            const hasRunningScraper = !!(movie.scraper_url && isRunningScraperSource(movie.scraper_source));
+            const hasMultiRunningSource = movie.scraper_source === 'multi' && !!movie.scraper_url && (
+                movie.scraper_url.includes('rareanimes') ||
+                movie.scraper_url.includes('fxlinks') ||
+                movie.scraper_url.includes('movielink') ||
+                movie.scraper_url.includes('bollyflix')
+            );
+            const hasRunningScraper = !!(movie.scraper_url && (isRunningScraperSource(movie.scraper_source) || hasMultiRunningSource));
             const hasStreamingScraper = !!(movie.animerulz_url || movie.toonplay_url || (movie.scraper_url && movie.scraper_source === 'multi'));
 
             // Check if movie has scraper settings configured for the selected workflow.
@@ -426,6 +432,18 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
             const sortedSeasons = [...(seasonsList || [])].sort((a, b) => b.season_number - a.season_number);
             const fallbackSeasonId = sortedSeasons[0]?.id;
 
+            const targetSeasonNum = movie.scraper_season || 1;
+            const targetSeasonEpisodes = (dbEpisodesList || []).filter(ep => {
+                const sNum = seasonIdToNumberMap.get(ep.season_id);
+                return sNum === targetSeasonNum;
+            });
+            const maxDbEpForSeason = targetSeasonEpisodes.length > 0
+                ? Math.max(...targetSeasonEpisodes.map(ep => ep.episode_number))
+                : 0;
+            if (maxDbEpForSeason > maxScrapedEpNum) {
+                maxScrapedEpNum = maxDbEpForSeason;
+            }
+
             const getEpisodeSeasonId = (epNum: number, targetSeasonNum: number): string => {
                 const key = `${targetSeasonNum}_${epNum}`;
                 const mappedSeasonId = epSeasonMap.get(key);
@@ -468,12 +486,30 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                 return true;
             };
 
-            // 1. Run Running/Manual Scraper (fxlinks, rareanimes, movielink, bollyflix etc).
-            if (movie.scraper_url && isRunningScraperSource(movie.scraper_source) && !isStreamingMode) {
-                const scraperUrl = movie.scraper_url;
-                const scraperSource = movie.scraper_source;
-                const scraperResolution = movie.scraper_resolution || '720p';
-                const scraperSeason = movie.scraper_season || 1;
+            // 1. Run Running/Manual Scraper (fxlinks, rareanimes, movielink, bollyflix, multi etc).
+            let scraperUrl = movie.scraper_url;
+            let scraperSource = movie.scraper_source;
+            const scraperResolution = movie.scraper_resolution || '720p';
+            const scraperSeason = movie.scraper_season || 1;
+
+            if (movie.scraper_source === 'multi' && movie.scraper_url?.trim().startsWith('{')) {
+                try {
+                    const multiConfig = JSON.parse(movie.scraper_url);
+                    for (const src of ['rareanimes', 'fxlinks', 'movielink', 'bollyflix']) {
+                        if (multiConfig[src]) {
+                            const srvCfg = multiConfig[src];
+                            const seasonKey = String(scraperSeason);
+                            scraperSource = src;
+                            scraperUrl = srvCfg.mode === 'separate'
+                                ? (srvCfg.urls?.[seasonKey] || srvCfg.url)
+                                : srvCfg.url;
+                            break;
+                        }
+                    }
+                } catch {}
+            }
+
+            if (scraperUrl && isRunningScraperSource(scraperSource) && !isStreamingMode) {
 
                 // Scrape legacy source
                 const skipEpisodesList: (string | number)[] = (dbEpisodesList || []).map(ep => ep.episode_number);
@@ -1143,6 +1179,36 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                         status: 'no_updates_found',
                         message: 'No streaming URLs were updated.',
                         warnings: warnings.length > 0 ? warnings : undefined
+                    });
+                    continue;
+                }
+
+                // If no new episodes were scraped today, but the database already has newer episodes
+                // than movie.last_episode (e.g. added previously or manually), sync the movie record!
+                if (maxDbEpForSeason > (movie.last_episode || 0)) {
+                    const finalLastEpisode = maxDbEpForSeason;
+                    const finalNextEpisode = maxDbEpForSeason + 1;
+                    const nextDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                    const nextEpisodeDateStr = nextDate.toISOString();
+
+                    await supabase
+                        .from('movies')
+                        .update({
+                            last_episode: finalLastEpisode,
+                            next_episode: finalNextEpisode,
+                            next_episode_date: nextEpisodeDateStr,
+                            notify_admin: true,
+                            admin_note: clearOriginalDueDate(movie.admin_note) || null,
+                        })
+                        .eq('id', movie.id);
+
+                    results.push({
+                        id: movie.id,
+                        title: movie.title,
+                        status: 'success',
+                        message: `Synced to latest episode in database (Ep ${finalLastEpisode}). Next check scheduled.`,
+                        lastEpisode: finalLastEpisode,
+                        nextEpisodeDate: nextEpisodeDateStr,
                     });
                     continue;
                 }

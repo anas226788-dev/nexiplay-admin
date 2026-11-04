@@ -216,21 +216,24 @@ function extractRareAnimesEpisodes(html: string): {
             const dubSearchArea = nextLangCut > 0 ? dubSlice.substring(0, nextLangCut) : dubSlice;
             
             const megaMatch = megaLinkRegex.exec(dubSearchArea);
-            if (megaMatch) {
+            const fallbackZipperMatch = /<a[^>]+href=["'](https?:\/\/[^"']*zipper\/[^"']*)["'][^>]*>/i.exec(dubSearchArea);
+            const targetZipper = megaMatch?.[1] || fallbackZipperMatch?.[1];
+
+            if (targetZipper) {
                 const watchMultiMatch = watchMultiRegex.exec(dubSearchArea);
                 const streamBetaMatch = streamBetaRegex.exec(dubSearchArea);
-                const streamingUrl = watchMultiMatch ? watchMultiMatch[1] : (streamBetaMatch ? streamBetaMatch[1] : undefined);
+                const streamingUrl = watchMultiMatch ? watchMultiMatch[1] : (streamBetaMatch ? streamBetaMatch[1] : targetZipper);
                 
                 dub.push({ 
                     title: cleanTitle, 
-                    zipperUrl: megaMatch[1],
+                    zipperUrl: targetZipper,
                     streamingUrl
                 });
                 seenDub.add(ep.num);
             }
         }
 
-        // Find Hindi Sub section and its Mega link. Sub links are returned separately
+        // Find Hindi Sub section and its link. Sub links are returned separately
         // so callers can keep them approval-gated instead of auto-importing them.
         const subIndex = searchSlice.search(/Hindi\s*Sub/i);
         if (subIndex !== -1 && !seenSub.has(ep.num)) {
@@ -238,8 +241,11 @@ function extractRareAnimesEpisodes(html: string): {
             const nextLangCut = subSlice.search(/Tamil|Telugu|Malayalam|Kannada|Bengali|Urdu|Arabic/i);
             const subSearchArea = nextLangCut > 0 ? subSlice.substring(0, nextLangCut) : subSlice;
             const megaMatch = megaLinkRegex.exec(subSearchArea);
-            if (megaMatch) {
-                sub.push({ title: cleanTitle, zipperUrl: megaMatch[1] });
+            const fallbackZipperMatch = /<a[^>]+href=["'](https?:\/\/[^"']*zipper\/[^"']*)["'][^>]*>/i.exec(subSearchArea);
+            const targetSubZipper = megaMatch?.[1] || fallbackZipperMatch?.[1];
+
+            if (targetSubZipper) {
+                sub.push({ title: cleanTitle, zipperUrl: targetSubZipper });
                 seenSub.add(ep.num);
             }
         }
