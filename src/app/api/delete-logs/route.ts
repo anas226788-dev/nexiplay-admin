@@ -53,6 +53,15 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ success: true, message: 'Notification deleted successfully' });
         }
 
+        if (type === 'whatsapp') {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ whatsapp_number: null })
+                .eq('id', id);
+            if (error) throw error;
+            return NextResponse.json({ success: true, message: 'WhatsApp number deleted successfully' });
+        }
+
         return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 });
     } catch (err: any) {
         console.error('Delete logs error:', err);

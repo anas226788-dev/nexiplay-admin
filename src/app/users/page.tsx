@@ -215,6 +215,24 @@ export default function UsersPage() {
         }
     };
 
+    const handleRemoveWhatsApp = async (userId: string) => {
+        if (!confirm('Are you sure you want to remove this user\'s WhatsApp number? This cannot be undone.')) return;
+        try {
+            const res = await fetch(`/api/delete-logs?type=whatsapp&id=${userId}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            setProfiles(prev => prev.map(p => p.id === userId ? { ...p, whatsapp_number: null } : p));
+            setSelectedUser((prev: any) => prev && prev.profile.id === userId ? {
+                ...prev,
+                profile: { ...prev.profile, whatsapp_number: null }
+            } : prev);
+            alert('WhatsApp number removed successfully.');
+        } catch (err: any) {
+            alert(err.message || 'Failed to remove WhatsApp number.');
+        }
+    };
+
     const handleDeleteSession = async (sessionId: string) => {
         if (!confirm('Are you sure you want to delete this session log?')) return;
         try {
@@ -292,16 +310,32 @@ export default function UsersPage() {
                             <p className="text-gray-500 text-sm mt-1 flex flex-wrap items-center gap-2">
                                 <span>{selectedUser.profile.email || selectedUser.profile.id}</span>
                                 {selectedUser.profile.whatsapp_number && (
-                                    <a
-                                        href={`https://wa.me/${selectedUser.profile.whatsapp_number.replace(/[^0-9]/g, '')}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold transition-all"
-                                        title="Click to chat on WhatsApp"
-                                        onClick={e => e.stopPropagation()}
-                                    >
-                                        💬 WhatsApp: {selectedUser.profile.whatsapp_number}
-                                    </a>
+                                    <div className="flex items-center gap-2">
+                                        <a
+                                            href={`https://wa.me/${selectedUser.profile.whatsapp_number.replace(/[^0-9]/g, '')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold transition-all"
+                                            title="Click to chat on WhatsApp"
+                                            onClick={e => e.stopPropagation()}
+                                        >
+                                            💬 WhatsApp: {selectedUser.profile.whatsapp_number}
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleRemoveWhatsApp(selectedUser.profile.id);
+                                            }}
+                                            title="Delete this WhatsApp number"
+                                            className="inline-flex items-center gap-1 text-[11px] text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600 border border-rose-500/20 px-2 py-0.5 rounded-full font-bold transition-all"
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete WP
+                                        </button>
+                                    </div>
                                 )}
                             </p>
                         </div>
@@ -828,8 +862,22 @@ export default function UsersPage() {
                                                 <div className="font-bold text-white">{user.profile.display_name || 'User'}</div>
                                                 <div className="text-xs text-gray-500">{user.profile.email || user.profile.id}</div>
                                                 {user.profile.whatsapp_number && (
-                                                    <div className="text-[11px] text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
-                                                        <span>💬</span> {user.profile.whatsapp_number}
+                                                    <div className="text-[11px] text-emerald-400 font-bold mt-0.5 flex items-center gap-1.5">
+                                                        <span>💬</span>
+                                                        <span>{user.profile.whatsapp_number}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleRemoveWhatsApp(user.profile.id);
+                                                            }}
+                                                            title="Delete this WhatsApp number"
+                                                            className="text-gray-500 hover:text-rose-400 transition-colors p-0.5 ml-1"
+                                                        >
+                                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
                                                     </div>
                                                 )}
                                             </div>
