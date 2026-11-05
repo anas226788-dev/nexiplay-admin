@@ -125,6 +125,11 @@ export default function StreamingPage() {
     const [rareanimesUrls, setRareanimesUrls] = useState<Record<number, string>>({});
     const [rareanimesEpisodeUrls, setRareanimesEpisodeUrls] = useState<Record<string, string>>({});
 
+    const [desidubanimeLinkMode, setDesidubanimeLinkMode] = useState<ScraperLinkMode>('single');
+    const [desidubanimeUrl, setDesidubanimeUrl] = useState<string>('');
+    const [desidubanimeUrls, setDesidubanimeUrls] = useState<Record<number, string>>({});
+    const [desidubanimeEpisodeUrls, setDesidubanimeEpisodeUrls] = useState<Record<string, string>>({});
+
     const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
     useEffect(() => {
@@ -160,6 +165,20 @@ export default function StreamingPage() {
             setRareanimesUrls(raUrls);
             const raEpisodeUrls = readEpisodeUrls(ra);
             setRareanimesEpisodeUrls(raEpisodeUrls);
+
+            // DesiDubAnime (Nexi Deshi Server)
+            const dd = parsedOther.desidubanime || {};
+            setDesidubanimeLinkMode(dd.mode || 'single');
+            setDesidubanimeUrl(dd.url || '');
+            const ddUrls: Record<number, string> = {};
+            if (dd.urls) {
+                for (const [k, v] of Object.entries(dd.urls)) {
+                    ddUrls[parseInt(k)] = v as string;
+                }
+            }
+            setDesidubanimeUrls(ddUrls);
+            const ddEpisodeUrls = readEpisodeUrls(dd);
+            setDesidubanimeEpisodeUrls(ddEpisodeUrls);
 
             if (editingScraperMovie.type === 'anime' || editingScraperMovie.type === 'series') {
                 supabase
@@ -246,6 +265,10 @@ export default function StreamingPage() {
             setRareanimesUrl('');
             setRareanimesUrls({});
             setRareanimesEpisodeUrls({});
+            setDesidubanimeLinkMode('single');
+            setDesidubanimeUrl('');
+            setDesidubanimeUrls({});
+            setDesidubanimeEpisodeUrls({});
             setExpandedSection(null);
         }
     }, [editingScraperMovie]);
@@ -278,6 +301,18 @@ export default function StreamingPage() {
                 url: rareanimesLinkMode === 'single' ? rareanimesUrl.trim() : '',
                 urls: rareanimesLinkMode === 'separate' ? raFiltered : {},
                 episodeUrls: rareanimesLinkMode === 'episode' ? raEpisodeFiltered : {}
+            };
+        }
+
+        // DesiDubAnime (Nexi Deshi Server)
+        const ddFiltered = filterGenericSeasonUrls(desidubanimeUrls);
+        const ddEpisodeFiltered = filterGenericEpisodeUrls(desidubanimeEpisodeUrls);
+        if (desidubanimeUrl.trim() || Object.keys(ddFiltered).length > 0 || Object.keys(ddEpisodeFiltered).length > 0) {
+            payload.desidubanime = {
+                mode: desidubanimeLinkMode,
+                url: desidubanimeLinkMode === 'single' ? desidubanimeUrl.trim() : '',
+                urls: desidubanimeLinkMode === 'separate' ? ddFiltered : {},
+                episodeUrls: desidubanimeLinkMode === 'episode' ? ddEpisodeFiltered : {}
             };
         }
 
@@ -1517,6 +1552,12 @@ export default function StreamingPage() {
 
                             {[
                                 { key: 'custom', name: 'Direct / Custom Player Override', icon: '⭐', placeholder: 'https://cdn.example.com/movie.mp4 or embed URL...' },
+                                { key: 'desidub', name: 'Nexi Deshi Server', icon: '🇧🇩', placeholder: 'https://www.desidubanime.me/watch/... or embed URL', isHindi: true },
+                                { key: 'desidub_abyss', name: 'Nexi Deshi Server 1 (Abyss)', icon: '🌀', placeholder: 'https://player.abyssplayer.com/... or https://play.abyssplayer.com/...', isHindi: true },
+                                { key: 'desidub_filemoon', name: 'Nexi Deshi Server 2 (Filemoon)', icon: '🎬', placeholder: 'https://bysetayico.com/e/...', isHindi: true },
+                                { key: 'desidub_streamtape', name: 'Nexi Deshi Server 3 (Streamtape)', icon: '📼', placeholder: 'https://streamtape.site/e/...', isHindi: true },
+                                { key: 'desidub_earnvids', name: 'Nexi Deshi Server 4 (Earnvids)', icon: '🎥', placeholder: 'https://hanerix.com/e/... or https://morencius.com/v/...', isHindi: true },
+                                { key: 'desidub_doodstream', name: 'Nexi Deshi Server 5 (Doodstream)', icon: '⚡', placeholder: 'https://dood.li/e/...', isHindi: true },
                                 { key: 'circleftp', name: 'CircleFTP / BDIX Server', icon: '🇧🇩', placeholder: 'http://circleftp.net/... or http://new.circleftp.net:5000/api/...' },
                                 { key: 'moviebox', name: 'MovieBox HD Server', icon: '🎬', placeholder: 'https://movieboxhd.net/movies/... or detailPath' },
                                 { key: 'rareanimes', name: 'RR Nexiplay (Hindi Dub & Sub)', icon: '🎴', placeholder: 'https://rareanimes.mov/hindi/...', isHindi: true },
@@ -1642,6 +1683,12 @@ export default function StreamingPage() {
                                         <span className="text-[10px] font-bold text-gray-400 uppercase mr-1">Edit Server URL:</span>
                                         {[
                                             { key: 'custom', label: 'Custom / Direct Override', color: 'bg-white/5 border-white/10 text-white' },
+                                            { key: 'desidub', label: 'Nexi Deshi Server', isHindi: true, color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
+                                            { key: 'desidub_abyss', label: 'Nexi Deshi 1 (Abyss)', isHindi: true, color: 'bg-cyan-500/10 border-cyan-500/25 text-cyan-400' },
+                                            { key: 'desidub_filemoon', label: 'Nexi Deshi 2 (Filemoon)', isHindi: true, color: 'bg-pink-500/10 border-pink-500/25 text-pink-400' },
+                                            { key: 'desidub_streamtape', label: 'Nexi Deshi 3 (Streamtape)', isHindi: true, color: 'bg-blue-500/10 border-blue-500/25 text-blue-400' },
+                                            { key: 'desidub_earnvids', label: 'Nexi Deshi 4 (Earnvids)', isHindi: true, color: 'bg-teal-500/10 border-teal-500/25 text-teal-400' },
+                                            { key: 'desidub_doodstream', label: 'Nexi Deshi 5 (Doodstream)', isHindi: true, color: 'bg-amber-500/10 border-amber-500/25 text-amber-400' },
                                             { key: 'rareanimes', label: 'RR Nexiplay (Hindi)', isHindi: true, color: 'bg-amber-500/10 border-amber-500/25 text-amber-400' },
                                             { key: 'animekhor', label: 'AnimeKhor (Hindi/Bangla)', isHindi: true, color: 'bg-amber-500/10 border-amber-500/25 text-amber-400' },
                                             { key: 'circleftp', label: 'CircleFTP (BDIX)', color: 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400' },
@@ -1903,6 +1950,89 @@ export default function StreamingPage() {
                                         >
                                             ➕ Add Episode Link
                                         </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Section: Nexi Deshi Server (DesiDubAnime Scraper) */}
+                            <div className="bg-black/30 p-5 rounded-xl border border-emerald-500/20 space-y-4">
+                                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <span>🇧🇩</span> Nexi Deshi Server (DesiDubAnime Scraper - 5 Servers)
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Link Mode:</span>
+                                        <select
+                                            value={desidubanimeLinkMode}
+                                            onChange={(e) => setDesidubanimeLinkMode(e.target.value as any)}
+                                            className="bg-dark-900 border border-white/10 rounded px-2 py-1 text-white text-[11px] focus:outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="single">One Link All Seasons</option>
+                                            <option value="separate">Separate Season Links</option>
+                                            <option value="episode">Separate Episode Links</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {desidubanimeLinkMode === 'single' ? (
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">DesiDubAnime URL (Series or Episode)</label>
+                                        <input
+                                            type="text"
+                                            value={desidubanimeUrl}
+                                            onChange={(e) => setDesidubanimeUrl(e.target.value)}
+                                            className="w-full bg-dark-900 border border-white/10 rounded-lg p-2.5 text-white text-xs focus:outline-none focus:border-emerald-500"
+                                            placeholder="https://www.desidubanime.me/anime/... or /watch/..."
+                                        />
+                                    </div>
+                                ) : desidubanimeLinkMode === 'separate' ? (
+                                    <div className="space-y-3">
+                                        {scraperSeasons.length === 0 ? (
+                                            <p className="text-[11px] text-gray-400 italic">No seasons configured. Click &ldquo;+ Add Season Link&rdquo; above to add fields.</p>
+                                        ) : (
+                                            scraperSeasons.map((season) => (
+                                                <div key={season.id} className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-gray-300 w-20">Season {season.season_number}:</span>
+                                                    <input
+                                                        type="text"
+                                                        value={desidubanimeUrls[season.season_number] || ''}
+                                                        onChange={(e) => setDesidubanimeUrls({
+                                                            ...desidubanimeUrls,
+                                                            [season.season_number]: e.target.value
+                                                        })}
+                                                        className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                                                        placeholder={`DesiDubAnime URL for Season ${season.season_number}...`}
+                                                    />
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {scraperEpisodes.length === 0 ? (
+                                            <p className="text-[11px] text-gray-400 italic">No episodes configured. Click &ldquo;+ Add Episode Link&rdquo; above to add fields.</p>
+                                        ) : (
+                                            scraperEpisodes.map((episode) => {
+                                                const key = `${episode.season_number}_${episode.episode_number}`;
+                                                return (
+                                                    <div key={episode.id || key} className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-gray-300 w-24">
+                                                            S{episode.season_number} E{episode.episode_number}:
+                                                        </span>
+                                                        <input
+                                                            type="text"
+                                                            value={desidubanimeEpisodeUrls[key] || ''}
+                                                            onChange={(e) => setDesidubanimeEpisodeUrls({
+                                                                ...desidubanimeEpisodeUrls,
+                                                                [key]: e.target.value
+                                                            })}
+                                                            className="flex-1 bg-dark-900 border border-white/10 rounded-lg p-2 text-white text-xs focus:outline-none focus:border-emerald-500"
+                                                            placeholder={`DesiDubAnime URL for Episode ${episode.episode_number}...`}
+                                                        />
+                                                    </div>
+                                                );
+                                            })
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -2,7 +2,7 @@ import type { ScrapedEpisode, ScrapedResult } from '@/lib/scraper-utils';
 
 export type ContentType = 'movie' | 'series' | 'anime';
 export type ImportType = ContentType | 'auto';
-export type ScraperSource = 'rareanimes' | 'bollyflix' | 'movielink';
+export type ScraperSource = 'rareanimes' | 'bollyflix' | 'movielink' | 'desidubanime';
 
 export interface AgentPageMetadata {
     title?: string;
@@ -48,7 +48,7 @@ export interface NormalizedScrapedData {
 }
 
 const VALID_TYPES: readonly ContentType[] = ['movie', 'series', 'anime'];
-const VALID_SOURCES: readonly ScraperSource[] = ['rareanimes', 'bollyflix', 'movielink'];
+const VALID_SOURCES: readonly ScraperSource[] = ['rareanimes', 'bollyflix', 'movielink', 'desidubanime'];
 const FALLBACK_YEAR = new Date().getFullYear();
 
 export function isContentType(value: unknown): value is ContentType {
@@ -338,4 +338,5 @@ export const scraperSourceLabels: Record<ScraperSource, string> = {
     rareanimes: 'RareAnimes',
     bollyflix: 'BollyFlix',
     movielink: 'MovieLinkBD',
+    desidubanime: 'DesiDubAnime (Nexi Deshi)',
 };

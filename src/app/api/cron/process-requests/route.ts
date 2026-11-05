@@ -156,6 +156,7 @@ export async function GET(request: NextRequest) {
             bollyflix: settings?.bollyflix_url || 'https://bollyflix.af',
             rareanimes: settings?.rareanimes_url || 'https://rareanimes.mov',
             movielink: settings?.movielink_url || 'https://vg4rru.movielinkbd.li',
+            desidubanime: 'https://www.desidubanime.me',
         };
 
         // 3. Fetch categories for genre mapping

@@ -49,7 +49,7 @@ const supabase = new Proxy({} as SupabaseClient, {
 });
 
 
-const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix', 'multi']);
+const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix', 'multi', 'desidubanime']);
 const isRunningScraperSource = (source?: string | null) => !!source && RUNNING_SCRAPER_SOURCES.has(source);
 const DISABLED_STREAMING_SCRAPER_SOURCES = new Set(['muse_india', 'anione_india']);
 
@@ -471,7 +471,16 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                     streamingUrlObj.legacy = currentEp.streaming_url;
                 }
 
-                streamingUrlObj[serverKey] = streamUrl;
+                if (streamUrl && streamUrl.trim().startsWith('{')) {
+                    try {
+                        const parsedSubs = JSON.parse(streamUrl);
+                        Object.assign(streamingUrlObj, parsedSubs);
+                    } catch {
+                        streamingUrlObj[serverKey] = streamUrl;
+                    }
+                } else {
+                    streamingUrlObj[serverKey] = streamUrl;
+                }
 
                 const { error: updateEpError } = await supabase
                     .from('episodes')
@@ -564,9 +573,30 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                     }
 
                     if (ep.streamingUrl) {
+                        let finalStreamUrl = ep.streamingUrl;
+                        try {
+                            const { data: currentEp } = await supabase
+                                .from('episodes')
+                                .select('streaming_url')
+                                .eq('id', episodeId)
+                                .single();
+                            let streamingUrlObj: Record<string, string> = {};
+                            if (currentEp?.streaming_url && currentEp.streaming_url.trim().startsWith('{')) {
+                                streamingUrlObj = JSON.parse(currentEp.streaming_url);
+                            } else if (currentEp?.streaming_url) {
+                                streamingUrlObj.custom = currentEp.streaming_url;
+                            }
+                            if (ep.streamingUrl.trim().startsWith('{')) {
+                                Object.assign(streamingUrlObj, JSON.parse(ep.streamingUrl));
+                            } else {
+                                streamingUrlObj[scraperSource] = ep.streamingUrl;
+                            }
+                            finalStreamUrl = JSON.stringify(streamingUrlObj);
+                        } catch {}
+
                         const { error: updateEpError } = await supabase
                             .from('episodes')
-                            .update({ streaming_url: ep.streamingUrl })
+                            .update({ streaming_url: finalStreamUrl })
                             .eq('id', episodeId);
                         if (updateEpError) {
                             console.warn(`[Cron Legacy] Failed to save streaming_url for episode ${ep.number}:`, updateEpError);

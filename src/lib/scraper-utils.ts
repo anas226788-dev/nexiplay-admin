@@ -781,10 +781,13 @@ export function shouldSkipEpisode(
  */
 export async function scrapeSource(
     url: string,
-    source: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix' | 'animerulz' | 'toonplay' | 'animeworld' | 'animixstream' | 'toonstream' | 'muse_india' | 'anione_india',
+    source: 'fxlinks' | 'rareanimes' | 'movielink' | 'bollyflix' | 'animerulz' | 'toonplay' | 'animeworld' | 'animixstream' | 'toonstream' | 'muse_india' | 'anione_india' | 'desidubanime',
     skipEpisodes: (string | number)[] = [],
     options: { disableSequels?: boolean; targetSeason?: number; movieTitle?: string; isStreamingOnly?: boolean } = {}
 ): Promise<ScrapedResult> {
+    if (source === 'desidubanime') {
+        return scrapeDesiDubAnime(url, skipEpisodes, options.targetSeason);
+    }
     if (source === 'animeworld') {
         return scrapeAnimeWorld(url, skipEpisodes, options.targetSeason);
     }
@@ -3049,6 +3052,238 @@ export async function scrapeYouTubeSource(
 
     return {
         pageTitle: `${sourceName} Channel/Playlist`,
+        resolution: '1080p',
+        seasonZipLink: null,
+        episodes,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        totalFound: episodes.length,
+        resolvedCount
+    };
+}
+
+/**
+ * Scraper for DesiDubAnime (https://www.desidubanime.me/)
+ * Extracts all 5 playback servers:
+ * 1. Nexi Deshi Server 1 (Abyss)
+ * 2. Nexi Deshi Server 2 (Filemoon)
+ * 3. Nexi Deshi Server 3 (Streamtape)
+ * 4. Nexi Deshi Server 4 (Earnvids)
+ * 5. Nexi Deshi Server 5 (Doodstream)
+ * plus primary Nexi Deshi Server (desidub)
+ */
+export async function scrapeDesiDubAnime(
+    url: string,
+    skipEpisodes: (string | number)[] = [],
+    targetSeason?: number
+): Promise<ScrapedResult> {
+    const inputUrl = (url || '').trim();
+    console.log(`[DesiDubAnime] Scraping URL: ${inputUrl}`);
+
+    const warnings: string[] = [];
+    const episodes: ScrapedEpisode[] = [];
+    let pageTitle = 'DesiDub Anime';
+    let resolvedCount = 0;
+
+    const skipSet = new Set(skipEpisodes.map(e => String(e)));
+
+    try {
+        const response = await fetch(inputUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                'Referer': 'https://www.desidubanime.me/'
+            },
+            signal: AbortSignal.timeout(15000)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${inputUrl}: HTTP ${response.status}`);
+        }
+
+        const html = await response.text();
+
+        const titleMatch = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || html.match(/<title>([\s\S]*?)<\/title>/i);
+        if (titleMatch) {
+            pageTitle = titleMatch[1].replace(/<[^>]+>/g, '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+        }
+
+        const isWatchPage = inputUrl.includes('/watch/');
+        let episodeUrls: { number: number; title: string; watchUrl: string }[] = [];
+
+        if (isWatchPage) {
+            const animeMatch = html.match(/href=["'](https?:\/\/(?:www\.)?desidubanime\.me\/anime\/[^"']+)["']/i);
+            if (animeMatch && animeMatch[1]) {
+                try {
+                    const seriesRes = await fetch(animeMatch[1], {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                            'Referer': inputUrl
+                        },
+                        signal: AbortSignal.timeout(15000)
+                    });
+                    if (seriesRes.ok) {
+                        const seriesHtml = await seriesRes.text();
+                        const sTitleMatch = seriesHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+                        if (sTitleMatch) {
+                            pageTitle = sTitleMatch[1].replace(/<[^>]+>/g, '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+                        }
+                        const seriesWatchMatches = [...seriesHtml.matchAll(/href=["'](https?:\/\/(?:www\.)?desidubanime\.me\/watch\/[^"']+)["']/gi)];
+                        const uniqueUrls = [...new Set(seriesWatchMatches.map(m => m[1]))];
+                        uniqueUrls.forEach(u => {
+                            const epNumMatch = u.match(/episode-(\d+)/i) || u.match(/ep-(\d+)/i) || u.match(/-(\d+)\/?$/);
+                            const epNum = epNumMatch ? parseInt(epNumMatch[1], 10) : 0;
+                            if (epNum > 0) {
+                                episodeUrls.push({ number: epNum, title: `Episode ${epNum}`, watchUrl: u });
+                            }
+                        });
+                    }
+                } catch {}
+            }
+
+            if (episodeUrls.length === 0) {
+                const epNumMatch = inputUrl.match(/episode-(\d+)/i) || inputUrl.match(/ep-(\d+)/i) || inputUrl.match(/-(\d+)\/?$/);
+                const epNum = epNumMatch ? parseInt(epNumMatch[1], 10) : 1;
+                episodeUrls.push({ number: epNum, title: `Episode ${epNum}`, watchUrl: inputUrl });
+            }
+        } else {
+            const watchMatches = [...html.matchAll(/href=["'](https?:\/\/(?:www\.)?desidubanime\.me\/watch\/[^"']+)["']/gi)];
+            const uniqueUrls = [...new Set(watchMatches.map(m => m[1]))];
+            uniqueUrls.forEach(u => {
+                const epNumMatch = u.match(/episode-(\d+)/i) || u.match(/ep-(\d+)/i) || u.match(/-(\d+)\/?$/);
+                const epNum = epNumMatch ? parseInt(epNumMatch[1], 10) : 0;
+                if (epNum > 0) {
+                    episodeUrls.push({ number: epNum, title: `Episode ${epNum}`, watchUrl: u });
+                }
+            });
+        }
+
+        episodeUrls.sort((a, b) => a.number - b.number);
+        const seenNumbers = new Set<number>();
+        episodeUrls = episodeUrls.filter(ep => {
+            if (seenNumbers.has(ep.number)) return false;
+            seenNumbers.add(ep.number);
+            return true;
+        });
+
+        const resolveEpisodeData = async (epItem: { number: number; title: string; watchUrl: string }) => {
+            if (skipSet.has(String(epItem.number))) return null;
+
+            try {
+                let epHtml = '';
+                if (isWatchPage && epItem.watchUrl === inputUrl) {
+                    epHtml = html;
+                } else {
+                    const epRes = await fetch(epItem.watchUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                            'Referer': inputUrl
+                        },
+                        signal: AbortSignal.timeout(12000)
+                    });
+                    if (!epRes.ok) return null;
+                    epHtml = await epRes.text();
+                }
+
+                const iframeMatch = epHtml.match(/<iframe[^>]+src=["']([^"']+)["']/i);
+                const iframeSrc = iframeMatch ? iframeMatch[1] : null;
+                if (!iframeSrc) return null;
+
+                const serverMap: Record<string, string> = {};
+
+                if (iframeSrc.includes('filesforever.link/embed/') || iframeSrc.includes('pro.iqsmartgames.com/svid/')) {
+                    const sidMatch = iframeSrc.match(/(?:embed|svid)\/([a-zA-Z0-9_-]+)/);
+                    if (sidMatch) {
+                        const sid = sidMatch[1];
+                        const helperRes = await fetch('https://pro.iqsmartgames.com/embedhelper2.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                                'Referer': `https://pro.iqsmartgames.com/svid/${sid}`,
+                                'Origin': 'https://pro.iqsmartgames.com'
+                            },
+                            body: new URLSearchParams({ sid, UserFavSite: '', currentDomain: '[]' }).toString(),
+                            signal: AbortSignal.timeout(10000)
+                        });
+
+                        if (helperRes.ok) {
+                            const json = await helperRes.json() as any;
+                            if (json?.mresult) {
+                                const decoded = Buffer.from(json.mresult, 'base64').toString('utf8');
+                                const ids = JSON.parse(decoded);
+                                const sources = json.sources || {};
+
+                                // 1. Abyss
+                                if (ids.abys && sources.abys) {
+                                    serverMap.desidub_abyss = `${sources.abys.siteUrl}${ids.abys}`;
+                                }
+                                // 2. Filemoon / Byse
+                                if (ids.flmn && sources.flmn) {
+                                    serverMap.desidub_filemoon = `${sources.flmn.siteUrl}${ids.flmn}`;
+                                }
+                                // 3. Streamtape
+                                if (ids.strmtp && sources.strmtp) {
+                                    const suffix = sources.strmtp.embed_suffix || '';
+                                    serverMap.desidub_streamtape = `${sources.strmtp.siteUrl}${ids.strmtp}${suffix}`;
+                                }
+                                // 4. Earnvids / StreamHG / Filelions
+                                if (ids.flls && sources.flls) {
+                                    serverMap.desidub_earnvids = `${sources.flls.siteUrl}${ids.flls}`;
+                                } else if (ids.smwh && sources.smwh) {
+                                    serverMap.desidub_earnvids = `${sources.smwh.siteUrl}${ids.smwh}`;
+                                }
+                                // 5. Doodstream
+                                if (ids.ddstm && sources.ddstm) {
+                                    serverMap.desidub_doodstream = `${sources.ddstm.siteUrl}${ids.ddstm}`;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (iframeSrc.includes('abyssplayer.com') || iframeSrc.includes('abyss.to') || iframeSrc.includes('short.ink')) {
+                    const parts = iframeSrc.split('/').filter(Boolean);
+                    const id = parts[parts.length - 1];
+                    const abyssUrl = `https://player.abyssplayer.com/${id}`;
+                    serverMap.desidub_abyss = abyssUrl;
+                }
+
+                const primary = serverMap.desidub_abyss || serverMap.desidub_filemoon || serverMap.desidub_streamtape || serverMap.desidub_earnvids || serverMap.desidub_doodstream || iframeSrc;
+                serverMap.desidub = primary;
+
+                return {
+                    number: epItem.number,
+                    title: epItem.title,
+                    link: epItem.watchUrl,
+                    streamingUrl: JSON.stringify(serverMap),
+                    languageType: 'dub' as const,
+                    season: targetSeason
+                };
+            } catch (err: any) {
+                console.warn(`[DesiDubAnime] Failed to scrape Ep ${epItem.number}:`, err.message);
+                return null;
+            }
+        };
+
+        const CHUNK_SIZE = 3;
+        for (let i = 0; i < episodeUrls.length; i += CHUNK_SIZE) {
+            const chunk = episodeUrls.slice(i, i + CHUNK_SIZE);
+            const results = await Promise.all(chunk.map(resolveEpisodeData));
+            for (const r of results) {
+                if (r) {
+                    episodes.push(r);
+                    resolvedCount++;
+                }
+            }
+        }
+    } catch (e: any) {
+        console.error('[DesiDubAnime] Scraper Error:', e.message);
+        warnings.push(`DesiDubAnime Scraper: ${e.message}`);
+    }
+
+    episodes.sort((a, b) => a.number - b.number);
+
+    return {
+        pageTitle: `${pageTitle} (Nexi Deshi Server)`,
         resolution: '1080p',
         seasonZipLink: null,
         episodes,
