@@ -9,6 +9,8 @@ export default function SettingsPage() {
     const [telegramSettings, setTelegramSettings] = useState<TelegramSettings | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [purging, setPurging] = useState(false);
+    const [purgeResult, setPurgeResult] = useState<string | null>(null);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
@@ -43,6 +45,23 @@ export default function SettingsPage() {
             setMessage({ type: 'error', text: 'Failed to load settings.' });
         } finally {
             setLoading(false);
+        }
+    }
+
+    async function handlePurgeLogs() {
+        if (!confirm('This will delete user activity logs older than 7 days to free up database storage and log quotas. Continue?')) return;
+        setPurging(true);
+        setPurgeResult(null);
+        try {
+            const res = await fetch('/api/cron/purge-logs?days=7', { method: 'POST' });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to purge logs');
+            setPurgeResult(`Cleaned ${data.purgedEventsCount} event logs and ${data.purgedSessionsCount} session logs.`);
+            setTimeout(() => setPurgeResult(null), 6000);
+        } catch (err: any) {
+            setPurgeResult('Error: ' + err.message);
+        } finally {
+            setPurging(false);
         }
     }
 
@@ -453,6 +472,46 @@ export default function SettingsPage() {
                         </button>
                     </div>
                 </form>
+
+                {/* ══ Database Maintenance & Optimization ══ */}
+                <div className="glass-panel p-6 sm:p-8 rounded-2xl border border-white/10 mt-8 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                                <span>🧹</span> Database Health & Auto-Purge
+                            </h2>
+                            <p className="text-xs sm:text-sm text-gray-400 mt-1">
+                                Clean up user sessions and event logs older than 7 days to preserve Supabase free storage and quotas.
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={handlePurgeLogs}
+                            disabled={purging}
+                            className="px-5 py-2.5 bg-rose-600/10 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/20 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-2 disabled:opacity-50 shrink-0"
+                        >
+                            {purging ? (
+                                <>
+                                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Purging...
+                                </>
+                            ) : (
+                                <>
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Purge Logs (&gt; 7 Days)
+                                </>
+                            )}
+                        </button>
+                    </div>
+
+                    {purgeResult && (
+                        <div className="p-3 bg-violet-500/10 border border-violet-500/20 text-violet-300 rounded-xl text-xs font-semibold animate-fade-in">
+                            {purgeResult}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

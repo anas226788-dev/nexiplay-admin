@@ -1,0 +1,17 @@
+name: Weekly Database Log Purge
+
+on:
+  schedule:
+    # Runs every Sunday at 3:00 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions
+
+jobs:
+  purge-logs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Purge Logs Endpoint
+        run: |
+          ADMIN_URL="${{ secrets.NEXT_PUBLIC_ADMIN_URL || 'https://nexiplay-admin.vercel.app' }}"
+          curl -s -X POST "$ADMIN_URL/api/cron/purge-logs?days=7" \
+            -H "Content-Type: application/json"
