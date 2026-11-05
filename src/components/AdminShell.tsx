@@ -11,8 +11,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const isNested = useContext(AdminShellContext);
     const pathname = usePathname();
     const isEmbed = pathname?.startsWith('/embed');
+    const isLogin = pathname?.startsWith('/login');
 
-    if (isNested || isEmbed) {
+    if (isNested || isEmbed || isLogin) {
         return <>{children}</>;
     }
 
@@ -20,8 +21,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     const [runningAlerts, setRunningAlerts] = useState(0);
     const [pendingRequests, setPendingRequests] = useState(0);
 
+    const handleLogout = async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' });
+        } catch {}
+        window.location.href = '/login';
+    };
+
     useEffect(() => {
-        if (isEmbed) return;
+        if (isEmbed || isLogin) return;
 
         const fetchAlerts = async () => {
             const { data } = await supabase
@@ -51,9 +59,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             }
         };
         fetchPendingRequests();
-    }, [pathname, isEmbed]); // Refresh when navigating
+    }, [pathname, isEmbed, isLogin]); // Refresh when navigating
 
-    if (isEmbed) {
+    if (isEmbed || isLogin) {
         return <>{children}</>;
     }
 
@@ -129,16 +137,26 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                             </Link>
                         );
                     })}
-
-
-
                 </nav>
+
+                {/* Logout / Lock Button */}
+                <div className="p-4 border-t border-white/5">
+                    <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400/90 hover:bg-rose-500/10 hover:text-rose-300 border border-transparent hover:border-rose-500/20 transition-all font-medium text-sm group"
+                    >
+                        <svg className="w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        <span>Lock Console</span>
+                    </button>
+                </div>
             </aside>
 
             {/* Mobile Bottom Navigation */}
             <div className="md:hidden fixed bottom-0 left-0 right-0 glass-nav z-50 pb-safe">
                 <nav className="flex items-center justify-around p-2">
-                    {menuItems.slice(0, 4).map((item) => { // Show 4 items since logout is gone
+                    {menuItems.slice(0, 4).map((item) => {
                         const isActive = pathname === item.path || (item.path !== '/' && pathname?.startsWith(item.path));
                         return (
                             <Link
@@ -202,6 +220,18 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
                                 <span className="text-xs text-gray-400 font-medium">{item.name}</span>
                             </Link>
                         ))}
+                    </div>
+
+                    <div className="mt-auto pt-6 border-t border-white/10">
+                        <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center justify-center gap-2 p-3 bg-rose-500/10 text-rose-300 border border-rose-500/20 rounded-xl font-bold text-sm"
+                        >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            <span>Lock / Logout</span>
+                        </button>
                     </div>
                 </div>
             )}
