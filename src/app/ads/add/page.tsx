@@ -51,9 +51,10 @@ export default function AddAdPage() {
         }
 
         try {
-            const { error: insertError } = await supabase
-                .from('ads')
-                .insert([{
+            const res = await fetch('/api/manage-ads', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
                     title: formData.title.trim(),
                     placement: formData.placement,
                     ad_type: formData.ad_type,
@@ -62,11 +63,14 @@ export default function AddAdPage() {
                     destination_url: formData.ad_type === 'image' ? formData.destination_url.trim() : null,
                     device_target: formData.device_target,
                     is_active: formData.is_active,
-                    // Set safe default size to avoid constraints (optional)
                     size: 'auto'
-                }]);
+                })
+            });
 
-            if (insertError) throw insertError;
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result.error || 'Failed to create ad.');
+            }
 
             // Success - Redirect
             router.push('/ads');

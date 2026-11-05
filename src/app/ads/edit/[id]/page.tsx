@@ -37,13 +37,11 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
     useEffect(() => {
         async function fetchAd() {
             try {
-                const { data, error } = await supabase
-                    .from('ads')
-                    .select('*')
-                    .eq('id', id)
-                    .single();
-
-                if (error) throw error;
+                // Fetch through server API endpoint to prevent client adblockers from blocking supabase.co query
+                const res = await fetch(`/api/manage-ads?id=${id}`);
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error || 'Failed to load ad');
+                const data = result.ad;
 
                 if (data) {
                     setFormData({
@@ -55,6 +53,27 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
                 }
             } catch (err: any) {
                 console.error('Fetch Error:', err);
+                try {
+                    const { data, error } = await supabase
+                        .from('ads')
+                        .select('*')
+                        .eq('id', id)
+                        .single();
+
+                    if (error) throw error;
+
+                    if (data) {
+                        setFormData({
+                            ...data,
+                            script_code: data.script_code || '',
+                            image_url: data.image_url || '',
+                            destination_url: data.destination_url || ''
+                        });
+                        return;
+                    }
+                } catch (fallbackErr) {
+                    console.error('Fallback Fetch Error:', fallbackErr);
+                }
                 setError('Failed to load ad details.');
             } finally {
                 setLoading(false);
@@ -77,9 +96,12 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
         }
 
         try {
-            const { error: updateError } = await supabase
-                .from('ads')
-                .update({
+            // Update through server API route to bypass browser AdBlockers and bypass Supabase RLS
+            const res = await fetch('/api/manage-ads', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id,
                     title: formData.title.trim(),
                     placement: formData.placement,
                     ad_type: formData.ad_type,
@@ -89,9 +111,12 @@ export default function EditAdPage({ params }: { params: Promise<{ id: string }>
                     device_target: formData.device_target,
                     is_active: formData.is_active
                 })
-                .eq('id', id);
+            });
 
-            if (updateError) throw updateError;
+            const result = await res.json();
+            if (!res.ok) {
+                throw new Error(result.error || 'Failed to update ad.');
+            }
 
             // Success
             router.push('/ads');
