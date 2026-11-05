@@ -5,15 +5,6 @@
             "destination": "/",
             "permanent": true
         }
-    ],
-    "crons": [
-        {
-            "path": "/api/cron/check-episodes",
-            "schedule": "0 */2 * * *"
-        },
-        {
-            "path": "/api/cron/process-requests",
-            "schedule": "0 */4 * * *"
-        }
     ]
 }
+
