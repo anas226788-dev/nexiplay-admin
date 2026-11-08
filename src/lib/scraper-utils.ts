@@ -1898,23 +1898,11 @@ export async function scrapeToonplay(
                 const playerUrl = extractData.data?.videoPlayerUrl;
                 if (!playerUrl) throw new Error("Could not extract playerUrl from AnimeSalt episode link");
 
-                const streamRes = await undiciFetch(
-                    `https://extract.streamindia.co.in/api?url=${encodeURIComponent(playerUrl)}`,
-                    {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                            'Referer': 'https://toonplay.in/',
-                            'Origin': 'https://toonplay.in'
-                        },
-                        signal: AbortSignal.timeout(15000),
-                    }
-                );
-                if (!streamRes.ok) throw new Error(`Stream extraction returned status ${streamRes.status}`);
-                const streamData = await streamRes.json() as any;
-                
-                const files = streamData.files || {};
-                const m3u8Url = files.hin || files.eng || Object.values(files)[0];
-                if (!m3u8Url) throw new Error("No m3u8 stream found in extraction results");
+                const watchServers: any[] = extractData.data?.watchServers || [];
+                const abyssServer = watchServers.find((ws: any) => (ws.url || '').includes('animesalt.cx') && (ws.url || '').includes('player.php'));
+                const embedUrl = abyssServer?.url 
+                    ? `https://animesalt.streamindia.co.in/abyss?url=${encodeURIComponent(abyssServer.url)}`
+                    : (watchServers[0]?.url || extractData.data?.videoPlayerUrl || playerUrl);
 
                 const epMatch = episodeUrl.match(/(\d+)x(\d+)/) || episodeUrl.match(/episode-\d+/);
                 const epNum = epMatch ? parseInt(epMatch[2] || epMatch[0].replace('episode-', '')) : 1;
@@ -1926,8 +1914,8 @@ export async function scrapeToonplay(
                     episodes: [{
                         number: epNum,
                         title: `Episode ${epNum}`,
-                        link: m3u8Url,
-                        streamingUrl: m3u8Url
+                        link: embedUrl,
+                        streamingUrl: embedUrl
                     }],
                     totalFound: 1,
                     resolvedCount: 1,
@@ -2047,54 +2035,23 @@ export async function scrapeToonplay(
                 
                 if (extractRes.ok) {
                     const extractData = await extractRes.json() as any;
-                    const playerUrl = extractData.data?.videoPlayerUrl;
-                    if (playerUrl) {
-                        const streamRes = await undiciFetch(
-                            `https://extract.streamindia.co.in/api?url=${encodeURIComponent(playerUrl)}`,
-                            {
-                                headers: {
-                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-                                    'Referer': 'https://toonplay.in/',
-                                    'Origin': 'https://toonplay.in'
-                                },
-                                signal: AbortSignal.timeout(15000),
-                            }
-                        );
-                        
-                        if (streamRes.ok) {
-                            const streamData = await streamRes.json() as any;
-                            const files = streamData.files || {};
-                            const m3u8Url = files.hin || files.eng || files.jpn || Object.values(files)[0];
-                            
-                            if (m3u8Url) {
-                                episodes.push({
-                                    number: epNum,
-                                    title: epTitle,
-                                    link: m3u8Url,
-                                    streamingUrl: m3u8Url,
-                                    season: seasonNum,
-                                });
-                                resolvedCount++;
-                            } else {
-                                warnings.push(`S${seasonNum} Ep ${epNum}: No streaming URL in files`);
-                                episodes.push({
-                                    number: epNum,
-                                    title: epTitle,
-                                    link: episodeUrl,
-                                    season: seasonNum,
-                                });
-                            }
-                        } else {
-                            warnings.push(`S${seasonNum} Ep ${epNum}: Failed to extract files (Status ${streamRes.status})`);
-                            episodes.push({
-                                number: epNum,
-                                title: epTitle,
-                                link: episodeUrl,
-                                season: seasonNum,
-                            });
-                        }
+                    const watchServers: any[] = extractData.data?.watchServers || [];
+                    const abyssServer = watchServers.find((ws: any) => (ws.url || '').includes('animesalt.cx') && (ws.url || '').includes('player.php'));
+                    const embedUrl = abyssServer?.url 
+                        ? `https://animesalt.streamindia.co.in/abyss?url=${encodeURIComponent(abyssServer.url)}`
+                        : (watchServers[0]?.url || extractData.data?.videoPlayerUrl);
+
+                    if (embedUrl) {
+                        episodes.push({
+                            number: epNum,
+                            title: epTitle,
+                            link: embedUrl,
+                            streamingUrl: embedUrl,
+                            season: seasonNum,
+                        });
+                        resolvedCount++;
                     } else {
-                        warnings.push(`S${seasonNum} Ep ${epNum}: No videoPlayerUrl extracted`);
+                        warnings.push(`S${seasonNum} Ep ${epNum}: No streaming URL found`);
                         episodes.push({
                             number: epNum,
                             title: epTitle,
