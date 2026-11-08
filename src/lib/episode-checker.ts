@@ -1162,6 +1162,7 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                         next_episode_date: nextEpisodeDateStr,
                         notify_admin: true,
                         admin_note: finalAdminNote || null,
+                        updated_at: new Date().toISOString(),
                     })
                     .eq('id', movie.id);
 

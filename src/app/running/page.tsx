@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Movie } from '@/lib/types';
 import AdminShell from '@/components/AdminShell';
 
-type RunningTask = Pick<Movie, 'id' | 'title' | 'type' | 'poster_url' | 'last_episode' | 'next_episode' | 'next_episode_date' | 'admin_note' | 'notify_admin' | 'is_running' | 'running_status' | 'created_at' | 'scraper_url' | 'scraper_source' | 'scraper_resolution' | 'scraper_season'>;
+type RunningTask = Pick<Movie, 'id' | 'title' | 'slug' | 'type' | 'poster_url' | 'last_episode' | 'next_episode' | 'next_episode_date' | 'admin_note' | 'notify_admin' | 'is_running' | 'running_status' | 'created_at' | 'scraper_url' | 'scraper_source' | 'scraper_resolution' | 'scraper_season'>;
 
 const RUNNING_SCRAPER_SOURCES = new Set(['fxlinks', 'rareanimes', 'movielink', 'bollyflix']);
 const isRunningScraperSource = (source?: string | null) => !!source && RUNNING_SCRAPER_SOURCES.has(source);
@@ -136,7 +136,7 @@ export default function RunningTasksPage() {
         setLoading(true);
         const { data, error } = await supabase
             .from('movies')
-            .select('id, title, type, poster_url, last_episode, next_episode, next_episode_date, admin_note, notify_admin, is_running, running_status, created_at, scraper_url, scraper_source, scraper_resolution, scraper_season')
+            .select('id, title, slug, type, poster_url, last_episode, next_episode, next_episode_date, admin_note, notify_admin, is_running, running_status, created_at, scraper_url, scraper_source, scraper_resolution, scraper_season')
             .eq('is_running', true)
             .order('created_at', { ascending: false });
 
@@ -339,24 +339,30 @@ export default function RunningTasksPage() {
             }
         }
 
-        const { error } = await supabase
-            .from('movies')
-            .update({
-                last_episode: newLast,
-                next_episode: newNext,
-                next_episode_date: newDate,
-                notify_admin: false
-            })
-            .eq('id', task.id);
-
-        if (error) {
-            alert('Error updating task');
-        } else {
-            setTasks(tasks.map(t =>
-                t.id === task.id
-                    ? { ...t, last_episode: newLast, next_episode: newNext, next_episode_date: newDate, notify_admin: false }
-                    : t
-            ));
+        try {
+            const res = await fetch('/api/admin/running', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'mark_done',
+                    taskId: task.id,
+                    newLastEpisode: newLast,
+                    newNextEpisode: newNext,
+                    newNextEpisodeDate: newDate,
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTasks(tasks.map(t =>
+                    t.id === task.id
+                        ? { ...t, last_episode: newLast, next_episode: newNext, next_episode_date: newDate, notify_admin: false }
+                        : t
+                ));
+            } else {
+                alert(`Error updating task: ${data.error}`);
+            }
+        } catch (err: any) {
+            alert(`Network error updating task: ${err.message}`);
         }
         setUpdatingId(null);
     };
@@ -392,26 +398,33 @@ export default function RunningTasksPage() {
         if (!editTask) return;
         setUpdatingId('edit');
 
-        const { error } = await supabase
-            .from('movies')
-            .update({
-                last_episode: editTask.last_episode,
-                next_episode: editTask.next_episode,
-                next_episode_date: editTask.next_episode_date,
-                admin_note: editTask.admin_note,
-                notify_admin: editTask.notify_admin,
-                scraper_url: editTask.scraper_source ? editTask.scraper_url : null,
-                scraper_source: editTask.scraper_source || null,
-                scraper_resolution: editTask.scraper_source ? editTask.scraper_resolution : null,
-                scraper_season: editTask.scraper_source ? editTask.scraper_season : 1
-            })
-            .eq('id', editTask.id);
-
-        if (!error) {
-            setTasks(tasks.map(t => t.id === editTask.id ? editTask : t));
-            setEditTask(null);
-        } else {
-            alert('Error updating task');
+        try {
+            const res = await fetch('/api/admin/running', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'edit',
+                    taskId: editTask.id,
+                    newLastEpisode: editTask.last_episode,
+                    newNextEpisode: editTask.next_episode,
+                    newNextEpisodeDate: editTask.next_episode_date,
+                    adminNote: editTask.admin_note,
+                    notifyAdmin: editTask.notify_admin,
+                    scraperUrl: editTask.scraper_source ? editTask.scraper_url : null,
+                    scraperSource: editTask.scraper_source || null,
+                    scraperResolution: editTask.scraper_source ? editTask.scraper_resolution : null,
+                    scraperSeason: editTask.scraper_source ? editTask.scraper_season : 1
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setTasks(tasks.map(t => t.id === editTask.id ? editTask : t));
+                setEditTask(null);
+            } else {
+                alert(`Error updating task: ${data.error}`);
+            }
+        } catch (err: any) {
+            alert(`Network error updating task: ${err.message}`);
         }
         setUpdatingId(null);
     };
