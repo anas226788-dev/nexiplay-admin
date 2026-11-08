@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { GET as getBollyflix } from '../sync-bollyflix/route';
 import { GET as getNovels } from '../sync-novels/route';
 import { GET as getTmdb } from '../sync-tmdb/route';
-import { syncToonplayDownloads } from '@/lib/toonplay-download-sync';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -46,13 +45,6 @@ export async function GET(request: NextRequest) {
             results.novels = await novelRes.json();
         } catch (nErr: any) {
             results.novels = { success: false, error: nErr.message };
-        }
-
-        // 4. Run ToonPlay Downloads Sync (Keeps Download Center in sync automatically)
-        try {
-            results.toonplay = await syncToonplayDownloads();
-        } catch (tpErr: any) {
-            results.toonplay = { success: false, error: tpErr.message };
         }
 
         return NextResponse.json({

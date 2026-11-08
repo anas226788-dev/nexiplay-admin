@@ -89,35 +89,6 @@ export default function DownloadsPage() {
     // ── Search / filter for titles ────────────────────────────────────
     const [titleSearch, setTitleSearch] = useState('');
 
-    // ── ToonPlay Sync state ───────────────────────────────────────────
-    const [isSyncingToonplay, setIsSyncingToonplay] = useState(false);
-    const [toonplayStatusMsg, setToonplayStatusMsg] = useState<string | null>(null);
-
-    const handleSyncToonplay = async () => {
-        setIsSyncingToonplay(true);
-        setToonplayStatusMsg('Connecting to ToonPlay Download Center and syncing...');
-        try {
-            const res = await fetch('/api/admin/sync-toonplay?force=true', { method: 'POST' });
-            const data = await res.json();
-            if (data.success) {
-                setToonplayStatusMsg(`✅ Success! Synced ${data.episodesSynced} download links across ${data.matchedTitles.length} anime.`);
-                // Refresh title list
-                const { data: updatedTitles } = await supabase
-                    .from('movies')
-                    .select('id, title, slug, type')
-                    .eq('type', contentType)
-                    .order('title');
-                setTitles((updatedTitles as Movie[]) || []);
-            } else {
-                setToonplayStatusMsg(`❌ Sync error: ${data.error || 'Failed'}`);
-            }
-        } catch (e: any) {
-            setToonplayStatusMsg(`❌ Network error: ${e.message}`);
-        } finally {
-            setIsSyncingToonplay(false);
-        }
-    };
-
     // ───────────────────────────────────────────────────────────────────
     // Fetch titles when type changes
     // ───────────────────────────────────────────────────────────────────
@@ -459,45 +430,15 @@ export default function DownloadsPage() {
                 .dl-anim-overlay { animation: dl-fade-up 0.2s ease-out both; }
             `}</style>
             {/* ── Header ───────────────────────────────────────────── */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 dl-anim-header">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-lg">
-                        ⬇
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-white">Download Manager</h1>
-                        <p className="text-sm text-gray-400">Manage all download links in one place</p>
-                    </div>
+            <div className="flex items-center gap-3 dl-anim-header">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-lg">
+                    ⬇
                 </div>
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={handleSyncToonplay}
-                        disabled={isSyncingToonplay}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-medium text-xs flex items-center gap-2 shadow-lg shadow-indigo-600/20 disabled:opacity-50 transition-all cursor-pointer"
-                        title="Auto-fetch and sync all anime download links from Toonplay Download Center"
-                    >
-                        {isSyncingToonplay ? (
-                            <>
-                                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                <span>Syncing ToonPlay...</span>
-                            </>
-                        ) : (
-                            <>
-                                <span>⚡</span>
-                                <span>Sync ToonPlay Downloads</span>
-                            </>
-                        )}
-                    </button>
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Download Manager</h1>
+                    <p className="text-sm text-gray-400">Manage all download links in one place</p>
                 </div>
             </div>
-
-            {toonplayStatusMsg && (
-                <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-indigo-300 text-xs flex items-center justify-between">
-                    <span>{toonplayStatusMsg}</span>
-                    <button onClick={() => setToonplayStatusMsg(null)} className="text-gray-400 hover:text-white text-xs ml-2 cursor-pointer">✕</button>
-                </div>
-            )}
 
             {/* ── Step 1: Content Selector ──────────────────────────── */}
             <div className="glass-panel rounded-2xl p-5 space-y-4 dl-anim-panel-1">
