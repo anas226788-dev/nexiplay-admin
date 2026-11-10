@@ -47,60 +47,77 @@ CREATE POLICY "Allow full access for authenticated service role"
     USING (true)
     WITH CHECK (true);
 
--- Enable RLS Policies on coin_balances & user_events so leaderboard engine can read them
-DO $$ 
-BEGIN
-    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'coin_balances') THEN
-        ALTER TABLE public.coin_balances ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Allow read coin_balances for leaderboard" ON public.coin_balances;
-        CREATE POLICY "Allow read coin_balances for leaderboard" ON public.coin_balances FOR SELECT USING (true);
-    END IF;
+-- Enable RLS Policies on coin_balances, coin_transactions, daily_streaks & user_events
+ALTER TABLE public.coin_balances ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow read coin_balances for leaderboard" ON public.coin_balances;
+CREATE POLICY "Allow read coin_balances for leaderboard" ON public.coin_balances FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can insert own coin_balances" ON public.coin_balances;
+CREATE POLICY "Users can insert own coin_balances" ON public.coin_balances FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own coin_balances" ON public.coin_balances;
+CREATE POLICY "Users can update own coin_balances" ON public.coin_balances FOR UPDATE USING (auth.uid() = user_id);
 
-    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_events') THEN
-        ALTER TABLE public.user_events ENABLE ROW LEVEL SECURITY;
-        DROP POLICY IF EXISTS "Allow read user_events for leaderboard" ON public.user_events;
-        CREATE POLICY "Allow read user_events for leaderboard" ON public.user_events FOR SELECT USING (true);
-    END IF;
-END $$;
+ALTER TABLE public.coin_transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can read own coin_transactions" ON public.coin_transactions;
+CREATE POLICY "Users can read own coin_transactions" ON public.coin_transactions FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own coin_transactions" ON public.coin_transactions;
+CREATE POLICY "Users can insert own coin_transactions" ON public.coin_transactions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+ALTER TABLE public.daily_streaks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can read own daily_streaks" ON public.daily_streaks;
+CREATE POLICY "Users can read own daily_streaks" ON public.daily_streaks FOR SELECT USING (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can insert own daily_streaks" ON public.daily_streaks;
+CREATE POLICY "Users can insert own daily_streaks" ON public.daily_streaks FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can update own daily_streaks" ON public.daily_streaks;
+CREATE POLICY "Users can update own daily_streaks" ON public.daily_streaks FOR UPDATE USING (auth.uid() = user_id);
+
+ALTER TABLE public.user_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow read user_events for leaderboard" ON public.user_events;
+CREATE POLICY "Allow read user_events for leaderboard" ON public.user_events FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can insert own user_events" ON public.user_events;
+CREATE POLICY "Users can insert own user_events" ON public.user_events FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Create or Replace Leaderboard Generation Stored Procedure (100% Real Users, Zero Synthetic)
 CREATE OR REPLACE FUNCTION public.generate_leaderboard()
 RETURNS void
-LANGUAGE plpgsql
+LANGUAGE sql
 SECURITY DEFINER
-AS $$
-DECLARE
-    real_rec RECORD;
-    curr_rank INT := 1;
-BEGIN
-    -- Reset mode to algorithm
-    BEGIN
-        UPDATE public.app_settings SET leaderboard_mode = 'algorithm' WHERE id = 1;
-    EXCEPTION WHEN OTHERS THEN
-        -- Ignore
-    END;
+AS '
+    UPDATE public.app_settings SET leaderboard_mode = ''algorithm'' WHERE id = 1;
 
-    -- Clear current leaderboard (WHERE true required by pg_safeupdate)
     DELETE FROM public.leaderboard_entries WHERE true;
 
-    -- Query Real Users ordered by active badge tier + exact coins + watched count
-    FOR real_rec IN (
-        SELECT 
+    INSERT INTO public.leaderboard_entries (
+        rank, user_id, name, avatar_url, badge_type, coins, watched_count, is_fake, updated_at
+    )
+    SELECT
+        ROW_NUMBER() OVER (
+            ORDER BY ranked.score DESC, ranked.coins DESC, ranked.watched_count DESC
+        )::INT AS rank,
+        ranked.user_id,
+        ranked.name,
+        ranked.avatar_url,
+        ranked.badge_type,
+        ranked.coins,
+        ranked.watched_count,
+        false AS is_fake,
+        NOW() AS updated_at
+    FROM (
+        SELECT
             p.id AS user_id,
-            COALESCE(NULLIF(TRIM(p.display_name), ''), SPLIT_PART(p.email, '@', 1), 'Nexi User') AS name,
+            COALESCE(NULLIF(TRIM(p.display_name), ''''), SPLIT_PART(p.email, ''@'', 1), ''Nexi User'') AS name,
             p.avatar_url,
             CASE
-                WHEN p.vip_badge_expires IS NOT NULL AND p.vip_badge_expires <= NOW() THEN 'none'
-                ELSE COALESCE(p.vip_badge, 'none')
+                WHEN p.vip_badge_expires IS NOT NULL AND p.vip_badge_expires <= NOW() THEN ''none''
+                ELSE COALESCE(p.vip_badge, ''none'')
             END AS badge_type,
             COALESCE(cb.balance, 0) AS coins,
-            COALESCE(ue.event_count, 0) AS watched_count,
+            COALESCE(ue.event_count, 0)::INT AS watched_count,
             (
-                CASE 
+                CASE
                     WHEN (p.vip_badge_expires IS NULL OR p.vip_badge_expires > NOW())
-                         AND (LOWER(COALESCE(p.vip_badge, '')) LIKE '%elite%' OR LOWER(COALESCE(p.vip_badge, '')) = 'gold_vip') THEN 100000000::BIGINT
+                         AND (LOWER(COALESCE(p.vip_badge, '''')) LIKE ''%elite%'' OR LOWER(COALESCE(p.vip_badge, '''')) = ''gold_vip'') THEN 100000000::BIGINT
                     WHEN (p.vip_badge_expires IS NULL OR p.vip_badge_expires > NOW())
-                         AND LOWER(COALESCE(p.vip_badge, '')) LIKE '%vip%' THEN 50000000::BIGINT
+                         AND LOWER(COALESCE(p.vip_badge, '''')) LIKE ''%vip%'' THEN 50000000::BIGINT
                     ELSE 0::BIGINT
                 END
                 + (COALESCE(cb.balance, 0)::BIGINT * 1000)
@@ -111,27 +128,10 @@ BEGIN
         LEFT JOIN (
             SELECT user_id, COUNT(*) AS event_count
             FROM public.user_events
-            WHERE event_type = 'watch'
+            WHERE event_type = ''watch''
             GROUP BY user_id
         ) ue ON p.id = ue.user_id
         ORDER BY score DESC, COALESCE(cb.balance, 0) DESC, COALESCE(ue.event_count, 0) DESC
         LIMIT 15
-    ) LOOP
-        INSERT INTO public.leaderboard_entries (
-            rank, user_id, name, avatar_url, badge_type, coins, watched_count, is_fake, updated_at
-        ) VALUES (
-            curr_rank,
-            real_rec.user_id,
-            real_rec.name,
-            real_rec.avatar_url,
-            real_rec.badge_type,
-            real_rec.coins,
-            real_rec.watched_count,
-            false,
-            NOW()
-        );
-        
-        curr_rank := curr_rank + 1;
-    END LOOP;
-END;
-$$;
+    ) AS ranked;
+';
