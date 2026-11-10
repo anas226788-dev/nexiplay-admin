@@ -5,36 +5,12 @@ import { supabase } from '@/lib/supabase';
 import { LeaderboardEntry } from '@/lib/types';
 import AdminShell from '@/components/AdminShell';
 
-const FAKE_NAMES = [
-    'Arafat_Anime', 'Tanvir_Pro', 'Siam_Vip', 'Mahir_X', 'Nibir_77', 
-    'Rafi_Hero', 'Sabbir_Otaku', 'Fahim_Stream', 'Rayan_99', 'Imran_VIP', 
-    'Tahmid_Ninja', 'Nabil_Elite', 'Hamza_Play', 'Zayan_Legend', 'Faris_Ultra'
-];
-
-const FAKE_AVATARS = [
-    'https://api.dicebear.com/7.x/bottts/png?seed=Tanvir',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Siam',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Mahir',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Nibir',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Rafi',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Sabbir',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Fahim',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Rayan',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Imran',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Tahmid',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Nabil',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Hamza',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Zayan',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Faris',
-    'https://api.dicebear.com/7.x/bottts/png?seed=Arafat'
-];
-
 export default function LeaderboardAdminPage() {
     const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-    
+
     // Config State
     const [isEnabled, setIsEnabled] = useState(true);
     const [mode, setMode] = useState<'algorithm' | 'custom'>('algorithm');
@@ -47,201 +23,95 @@ export default function LeaderboardAdminPage() {
     const [editWatched, setEditWatched] = useState(0);
     const [saving, setSaving] = useState(false);
 
-    const fetchConfig = async () => {
-        // First check localStorage for immediate persistence
-        if (typeof window !== 'undefined') {
-            const localToggle = localStorage.getItem('nexi_leaderboard_enabled');
-            if (localToggle !== null) {
-                setIsEnabled(localToggle === 'true');
-            }
+    const deduplicateRealEntries = (raw: LeaderboardEntry[]): LeaderboardEntry[] => {
+        const seenUsers = new Set<string>();
+        const seenRanks = new Set<number>();
+        const cleaned: LeaderboardEntry[] = [];
+
+        for (const item of raw) {
+            // Strictly exclude synthetic / fake entries
+            if (item.is_fake) continue;
+            if (item.user_id && seenUsers.has(item.user_id)) continue;
+            if (seenRanks.has(item.rank)) continue;
+
+            if (item.user_id) seenUsers.add(item.user_id);
+            seenRanks.add(item.rank);
+            cleaned.push(item);
         }
 
-        try {
-            const { data, error } = await supabase
-                .from('app_settings')
-                .select('*')
-                .eq('id', 1)
-                .maybeSingle();
-
-            if (!error && data && data.is_leaderboard_enabled !== undefined && data.is_leaderboard_enabled !== null) {
-                const dbVal = Boolean(data.is_leaderboard_enabled);
-                setIsEnabled(dbVal);
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('nexi_leaderboard_enabled', String(dbVal));
-                }
-                if (data.leaderboard_mode) {
-                    setMode(data.leaderboard_mode);
-                }
-            }
-        } catch (e: any) {
-            console.error('Error fetching config:', e);
-        }
+        return cleaned
+            .sort((a, b) => a.rank - b.rank)
+            .slice(0, 15)
+            .map((item, idx) => ({ ...item, rank: idx + 1, is_fake: false }));
     };
 
     const fetchLeaderboard = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            const res = await fetch('/api/admin/leaderboard', { cache: 'no-store' });
+            const json = await res.json();
+
+            if (json.ok && Array.isArray(json.entries)) {
+                setEntries(deduplicateRealEntries(json.entries));
+                if (typeof json.is_leaderboard_enabled === 'boolean') {
+                    setIsEnabled(json.is_leaderboard_enabled);
+                    if (typeof window !== 'undefined') {
+                        localStorage.setItem('nexi_leaderboard_enabled', String(json.is_leaderboard_enabled));
+                    }
+                }
+                if (json.leaderboard_mode) {
+                    setMode(json.leaderboard_mode);
+                }
+                setLoading(false);
+                return;
+            }
+        } catch (err) {
+            console.warn('API leaderboard fetch fallback:', err);
+        }
+
+        // Fallback direct query if API route is unavailable
+        try {
+            const { data } = await supabase
                 .from('leaderboard_entries')
                 .select('*')
+                .eq('is_fake', false)
                 .order('rank', { ascending: true });
 
-            if (error && error.code !== '42P01') {
-                console.warn('Leaderboard fetch warning:', error);
-            }
             if (data && data.length > 0) {
-                setEntries(data);
-            } else {
-                await generateClientSideLeaderboard();
+                setEntries(deduplicateRealEntries(data));
             }
-        } catch (e: any) {
-            await generateClientSideLeaderboard();
+        } catch (e) {
+            console.error('Error fetching leaderboard:', e);
         } finally {
             setLoading(false);
         }
     };
 
-    /** Safe Client-Side Generation Engine */
-    const generateClientSideLeaderboard = async () => {
+    /** Generate 100% Real-User Leaderboard via Server Admin API */
+    const generateRealLeaderboard = async () => {
         setGenerating(true);
         setStatusMsg(null);
         try {
-            try {
-                const { error: rpcErr } = await supabase.rpc('generate_leaderboard');
-                if (!rpcErr) {
-                    const { data } = await supabase
-                        .from('leaderboard_entries')
-                        .select('*')
-                        .order('rank', { ascending: true });
-                    if (data && data.length > 0) {
-                        setEntries(data);
-                        setStatusMsg({ type: 'success', text: `Leaderboard generated! Found ${data.filter(d => !d.is_fake).length} real users.` });
-                        setGenerating(false);
-                        return;
-                    }
-                }
-            } catch (_: any) {}
-
-            let profiles: any[] = [];
-            try {
-                const { data } = await supabase.from('profiles').select('id, display_name, email, avatar_url, vip_badge');
-                if (data) profiles = data;
-            } catch (_: any) {}
-
-            let balances: any[] = [];
-            try {
-                const { data } = await supabase.from('coin_balances').select('user_id, balance');
-                if (data) balances = data;
-            } catch (_: any) {}
-
-            let events: any[] = [];
-            try {
-                const { data } = await supabase.from('user_events').select('user_id');
-                if (data) events = data;
-            } catch (_: any) {}
-
-            const coinMap = new Map<string, number>();
-            if (Array.isArray(balances)) {
-                balances.forEach(b => {
-                    if (b.user_id) coinMap.set(b.user_id, b.balance || 0);
-                });
-            }
-
-            const watchedMap = new Map<string, number>();
-            if (Array.isArray(events)) {
-                events.forEach(ev => {
-                    if (ev.user_id) watchedMap.set(ev.user_id, (watchedMap.get(ev.user_id) || 0) + 1);
-                });
-            }
-
-            const realScoredUsers = (profiles || []).map(p => {
-                const badge = (p.vip_badge || '').toLowerCase().trim();
-                const isElite = badge.includes('elite') || badge === 'gold_vip';
-                const isVip = !isElite && badge.includes('vip');
-                
-                const badgeWeight = isElite ? 3000000 : isVip ? 1500000 : 0;
-                let coins = coinMap.get(p.id) ?? 0;
-                const watched = watchedMap.get(p.id) || 0;
-
-                const name = p.display_name || (p.email ? p.email.split('@')[0] : 'Nexi User');
-
-                if (coins === 0) {
-                    if (name.toLowerCase().includes('nahiyan') || isElite) {
-                        coins = 135;
-                    } else if (isVip) {
-                        coins = 80;
-                    } else {
-                        coins = Math.max(30, watched * 3);
-                    }
-                }
-
-                const score = badgeWeight + (coins * 100) + (watched * 500);
-
-                return {
-                    user_id: p.id,
-                    name,
-                    avatar_url: p.avatar_url,
-                    badge_type: p.vip_badge || 'none',
-                    coins,
-                    watched_count: watched,
-                    score,
-                    is_fake: false
-                };
+            const res = await fetch('/api/admin/leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'generate' }),
             });
+            const json = await res.json();
 
-            realScoredUsers.sort((a, b) => b.score - a.score || b.coins - a.coins);
-
-            const finalRows: any[] = [];
-            let currentRank = 1;
-
-            for (const ru of realScoredUsers.slice(0, 15)) {
-                finalRows.push({
-                    rank: currentRank++,
-                    user_id: ru.user_id,
-                    name: ru.name,
-                    avatar_url: ru.avatar_url,
-                    badge_type: ru.badge_type,
-                    coins: ru.coins,
-                    watched_count: ru.watched_count,
-                    is_fake: false
-                });
+            if (!res.ok || !json.ok) {
+                throw new Error(json.error || 'Failed to generate real leaderboard');
             }
 
-            const realCount = finalRows.length;
-
-            if (realCount < 15) {
-                const minRealCoins = finalRows.length > 0 ? Math.min(...finalRows.map(r => r.coins)) : 30;
-                for (let i = realCount + 1; i <= 15; i++) {
-                    const simCoins = Math.max(2, Math.min(minRealCoins - 5, 25 - (i * 1.5) + Math.floor(Math.random() * 2)));
-                    const simWatched = Math.max(1, 15 - i);
-
-                    finalRows.push({
-                        rank: i,
-                        user_id: null,
-                        name: FAKE_NAMES[(i - 1) % FAKE_NAMES.length],
-                        avatar_url: FAKE_AVATARS[(i - 1) % FAKE_AVATARS.length],
-                        badge_type: 'none',
-                        coins: simCoins,
-                        watched_count: simWatched,
-                        is_fake: true
-                    });
-                }
-            }
-
-            setEntries(finalRows);
+            const cleaned = deduplicateRealEntries(json.entries || []);
+            setEntries(cleaned);
+            setMode('algorithm');
             setStatusMsg({
                 type: 'success',
-                text: `Leaderboard updated! ${realCount} real user(s) ranked at top with real DB coins.`
+                text: `Leaderboard updated! Ranked Top ${cleaned.length} real users from Database (0 synthetic users).`,
             });
-
-            try {
-                await supabase.from('leaderboard_entries').delete().neq('rank', 99999);
-                await supabase.from('leaderboard_entries').insert(finalRows);
-            } catch (_: any) {}
-
-            setMode('algorithm');
         } catch (e: any) {
-            console.error('Error generating client-side leaderboard:', e);
+            console.error('Error generating leaderboard:', e);
             setStatusMsg({ type: 'error', text: e?.message || 'Failed to generate leaderboard' });
         } finally {
             setGenerating(false);
@@ -249,40 +119,33 @@ export default function LeaderboardAdminPage() {
     };
 
     useEffect(() => {
-        fetchConfig();
         fetchLeaderboard();
     }, []);
 
     const handleToggleEnabled = async (newValue: boolean) => {
         setIsEnabled(newValue);
-        
-        // Save to localStorage immediately
         if (typeof window !== 'undefined') {
             localStorage.setItem('nexi_leaderboard_enabled', String(newValue));
         }
 
         try {
-            // Update app_settings row id=1
-            const { error: updErr } = await supabase
-                .from('app_settings')
-                .update({ is_leaderboard_enabled: newValue })
-                .eq('id', 1);
-
-            if (updErr) {
-                // Try upsert if row 1 doesn't exist
-                await supabase
-                    .from('app_settings')
-                    .upsert({ id: 1, is_leaderboard_enabled: newValue });
-            }
-
-            setStatusMsg({
-                type: 'success',
-                text: `Leaderboard is now ${newValue ? 'ENABLED (Visible in App)' : 'DISABLED (Hidden in App)'}.`
+            const res = await fetch('/api/admin/leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'toggle', is_leaderboard_enabled: newValue }),
             });
-        } catch (e: any) {
+            const json = await res.json();
+            if (!json.ok) throw new Error(json.error);
+
             setStatusMsg({
                 type: 'success',
-                text: `Leaderboard toggle saved (${newValue ? 'ENABLED' : 'DISABLED'}).`
+                text: `Leaderboard is now ${newValue ? 'ENABLED (Visible in App)' : 'DISABLED (Hidden in App)'}.`,
+            });
+        } catch {
+            await supabase.from('app_settings').upsert({ id: 1, is_leaderboard_enabled: newValue });
+            setStatusMsg({
+                type: 'success',
+                text: `Leaderboard toggle saved (${newValue ? 'ENABLED' : 'DISABLED'}).`,
             });
         }
     };
@@ -292,8 +155,8 @@ export default function LeaderboardAdminPage() {
         if (targetIndex < 0 || targetIndex >= entries.length) return;
 
         const updated = [...entries];
-        const currentEntry = updated[index];
-        const targetEntry = updated[targetIndex];
+        const currentEntry = { ...updated[index] };
+        const targetEntry = { ...updated[targetIndex] };
 
         const currentRank = currentEntry.rank;
         const targetRank = targetEntry.rank;
@@ -301,20 +164,31 @@ export default function LeaderboardAdminPage() {
         currentEntry.rank = targetRank;
         targetEntry.rank = currentRank;
 
+        updated[index] = targetEntry;
+        updated[targetIndex] = currentEntry;
         updated.sort((a, b) => a.rank - b.rank);
+
         setEntries(updated);
+        setMode('custom');
 
         try {
-            await supabase.from('app_settings').update({ leaderboard_mode: 'custom' }).eq('id', 1);
-            setMode('custom');
-
-            await Promise.all([
-                supabase.from('leaderboard_entries').update({ rank: targetRank }).eq('id', currentEntry.id),
-                supabase.from('leaderboard_entries').update({ rank: currentRank }).eq('id', targetEntry.id)
-            ]);
-
+            const res = await fetch('/api/admin/leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'swap',
+                    firstId: currentEntry.id,
+                    firstRank: currentRank,
+                    secondId: targetEntry.id,
+                    secondRank: targetRank,
+                }),
+            });
+            const json = await res.json();
+            if (json.ok && Array.isArray(json.entries)) {
+                setEntries(deduplicateRealEntries(json.entries));
+            }
             setStatusMsg({ type: 'success', text: `Swapped Rank #${currentRank} & #${targetRank}! (Custom Mode Active)` });
-        } catch (e: any) {
+        } catch {
             setStatusMsg({ type: 'success', text: `Swapped Rank #${currentRank} & #${targetRank}! (Custom Mode Active)` });
         }
     };
@@ -331,35 +205,25 @@ export default function LeaderboardAdminPage() {
         if (!editingEntry) return;
         setSaving(true);
         try {
-            const updated = entries.map(e => {
-                if (e.id === editingEntry.id || e.rank === editingEntry.rank) {
-                    return {
-                        ...e,
-                        name: editName,
-                        badge_type: editBadge,
-                        coins: editCoins,
-                        watched_count: editWatched
-                    };
-                }
-                return e;
+            const res = await fetch('/api/admin/leaderboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'edit',
+                    id: editingEntry.id,
+                    name: editName,
+                    badge_type: editBadge,
+                    coins: editCoins,
+                    watched_count: editWatched,
+                }),
             });
-            setEntries(updated);
+            const json = await res.json();
+            if (!json.ok) throw new Error(json.error || 'Failed to update entry');
+
+            if (Array.isArray(json.entries)) {
+                setEntries(deduplicateRealEntries(json.entries));
+            }
             setMode('custom');
-
-            try {
-                await supabase.from('app_settings').update({ leaderboard_mode: 'custom' }).eq('id', 1);
-                await supabase
-                    .from('leaderboard_entries')
-                    .update({
-                        name: editName,
-                        badge_type: editBadge,
-                        coins: editCoins,
-                        watched_count: editWatched,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', editingEntry.id);
-            } catch (_: any) {}
-
             setStatusMsg({ type: 'success', text: `Updated rank #${editingEntry.rank} entry! (Custom Mode Active)` });
             setEditingEntry(null);
         } catch (e: any) {
@@ -369,8 +233,12 @@ export default function LeaderboardAdminPage() {
         }
     };
 
-    const realUsersCount = entries.filter(e => !e.is_fake).length;
-    const syntheticUsersCount = entries.filter(e => e.is_fake).length;
+    const realUsersCount = entries.length;
+    const premiumUsersCount = entries.filter(e => {
+        const b = (e.badge_type || '').toLowerCase();
+        return b.includes('elite') || b.includes('vip');
+    }).length;
+    const totalLeaderboardCoins = entries.reduce((sum, e) => sum + (Number(e.coins) || 0), 0);
 
     return (
         <AdminShell>
@@ -382,7 +250,7 @@ export default function LeaderboardAdminPage() {
                             🏆 Leaderboard Management
                         </h1>
                         <p className="text-sm text-gray-400 mt-1">
-                            Automatically ranks real users from DB with exact DB coins & fills remaining slots up to 15.
+                            100% Real Database Users Only • Ranked by Badge Tier (Elite &gt; VIP &gt; Free), Exact DB Coins &amp; Watched Count.
                         </p>
                     </div>
 
@@ -412,7 +280,7 @@ export default function LeaderboardAdminPage() {
                 {/* Status Message */}
                 {statusMsg && (
                     <div className={`p-4 rounded-xl text-sm font-medium border ${
-                        statusMsg.type === 'success' 
+                        statusMsg.type === 'success'
                             ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                             : 'bg-red-500/10 border-red-500/30 text-red-400'
                     }`}>
@@ -431,30 +299,30 @@ export default function LeaderboardAdminPage() {
                                 </span>
                             ) : (
                                 <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                                    🤖 AUTOMATIC ALGORITHM MODE
+                                    🤖 REAL USERS ALGORITHM MODE
                                 </span>
                             )}
                         </div>
                         <p className="text-xs text-gray-400 mt-1">
-                            {mode === 'custom' 
-                                ? 'Custom positions are set by Admin. Click below to regenerate automatically.'
-                                : 'All real users in Database are ranked at top (Elite > VIP > Free), synthetic filler for remaining slots.'}
+                            {mode === 'custom'
+                                ? 'Custom positions are set by Admin. Click below to re-sync & rank all real users automatically.'
+                                : 'All entries are 100% real registered users ranked by Elite > VIP > Free, Exact DB Coins & Watched Count (No synthetic users).'}
                         </p>
                     </div>
 
                     <button
-                        onClick={generateClientSideLeaderboard}
+                        onClick={generateRealLeaderboard}
                         disabled={generating}
                         className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-violet-600 hover:from-amber-600 hover:to-red-700 text-white text-xs font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 flex-shrink-0"
                     >
                         {generating ? (
                             <>
                                 <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-white border-t-transparent"></span>
-                                Syncing DB Coins...
+                                Syncing Real Users...
                             </>
                         ) : (
                             <>
-                                🔄 Generate Leaderboard (Fetch Real Users)
+                                🔄 Sync &amp; Rank Real Users
                             </>
                         )}
                     </button>
@@ -463,28 +331,28 @@ export default function LeaderboardAdminPage() {
                 {/* Stat Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="glass-panel p-4 rounded-2xl border border-white/10 bg-white/5">
-                        <p className="text-xs text-gray-400 font-medium">Total Leaderboard Size</p>
-                        <h3 className="text-2xl font-bold text-white mt-1">15 Slots</h3>
-                        <p className="text-xs text-amber-400 mt-1">Real users top, fake below</p>
+                        <p className="text-xs text-gray-400 font-medium">Real DB Users Ranked</p>
+                        <h3 className="text-2xl font-bold text-emerald-400 mt-1">{realUsersCount} Real Users</h3>
+                        <p className="text-xs text-gray-400 mt-1">100% Real Users • 0 Synthetic</p>
                     </div>
 
                     <div className="glass-panel p-4 rounded-2xl border border-white/10 bg-white/5">
-                        <p className="text-xs text-gray-400 font-medium">Real DB Users Included</p>
-                        <h3 className="text-2xl font-bold text-emerald-400 mt-1">{realUsersCount} Users</h3>
-                        <p className="text-xs text-gray-400 mt-1">Exact DB coin balances</p>
+                        <p className="text-xs text-gray-400 font-medium">VIP / Elite Members on Board</p>
+                        <h3 className="text-2xl font-bold text-amber-400 mt-1">{premiumUsersCount} Premium</h3>
+                        <p className="text-xs text-gray-400 mt-1">Ranked at top by badge priority</p>
                     </div>
 
                     <div className="glass-panel p-4 rounded-2xl border border-white/10 bg-white/5">
-                        <p className="text-xs text-gray-400 font-medium">Synthetic/Algorithmic Filler</p>
-                        <h3 className="text-2xl font-bold text-indigo-400 mt-1">{syntheticUsersCount} Users</h3>
-                        <p className="text-xs text-gray-400 mt-1">Lower coins than real users</p>
+                        <p className="text-xs text-gray-400 font-medium">Total Coins Held by Top {realUsersCount}</p>
+                        <h3 className="text-2xl font-bold text-indigo-400 mt-1">{totalLeaderboardCoins.toLocaleString()} 🪙</h3>
+                        <p className="text-xs text-gray-400 mt-1">Exact live database coin balances</p>
                     </div>
                 </div>
 
                 {/* Table */}
                 <div className="glass-panel rounded-2xl border border-white/10 overflow-hidden">
                     <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
-                        <h3 className="text-lg font-semibold text-white">Top 15 Live Leaderboard Ranks</h3>
+                        <h3 className="text-lg font-semibold text-white">Top {entries.length || 15} Live Real User Ranks</h3>
                         <button onClick={fetchLeaderboard} className="text-xs text-gray-400 hover:text-white transition">
                             Refresh Data
                         </button>
@@ -493,16 +361,16 @@ export default function LeaderboardAdminPage() {
                     {loading ? (
                         <div className="p-12 text-center text-gray-400">
                             <span className="animate-spin inline-block h-6 w-6 border-2 border-red-500 border-t-transparent rounded-full mb-2"></span>
-                            <p>Loading Leaderboard...</p>
+                            <p>Loading Real User Leaderboard...</p>
                         </div>
                     ) : entries.length === 0 ? (
                         <div className="p-12 text-center text-gray-400">
                             <p className="mb-3">No leaderboard entries found.</p>
                             <button
-                                onClick={generateClientSideLeaderboard}
+                                onClick={generateRealLeaderboard}
                                 className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold rounded-xl"
                             >
-                                🚀 Generate Leaderboard Now
+                                🚀 Sync Real Users Now
                             </button>
                         </div>
                     ) : (
@@ -515,19 +383,19 @@ export default function LeaderboardAdminPage() {
                                         <th className="py-3 px-4">Badge</th>
                                         <th className="py-3 px-4">Coins</th>
                                         <th className="py-3 px-4">Watched</th>
-                                        <th className="py-3 px-4">Type</th>
+                                        <th className="py-3 px-4">Account Status</th>
                                         <th className="py-3 px-4 text-center">Custom Order</th>
                                         <th className="py-3 px-4 text-right">Edit</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5 text-sm">
                                     {entries.map((item, idx) => {
-                                        const badgeLower = item.badge_type.toLowerCase();
+                                        const badgeLower = (item.badge_type || '').toLowerCase();
                                         const isElite = badgeLower.includes('elite') || badgeLower === 'gold_vip';
                                         const isVip = !isElite && badgeLower.includes('vip');
 
                                         return (
-                                            <tr key={item.id || idx} className="hover:bg-white/5 transition-colors">
+                                            <tr key={item.id || `${item.user_id}_${item.rank}`} className="hover:bg-white/5 transition-colors">
                                                 <td className="py-3.5 px-4 font-bold">
                                                     {item.rank === 1 && <span className="text-xl">🥇 #1</span>}
                                                     {item.rank === 2 && <span className="text-xl">🥈 #2</span>}
@@ -568,17 +436,10 @@ export default function LeaderboardAdminPage() {
                                                     {item.watched_count} Watched
                                                 </td>
                                                 <td className="py-3.5 px-4">
-                                                    {item.is_fake ? (
-                                                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-                                                            SYNTHETIC
-                                                        </span>
-                                                    ) : (
-                                                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                                            REAL USER
-                                                        </span>
-                                                    )}
+                                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                                        VERIFIED REAL USER
+                                                    </span>
                                                 </td>
-                                                {/* Move Position Buttons */}
                                                 <td className="py-3.5 px-4 text-center">
                                                     <div className="flex items-center justify-center gap-1">
                                                         <button

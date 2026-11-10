@@ -1,4 +1,4 @@
--- Migration: Leaderboard Schema, Custom Ordering & App Settings Integration
+-- Migration: Leaderboard Schema, Custom Ordering & App Settings Integration (100% Real Users Only)
 
 -- Ensure app_settings table exists
 CREATE TABLE IF NOT EXISTS public.app_settings (
@@ -21,7 +21,7 @@ ADD COLUMN IF NOT EXISTS leaderboard_mode TEXT DEFAULT 'algorithm';
 CREATE TABLE IF NOT EXISTS public.leaderboard_entries (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     rank INT NOT NULL,
-    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     avatar_url TEXT,
     badge_type TEXT NOT NULL DEFAULT 'none',
@@ -63,7 +63,7 @@ BEGIN
     END IF;
 END $$;
 
--- Create or Replace Leaderboard Generation Stored Procedure
+-- Create or Replace Leaderboard Generation Stored Procedure (100% Real Users, Zero Synthetic)
 CREATE OR REPLACE FUNCTION public.generate_leaderboard()
 RETURNS void
 LANGUAGE plpgsql
@@ -71,34 +71,7 @@ SECURITY DEFINER
 AS $$
 DECLARE
     real_rec RECORD;
-    real_count INT := 0;
     curr_rank INT := 1;
-    fake_names TEXT[] := ARRAY[
-        'Arafat_Anime', 'Tanvir_Pro', 'Siam_Vip', 'Mahir_X', 'Nibir_77', 
-        'Rafi_Hero', 'Sabbir_Otaku', 'Fahim_Stream', 'Rayan_99', 'Imran_VIP', 
-        'Tahmid_Ninja', 'Nabil_Elite', 'Hamza_Play', 'Zayan_Legend', 'Faris_Ultra'
-    ];
-    fake_avatars TEXT[] := ARRAY[
-        'https://api.dicebear.com/7.x/bottts/png?seed=Tanvir',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Siam',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Mahir',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Nibir',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Rafi',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Sabbir',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Fahim',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Rayan',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Imran',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Tahmid',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Nabil',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Hamza',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Zayan',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Faris',
-        'https://api.dicebear.com/7.x/bottts/png?seed=Arafat'
-    ];
-    fake_badges TEXT[] := ARRAY['elite', 'vip', 'vip', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'none'];
-    idx INT;
-    sim_coins INT;
-    sim_watched INT;
 BEGIN
     -- Reset mode to algorithm
     BEGIN
@@ -107,35 +80,41 @@ BEGIN
         -- Ignore
     END;
 
-    -- Clear current leaderboard
-    DELETE FROM public.leaderboard_entries;
+    -- Clear current leaderboard (WHERE true required by pg_safeupdate)
+    DELETE FROM public.leaderboard_entries WHERE true;
 
-    -- Query Real Users ordered by badge weight + coins + watched count
+    -- Query Real Users ordered by active badge tier + exact coins + watched count
     FOR real_rec IN (
         SELECT 
             p.id AS user_id,
-            COALESCE(p.display_name, SPLIT_PART(p.email, '@', 1), 'Nexi User') AS name,
+            COALESCE(NULLIF(TRIM(p.display_name), ''), SPLIT_PART(p.email, '@', 1), 'Nexi User') AS name,
             p.avatar_url,
-            COALESCE(p.vip_badge, 'none') AS badge_type,
+            CASE
+                WHEN p.vip_badge_expires IS NOT NULL AND p.vip_badge_expires <= NOW() THEN 'none'
+                ELSE COALESCE(p.vip_badge, 'none')
+            END AS badge_type,
             COALESCE(cb.balance, 0) AS coins,
             COALESCE(ue.event_count, 0) AS watched_count,
             (
                 CASE 
-                    WHEN LOWER(COALESCE(p.vip_badge, '')) LIKE '%elite%' OR LOWER(COALESCE(p.vip_badge, '')) = 'gold_vip' THEN 3000000
-                    WHEN LOWER(COALESCE(p.vip_badge, '')) LIKE '%vip%' THEN 1500000
-                    ELSE 0
+                    WHEN (p.vip_badge_expires IS NULL OR p.vip_badge_expires > NOW())
+                         AND (LOWER(COALESCE(p.vip_badge, '')) LIKE '%elite%' OR LOWER(COALESCE(p.vip_badge, '')) = 'gold_vip') THEN 100000000::BIGINT
+                    WHEN (p.vip_badge_expires IS NULL OR p.vip_badge_expires > NOW())
+                         AND LOWER(COALESCE(p.vip_badge, '')) LIKE '%vip%' THEN 50000000::BIGINT
+                    ELSE 0::BIGINT
                 END
-                + (COALESCE(cb.balance, 0) * 100)
-                + (COALESCE(ue.event_count, 0) * 500)
+                + (COALESCE(cb.balance, 0)::BIGINT * 1000)
+                + LEAST(999, COALESCE(ue.event_count, 0))::BIGINT
             ) AS score
         FROM public.profiles p
         LEFT JOIN public.coin_balances cb ON p.id = cb.user_id
         LEFT JOIN (
             SELECT user_id, COUNT(*) AS event_count
             FROM public.user_events
+            WHERE event_type = 'watch'
             GROUP BY user_id
         ) ue ON p.id = ue.user_id
-        ORDER BY score DESC, cb.balance DESC
+        ORDER BY score DESC, COALESCE(cb.balance, 0) DESC, COALESCE(ue.event_count, 0) DESC
         LIMIT 15
     ) LOOP
         INSERT INTO public.leaderboard_entries (
@@ -153,29 +132,6 @@ BEGIN
         );
         
         curr_rank := curr_rank + 1;
-        real_count := real_count + 1;
     END LOOP;
-
-    -- Fill remaining slots up to 15 with realistic synthetic users (modest coin counts)
-    IF real_count < 15 THEN
-        FOR idx IN (real_count + 1)..15 LOOP
-            sim_coins := GREATEST(5, 120 - (idx * 7) + FLOOR(random() * 5)::INT);
-            sim_watched := GREATEST(1, 15 - idx + FLOOR(random() * 2)::INT);
-
-            INSERT INTO public.leaderboard_entries (
-                rank, user_id, name, avatar_url, badge_type, coins, watched_count, is_fake, updated_at
-            ) VALUES (
-                idx,
-                NULL,
-                fake_names[((idx - 1) % array_length(fake_names, 1)) + 1],
-                fake_avatars[((idx - 1) % array_length(fake_avatars, 1)) + 1],
-                fake_badges[((idx - 1) % array_length(fake_badges, 1)) + 1],
-                sim_coins,
-                sim_watched,
-                true,
-                NOW()
-            );
-        END LOOP;
-    END IF;
 END;
 $$;
