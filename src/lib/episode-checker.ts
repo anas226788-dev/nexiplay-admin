@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { scrapeSource } from './scraper-utils';
 import { mergeMoviesWithStreaming, upsertStreamingRow } from './streaming-table';
+import { pushNewEpisodeNotification } from './onesignal';
 
 /**
  * Smart Supabase client for episode-checker.
@@ -1168,10 +1169,10 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
 
                 if (movieUpdateError) throw movieUpdateError;
 
-                // Upsert to updates table if a new episode was added
+                // Upsert to updates table & fire push notification if a new episode was added
                 if (hasNewEpisodeNum) {
+                    const targetSeason = movie.toonplay_season || movie.animerulz_season || movie.scraper_season || 1;
                     try {
-                        const targetSeason = movie.toonplay_season || movie.animerulz_season || movie.scraper_season || 1;
                         await supabase.from('updates').upsert({
                             content_id: movie.id,
                             title: movie.title,
@@ -1186,6 +1187,20 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                         }, { onConflict: 'content_id' });
                     } catch (updateErr) {
                         console.error('Failed to upsert updates table:', updateErr);
+                    }
+
+                    try {
+                        await pushNewEpisodeNotification({
+                            movieId: movie.id,
+                            title: movie.title,
+                            slug: movie.slug,
+                            contentType: movie.type,
+                            posterUrl: movie.poster_url,
+                            seasonNumber: targetSeason,
+                            episodeNumber: finalLastEpisode,
+                        });
+                    } catch (pushErr) {
+                        console.warn('Failed to send OneSignal episode push:', pushErr);
                     }
                 }
 

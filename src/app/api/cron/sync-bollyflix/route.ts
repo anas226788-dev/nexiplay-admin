@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase-admin';
 import * as cheerio from 'cheerio';
 import { enrichFromTMDB } from '@/lib/metadata-enrichment';
+import { pushNewContentNotification } from '@/lib/onesignal';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -240,6 +241,18 @@ export async function GET(request: NextRequest) {
                     update_type: 'movie',
                     is_active: true
                 });
+
+                if (synced.length < 2) {
+                    await pushNewContentNotification({
+                        movieId: inserted.id,
+                        title: inserted.title,
+                        slug,
+                        contentType: type,
+                        posterUrl: poster,
+                        releaseYear: release_year,
+                        language,
+                    }).catch(() => {});
+                }
 
                 synced.push(title);
             } catch (err: any) {

@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { pushDirectUserNotification } from '@/lib/onesignal';
 
 export async function POST(request: Request) {
     try {
@@ -45,6 +46,17 @@ export async function POST(request: Request) {
         }
 
         if (result.error) throw result.error;
+
+        if (target === 'app') {
+            await pushDirectUserNotification({
+                userId: user_id,
+                title: 'Official Notice',
+                message,
+                notificationId: result.data?.id || null,
+            }).catch((pushErr) => {
+                console.warn('[API send-user-message] OneSignal push failed:', pushErr);
+            });
+        }
 
         return NextResponse.json({ success: true, message: 'Message sent successfully', data: result.data });
     } catch (err: any) {

@@ -398,6 +398,7 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
 
             // Step 2: Insert episodes one by one with download links
             let successCount = 0;
+            let highestImportedEpNum = 0;
 
             for (const ep of selectedEpisodes) {
                 try {
@@ -478,11 +479,53 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                     }
 
                     successCount++;
+                    if (ep.number > highestImportedEpNum) {
+                        highestImportedEpNum = ep.number;
+                    }
                 } catch (epErr) {
                     console.error(`Error importing Episode ${ep.number}:`, epErr);
                 }
 
                 setImportProgress(prev => prev + 1);
+            }
+
+            if (successCount > 0 && highestImportedEpNum > 0) {
+                try {
+                    const { data: movieRow } = await supabase
+                        .from('movies')
+                        .select('id, title, poster_url, slug, type')
+                        .eq('id', movieId)
+                        .maybeSingle();
+
+                    if (movieRow) {
+                        await supabase.from('updates').upsert({
+                            content_id: movieRow.id,
+                            title: movieRow.title,
+                            poster_url: movieRow.poster_url,
+                            slug: '/' + movieRow.type + '/' + movieRow.slug,
+                            content_type: movieRow.type,
+                            update_type: 'episode',
+                            season_number: seasonNumber,
+                            episode_number: highestImportedEpNum,
+                            is_active: true,
+                            updated_at: new Date().toISOString(),
+                        }, { onConflict: 'content_id' });
+                    }
+                } catch (updErr) {
+                    console.warn('[Importer] Updates upsert skipped:', updErr);
+                }
+
+                fetch('/api/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: 'episode',
+                        movieId,
+                        seasonNumber,
+                        episodeNumber: highestImportedEpNum,
+                        extraCount: successCount,
+                    }),
+                }).catch(() => {});
             }
 
             setSuccessMessage(`✅ ${successCount}/${selectedEpisodes.length} episodes successfully imported to Season ${seasonNumber}!`);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase-admin';
+import { pushNoticeNotification } from '@/lib/onesignal';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,7 +101,19 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ ok: false, error: 'Insert returned 0 rows.' }, { status: 500 });
         }
 
-        return NextResponse.json({ ok: true, notice: data[0] });
+        const createdNotice = data[0];
+        if (createdNotice?.is_active) {
+            await pushNoticeNotification({
+                noticeId: createdNotice.id,
+                content: createdNotice.content,
+                imageUrl: createdNotice.image_url,
+                platform: createdNotice.platform,
+            }).catch((pushErr) => {
+                console.warn('[API notices POST] OneSignal push skipped/failed:', pushErr);
+            });
+        }
+
+        return NextResponse.json({ ok: true, notice: createdNotice });
     } catch (error: any) {
         console.error('[API notices POST] Error:', error);
         return NextResponse.json({ ok: false, error: error.message || 'Failed to create notice' }, { status: 500 });

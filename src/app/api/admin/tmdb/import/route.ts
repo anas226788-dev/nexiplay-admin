@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase-admin';
+import { pushNewContentNotification } from '@/lib/onesignal';
 
 export const dynamic = 'force-dynamic';
 
@@ -130,6 +131,18 @@ export async function POST(req: Request) {
                 onConflict: 'movie_id,category_id', ignoreDuplicates: true,
             });
             if (error) throw error;
+        }
+
+        if (action === 'created' && savedMovie) {
+            await pushNewContentNotification({
+                movieId,
+                title,
+                slug: savedMovie.slug,
+                contentType,
+                posterUrl: payload.poster_url,
+                releaseYear: year,
+                language: detail.original_language || null,
+            }).catch(() => {});
         }
 
         return NextResponse.json({ 

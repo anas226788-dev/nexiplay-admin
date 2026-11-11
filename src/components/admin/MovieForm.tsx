@@ -435,6 +435,14 @@ export default function MovieForm({ initialData }: MovieFormProps) {
                 console.warn('Failed to trigger auto-match streaming:', matchErr);
             }
 
+            if (!initialData) {
+                fetch('/api/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'content', movieId }),
+                }).catch(() => {});
+            }
+
             router.push('/');
             router.refresh();
 

@@ -160,6 +160,16 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                             updated_at: new Date().toISOString(),
                         }, { onConflict: 'content_id' });
                         if (upsertError) throw upsertError;
+
+                        fetch('/api/push/send', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                mode: 'season',
+                                movieId: movie.id,
+                                seasonNumber,
+                            }),
+                        }).catch(() => {});
                     }
                 } catch (e) {
                     console.warn('Latest update upsert failed:', e);
@@ -218,6 +228,7 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
 
         try {
             let episodeId = editingEpisode?.id;
+            const isNewEpisode = !episodeId;
 
             if (episodeId) {
                 // Update episode
@@ -297,6 +308,19 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                 } catch (e) {
                     console.warn('Latest update upsert failed:', e);
                 }
+            }
+
+            if ((isNewEpisode || markLatestUpdate) && selectedSeason) {
+                fetch('/api/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: 'episode',
+                        movieId: selectedSeason.movie_id || movieId,
+                        seasonNumber: selectedSeason.season_number,
+                        episodeNumber,
+                    }),
+                }).catch(() => {});
             }
 
             setShowEpisodeModal(false);

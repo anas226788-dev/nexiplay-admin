@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase-admin';
 import { upsertStreamingRow } from '@/lib/streaming-table';
+import { pushNewContentNotification } from '@/lib/onesignal';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -221,6 +222,18 @@ export async function GET(request: NextRequest) {
                     });
                 } catch {
                     // Non-critical, ignore if latest_updates schema differs
+                }
+
+                if (importedItems.length < 2) {
+                    await pushNewContentNotification({
+                        movieId,
+                        title,
+                        slug,
+                        contentType,
+                        posterUrl: savedMovie?.poster_url || moviePayload.poster_url || null,
+                        releaseYear: year,
+                        language: detail.original_language || null,
+                    }).catch(() => {});
                 }
 
                 existingTmdbSet.add(tmdbIdStr);
