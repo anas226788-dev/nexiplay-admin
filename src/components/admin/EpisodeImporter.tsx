@@ -491,28 +491,22 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
 
             if (successCount > 0 && highestImportedEpNum > 0) {
                 try {
-                    const { data: movieRow } = await supabase
-                        .from('movies')
-                        .select('id, title, poster_url, slug, type')
-                        .eq('id', movieId)
-                        .maybeSingle();
-
-                    if (movieRow) {
-                        await supabase.from('updates').upsert({
-                            content_id: movieRow.id,
-                            title: movieRow.title,
-                            poster_url: movieRow.poster_url,
-                            slug: '/' + movieRow.type + '/' + movieRow.slug,
-                            content_type: movieRow.type,
-                            update_type: 'episode',
-                            season_number: seasonNumber,
-                            episode_number: highestImportedEpNum,
-                            is_active: true,
-                            updated_at: new Date().toISOString(),
-                        }, { onConflict: 'content_id' });
+                    const updRes = await fetch('/api/admin/updates', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            movieId,
+                            updateType: 'episode',
+                            seasonNumber,
+                            episodeNumber: highestImportedEpNum,
+                        }),
+                    });
+                    if (!updRes.ok) {
+                        const errBody = await updRes.json().catch(() => ({}));
+                        console.warn('[Importer] Updates sync failed:', errBody?.error || updRes.status);
                     }
                 } catch (updErr) {
-                    console.warn('[Importer] Updates upsert skipped:', updErr);
+                    console.warn('[Importer] Updates sync failed:', updErr);
                 }
 
                 fetch('/api/push/send', {

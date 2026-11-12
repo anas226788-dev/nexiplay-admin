@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { scrapeSource } from './scraper-utils';
 import { mergeMoviesWithStreaming, upsertStreamingRow } from './streaming-table';
 import { pushNewEpisodeNotification } from './onesignal';
+import { revalidatePublicWeb } from './latest-updates';
 
 /**
  * Smart Supabase client for episode-checker.
@@ -1173,7 +1174,7 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                 if (hasNewEpisodeNum) {
                     const targetSeason = movie.toonplay_season || movie.animerulz_season || movie.scraper_season || 1;
                     try {
-                        await supabase.from('updates').upsert({
+                        const { error: updateErr } = await supabase.from('updates').upsert({
                             content_id: movie.id,
                             title: movie.title,
                             poster_url: movie.poster_url,
@@ -1185,6 +1186,11 @@ export async function handleCheckEpisodes(targetMovieId?: string, mode: CheckMod
                             is_active: true,
                             updated_at: new Date().toISOString(),
                         }, { onConflict: 'content_id' });
+                        if (updateErr) {
+                            console.error('Failed to upsert updates table:', updateErr.message);
+                        } else {
+                            await revalidatePublicWeb(['/', '/anime', '/series', '/movies']);
+                        }
                     } catch (updateErr) {
                         console.error('Failed to upsert updates table:', updateErr);
                     }

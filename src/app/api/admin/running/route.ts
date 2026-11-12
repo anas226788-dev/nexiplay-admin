@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePublicWeb } from '@/lib/latest-updates';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,7 @@ export async function POST(req: NextRequest) {
                     console.error('[Running API] updates upsert error:', upsertErr);
                 } else {
                     updateSyncSuccess = true;
+                    await revalidatePublicWeb(['/', '/anime', '/series', '/movies', targetSlug]);
                 }
             } catch (uErr: any) {
                 console.error('[Running API] Failed to sync latest updates table:', uErr.message);

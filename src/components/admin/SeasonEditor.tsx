@@ -133,47 +133,32 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                 if (error) throw error;
             }
 
-            // Latest Update upsert
+            // Latest Update sync via server service_role API
             if (markLatestUpdate) {
-                try {
-                    const { data: movie } = await supabase.from('movies')
-                        .select('id, title, poster_url, slug, type')
-                        .eq('id', movieId)
-                        .single();
-                    if (movie) {
-                        // Preserve existing episode_number if any
-                        const { data: existing } = await supabase.from('updates')
-                            .select('episode_number')
-                            .eq('content_id', movie.id)
-                            .maybeSingle();
-
-                        const { error: upsertError } = await supabase.from('updates').upsert({
-                            content_id: movie.id,
-                            title: movie.title,
-                            poster_url: movie.poster_url,
-                            slug: '/' + movie.type + '/' + movie.slug,
-                            content_type: movie.type,
-                            update_type: existing?.episode_number ? 'episode' : 'season',
-                            season_number: seasonNumber,
-                            episode_number: existing?.episode_number || null,
-                            is_active: true,
-                            updated_at: new Date().toISOString(),
-                        }, { onConflict: 'content_id' });
-                        if (upsertError) throw upsertError;
-
-                        fetch('/api/push/send', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                mode: 'season',
-                                movieId: movie.id,
-                                seasonNumber,
-                            }),
-                        }).catch(() => {});
-                    }
-                } catch (e) {
-                    console.warn('Latest update upsert failed:', e);
+                const updRes = await fetch('/api/admin/updates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        movieId,
+                        updateType: 'season',
+                        seasonNumber,
+                        preserveExistingEpisodeOnSeason: true,
+                    }),
+                });
+                const updData = await updRes.json().catch(() => ({}));
+                if (!updRes.ok || !updData?.success) {
+                    throw new Error(updData?.error || `Failed to sync Latest Update (HTTP ${updRes.status})`);
                 }
+
+                fetch('/api/push/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: 'season',
+                        movieId,
+                        seasonNumber,
+                    }),
+                }).catch(() => {});
             }
 
             await fetchSeasons();
@@ -283,30 +268,22 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
 
             await fetchSeasons();
 
-            // Latest Update upsert
+            // Latest Update sync via server service_role API
             if (markLatestUpdate && selectedSeason) {
-                try {
-                    const { data: movie } = await supabase.from('movies')
-                        .select('id, title, poster_url, slug, type')
-                        .eq('id', selectedSeason.movie_id || movieId)
-                        .single();
-                    if (movie) {
-                        const { error: upsertError } = await supabase.from('updates').upsert({
-                            content_id: movie.id,
-                            title: movie.title,
-                            poster_url: movie.poster_url,
-                            slug: '/' + movie.type + '/' + movie.slug,
-                            content_type: movie.type,
-                            update_type: 'episode',
-                            season_number: selectedSeason.season_number,
-                            episode_number: episodeNumber,
-                            is_active: true,
-                            updated_at: new Date().toISOString(),
-                        }, { onConflict: 'content_id' });
-                        if (upsertError) throw upsertError;
-                    }
-                } catch (e) {
-                    console.warn('Latest update upsert failed:', e);
+                const targetMovieId = selectedSeason.movie_id || movieId;
+                const updRes = await fetch('/api/admin/updates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        movieId: targetMovieId,
+                        updateType: 'episode',
+                        seasonNumber: selectedSeason.season_number,
+                        episodeNumber,
+                    }),
+                });
+                const updData = await updRes.json().catch(() => ({}));
+                if (!updRes.ok || !updData?.success) {
+                    throw new Error(updData?.error || `Failed to sync Latest Update (HTTP ${updRes.status})`);
                 }
             }
 
