@@ -17,9 +17,9 @@ export default function AdsPage() {
         (q) => q.order('created_at', { ascending: false })
     );
 
-    // App Ads SDK Configuration state (Unity LevelPlay & Start.io)
+    // App Ads SDK & Adsterra Direct Link Configuration state
     const [appAdsConfig, setAppAdsConfig] = useState({
-        app_ad_network: 'unity' as 'startio' | 'unity' | 'both',
+        app_ad_network: 'startio' as 'startio' | 'unity' | 'both',
         startio_app_id: '',
         unity_app_key: '',
         unity_banner_id: '',
@@ -31,7 +31,11 @@ export default function AdsPage() {
         is_native_enabled: false,
         is_app_open_enabled: false,
         is_premium_server_ad_enabled: true,
-        is_test_ads_enabled: true,
+        is_test_ads_enabled: false,
+        is_ads_enabled: true,
+        direct_link_url: '',
+        is_download_verification_enabled: false,
+        download_ad_url_1: '',
     });
     const [appAdsLoading, setAppAdsLoading] = useState(true);
     const [appAdsSaving, setAppAdsSaving] = useState(false);
@@ -45,7 +49,7 @@ export default function AdsPage() {
                 const { data } = await supabase.from('app_settings').select('*').single();
                 if (data) {
                     setAppAdsConfig({
-                        app_ad_network: (data.app_ad_network === 'admob' ? 'unity' : data.app_ad_network) || 'unity',
+                        app_ad_network: (data.app_ad_network === 'admob' ? 'startio' : data.app_ad_network) || 'startio',
                         startio_app_id: data.startio_app_id || '',
                         unity_app_key: data.unity_app_key || '',
                         unity_banner_id: data.unity_banner_id || '',
@@ -57,7 +61,11 @@ export default function AdsPage() {
                         is_native_enabled: data.is_native_enabled ?? false,
                         is_app_open_enabled: data.is_app_open_enabled ?? false,
                         is_premium_server_ad_enabled: data.is_premium_server_ad_enabled ?? true,
-                        is_test_ads_enabled: data.is_test_ads_enabled ?? true,
+                        is_test_ads_enabled: data.is_test_ads_enabled ?? false,
+                        is_ads_enabled: data.is_ads_enabled ?? true,
+                        direct_link_url: data.direct_link_url || '',
+                        is_download_verification_enabled: data.is_download_verification_enabled ?? false,
+                        download_ad_url_1: data.download_ad_url_1 || '',
                     });
                 }
             } catch (err) {
@@ -88,6 +96,10 @@ export default function AdsPage() {
                     is_app_open_enabled: appAdsConfig.is_app_open_enabled,
                     is_premium_server_ad_enabled: appAdsConfig.is_premium_server_ad_enabled,
                     is_test_ads_enabled: appAdsConfig.is_test_ads_enabled,
+                    is_ads_enabled: appAdsConfig.is_ads_enabled,
+                    direct_link_url: appAdsConfig.direct_link_url,
+                    is_download_verification_enabled: appAdsConfig.is_download_verification_enabled,
+                    download_ad_url_1: appAdsConfig.download_ad_url_1,
                 })
                 .eq('id', 1);
             if (error) throw error;
@@ -150,9 +162,9 @@ export default function AdsPage() {
     }
 
     const networkOptions = [
-        { id: 'unity', label: 'Unity LevelPlay', icon: '🎮', desc: 'Unity LevelPlay Mediation (Primary)', color: 'from-indigo-600 to-blue-600' },
-        { id: 'startio', label: 'Start.io Only', icon: '🟣', desc: 'Start.io ads only (Fallback)', color: 'from-purple-600 to-violet-600' },
-        { id: 'both', label: 'All Networks', icon: '⚡', desc: 'Unity → Start.io waterfall', color: 'from-amber-500 to-orange-600' },
+        { id: 'startio', label: 'Start.io (Recommended)', icon: '🟣', desc: 'Best fill & eCPM for BD & APK', color: 'from-purple-600 to-violet-600' },
+        { id: 'both', label: 'Start.io + Unity', icon: '⚡', desc: 'Start.io → Unity waterfall', color: 'from-amber-500 to-orange-600' },
+        { id: 'unity', label: 'Unity LevelPlay', icon: '🎮', desc: 'Unity LevelPlay Mediation only', color: 'from-indigo-600 to-blue-600' },
     ];
 
     const adToggles = [
@@ -312,8 +324,68 @@ export default function AdsPage() {
                                     </div>
                                     <div className="mt-4 p-3 rounded-lg bg-white/[0.03] border border-white/5">
                                         <p className="text-[11px] text-gray-400 leading-relaxed">
-                                            💡 <strong className="text-gray-300">Tip:</strong> Start.io acts as fallback when Unity fails. Keep App ID configured even when Unity is primary.
+                                            💡 <strong className="text-gray-300">Tip:</strong> Start.io handles Banner, MREC, Interstitial, and Rewarded (Video + Non-Video fallback). Keep Test Mode OFF in production.
                                         </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ── Adsterra Direct Link Configuration ── */}
+                            <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-950/15 space-y-3">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <h3 className="text-xs font-bold text-emerald-400 flex items-center gap-2 uppercase tracking-wider">
+                                            🔗 Adsterra Direct Link (App Download & Reward Fallback)
+                                        </h3>
+                                        <p className="text-[11px] text-gray-400 mt-0.5">
+                                            Synced with Settings. Opens in Chrome Custom Tab on downloads (once per cooldown) and acts as fallback if Start.io has no fill.
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setAppAdsConfig({ ...appAdsConfig, is_ads_enabled: !appAdsConfig.is_ads_enabled })}
+                                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                                                appAdsConfig.is_ads_enabled
+                                                    ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+                                                    : 'border-white/10 bg-white/5 text-gray-400'
+                                            }`}
+                                        >
+                                            {appAdsConfig.is_ads_enabled ? '● Direct Link On' : '○ Direct Link Off'}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAppAdsConfig({ ...appAdsConfig, is_download_verification_enabled: !appAdsConfig.is_download_verification_enabled })}
+                                            className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                                                appAdsConfig.is_download_verification_enabled
+                                                    ? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+                                                    : 'border-white/10 bg-white/5 text-gray-400'
+                                            }`}
+                                        >
+                                            {appAdsConfig.is_download_verification_enabled ? '● Download Gate On' : '○ Download Gate Off'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Primary Adsterra Direct Link URL</label>
+                                        <input
+                                            type="url"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 placeholder:text-gray-600 font-mono transition-colors"
+                                            placeholder="https://www.profitablecpmrate.com/..."
+                                            value={appAdsConfig.direct_link_url}
+                                            onChange={(e) => setAppAdsConfig({ ...appAdsConfig, direct_link_url: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Download Direct Link Override (Optional)</label>
+                                        <input
+                                            type="url"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 placeholder:text-gray-600 font-mono transition-colors"
+                                            placeholder="Uses Primary Direct Link if empty"
+                                            value={appAdsConfig.download_ad_url_1}
+                                            onChange={(e) => setAppAdsConfig({ ...appAdsConfig, download_ad_url_1: e.target.value })}
+                                        />
                                     </div>
                                 </div>
                             </div>
