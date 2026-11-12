@@ -335,10 +335,10 @@ export default function AdsPage() {
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div>
                                         <h3 className="text-xs font-bold text-emerald-400 flex items-center gap-2 uppercase tracking-wider">
-                                            🔗 Adsterra Direct Link (App Download & Reward Fallback)
+                                            🔗 Adsterra Direct Link (Watch, Download, Coin Offer & Fallback)
                                         </h3>
                                         <p className="text-[11px] text-gray-400 mt-0.5">
-                                            Synced with Settings. Opens in Chrome Custom Tab on downloads (once per cooldown) and acts as fallback if Start.io has no fill.
+                                            Synced with Settings. Triggers on Watch Now / Episode Watch, Download Gate, Coin Center Sponsor Offer (+15 Coins), and Start.io No-Fill fallback (with anti-spam cooldowns).
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
