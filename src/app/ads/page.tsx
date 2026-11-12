@@ -1,7 +1,6 @@
 'use client';
 
-import { supabase } from '@/lib/supabase';
-import { Ad, AppSettings } from '@/lib/types';
+import { Ad } from '@/lib/types';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSupabaseQuery } from '@/hooks/useSupabaseQuery';
@@ -43,10 +42,13 @@ export default function AdsPage() {
 
     useEffect(() => {
         setMounted(true);
-        // Load app ads config from app_settings
+        // Load app ads config via admin API (uses server-side service_role key)
         (async () => {
             try {
-                const { data } = await supabase.from('app_settings').select('*').single();
+                const res = await fetch('/api/admin/ads-config', { cache: 'no-store' });
+                const result = await res.json();
+                if (!res.ok) throw new Error(result.error || 'Failed to load config');
+                const data = result.settings;
                 if (data) {
                     setAppAdsConfig({
                         app_ad_network: (data.app_ad_network === 'admob' ? 'startio' : data.app_ad_network) || 'startio',
@@ -68,8 +70,9 @@ export default function AdsPage() {
                         download_ad_url_1: data.download_ad_url_1 || '',
                     });
                 }
-            } catch (err) {
+            } catch (err: any) {
                 console.error('Failed to load app ads config:', err);
+                setAppAdsMsg('Error: ' + (err.message || 'Failed to load config'));
             } finally {
                 setAppAdsLoading(false);
             }
@@ -80,31 +83,39 @@ export default function AdsPage() {
         setAppAdsSaving(true);
         setAppAdsMsg('');
         try {
-            const { error } = await supabase
-                .from('app_settings')
-                .update({
-                    app_ad_network: appAdsConfig.app_ad_network,
-                    startio_app_id: appAdsConfig.startio_app_id,
-                    unity_app_key: appAdsConfig.unity_app_key,
-                    unity_banner_id: appAdsConfig.unity_banner_id,
-                    unity_interstitial_id: appAdsConfig.unity_interstitial_id,
-                    unity_rewarded_id: appAdsConfig.unity_rewarded_id,
-                    is_banner_enabled: appAdsConfig.is_banner_enabled,
-                    is_interstitial_enabled: appAdsConfig.is_interstitial_enabled,
-                    is_rewarded_enabled: appAdsConfig.is_rewarded_enabled,
-                    is_native_enabled: appAdsConfig.is_native_enabled,
-                    is_app_open_enabled: appAdsConfig.is_app_open_enabled,
-                    is_premium_server_ad_enabled: appAdsConfig.is_premium_server_ad_enabled,
-                    is_test_ads_enabled: appAdsConfig.is_test_ads_enabled,
-                    is_ads_enabled: appAdsConfig.is_ads_enabled,
-                    direct_link_url: appAdsConfig.direct_link_url,
-                    is_download_verification_enabled: appAdsConfig.is_download_verification_enabled,
-                    download_ad_url_1: appAdsConfig.download_ad_url_1,
-                })
-                .eq('id', 1);
-            if (error) throw error;
-            setAppAdsMsg('App Ads configuration saved successfully!');
-            setTimeout(() => setAppAdsMsg(''), 3000);
+            const res = await fetch('/api/admin/ads-config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(appAdsConfig),
+            });
+            const result = await res.json();
+            if (!res.ok || !result.ok) {
+                throw new Error(result.error || 'Failed to save config to database');
+            }
+            const saved = result.settings;
+            if (saved) {
+                setAppAdsConfig({
+                    app_ad_network: (saved.app_ad_network === 'admob' ? 'startio' : saved.app_ad_network) || 'startio',
+                    startio_app_id: saved.startio_app_id || '',
+                    unity_app_key: saved.unity_app_key || '',
+                    unity_banner_id: saved.unity_banner_id || '',
+                    unity_interstitial_id: saved.unity_interstitial_id || '',
+                    unity_rewarded_id: saved.unity_rewarded_id || '',
+                    is_banner_enabled: saved.is_banner_enabled ?? true,
+                    is_interstitial_enabled: saved.is_interstitial_enabled ?? true,
+                    is_rewarded_enabled: saved.is_rewarded_enabled ?? true,
+                    is_native_enabled: saved.is_native_enabled ?? false,
+                    is_app_open_enabled: saved.is_app_open_enabled ?? false,
+                    is_premium_server_ad_enabled: saved.is_premium_server_ad_enabled ?? true,
+                    is_test_ads_enabled: saved.is_test_ads_enabled ?? false,
+                    is_ads_enabled: saved.is_ads_enabled ?? true,
+                    direct_link_url: saved.direct_link_url || '',
+                    is_download_verification_enabled: saved.is_download_verification_enabled ?? false,
+                    download_ad_url_1: saved.download_ad_url_1 || '',
+                });
+            }
+            setAppAdsMsg('App Ads configuration saved to database!');
+            setTimeout(() => setAppAdsMsg(''), 4000);
         } catch (err: any) {
             setAppAdsMsg('Error: ' + (err.message || 'Failed to save'));
         } finally {
@@ -206,31 +217,40 @@ export default function AdsPage() {
 
             {/* ══ App Ads SDK Configuration ══ */}
             <div className="rounded-2xl border border-white/10 overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(88,28,135,0.08), rgba(15,15,25,0.95))' }}>
-                {/* Collapsible Header */}
-                <button
-                    onClick={() => setSdkExpanded(!sdkExpanded)}
-                    className="w-full flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors"
-                >
-                    <div className="flex items-center gap-3">
+                {/* Collapsible Header (no nested <button> inside <button>) */}
+                <div className="w-full flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
+                    <button
+                        type="button"
+                        onClick={() => setSdkExpanded(!sdkExpanded)}
+                        className="flex-1 flex items-center gap-3 text-left cursor-pointer"
+                    >
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-lg shadow-lg shadow-purple-900/30">📱</div>
                         <div className="text-left">
                             <h2 className="text-base font-bold text-white font-outfit">In-App Ad SDK Configuration</h2>
                             <p className="text-xs text-gray-500">Unity LevelPlay & Start.io network settings</p>
                         </div>
-                    </div>
+                    </button>
                     <div className="flex items-center gap-3">
                         <button
-                            onClick={(e) => { e.stopPropagation(); saveAppAdsConfig(); }}
+                            type="button"
+                            onClick={() => saveAppAdsConfig()}
                             disabled={appAdsSaving || appAdsLoading}
-                            className="px-5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-purple-900/20"
+                            className="px-5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-50 shadow-lg shadow-purple-900/20 cursor-pointer"
                         >
                             {appAdsSaving ? '⏳ Saving...' : '💾 Save Config'}
                         </button>
-                        <svg className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${sdkExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <button
+                            type="button"
+                            aria-label="Toggle SDK configuration"
+                            onClick={() => setSdkExpanded(!sdkExpanded)}
+                            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                        >
+                            <svg className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${sdkExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
                     </div>
-                </button>
+                </div>
 
                 {appAdsMsg && (
                     <div className={`mx-5 mb-3 text-sm font-bold px-4 py-3 rounded-xl border ${appAdsMsg.startsWith('Error') ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-green-500/10 text-green-400 border-green-500/20'}`}>
