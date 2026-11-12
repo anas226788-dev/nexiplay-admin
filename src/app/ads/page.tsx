@@ -358,7 +358,7 @@ export default function AdsPage() {
                                             🔗 Adsterra Direct Link (Watch, Download, Coin Offer & Fallback)
                                         </h3>
                                         <p className="text-[11px] text-gray-400 mt-0.5">
-                                            Synced with Settings. Triggers on Watch Now / Episode Watch, Download Gate, Coin Center Sponsor Offer (+15 Coins), and Start.io No-Fill fallback (with anti-spam cooldowns).
+                                            Synced with Settings. Triggers with a live countdown overlay on Watch Now / Episode Watch (5s), Download Gate (6s), Bonus Coin Explorer (+15 Coins, 10s), and Start.io No-Fill fallback (10s).
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
