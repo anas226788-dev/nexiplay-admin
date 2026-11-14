@@ -35,6 +35,13 @@ export default function AdsPage() {
         direct_link_url: '',
         is_download_verification_enabled: false,
         download_ad_url_1: '',
+        download_ad_url_2: '',
+        is_verification_enabled: true,
+        verification_ad_url_1: '',
+        verification_ad_url_2: '',
+        is_novel_verification_enabled: true,
+        novel_ad_url_1: '',
+        novel_ad_url_2: '',
     });
     const [appAdsLoading, setAppAdsLoading] = useState(true);
     const [appAdsSaving, setAppAdsSaving] = useState(false);
@@ -68,6 +75,13 @@ export default function AdsPage() {
                         direct_link_url: data.direct_link_url || '',
                         is_download_verification_enabled: data.is_download_verification_enabled ?? false,
                         download_ad_url_1: data.download_ad_url_1 || '',
+                        download_ad_url_2: data.download_ad_url_2 || '',
+                        is_verification_enabled: data.is_verification_enabled ?? true,
+                        verification_ad_url_1: data.verification_ad_url_1 || '',
+                        verification_ad_url_2: data.verification_ad_url_2 || '',
+                        is_novel_verification_enabled: data.is_novel_verification_enabled ?? true,
+                        novel_ad_url_1: data.novel_ad_url_1 || '',
+                        novel_ad_url_2: data.novel_ad_url_2 || '',
                     });
                 }
             } catch (err: any) {
@@ -112,6 +126,13 @@ export default function AdsPage() {
                     direct_link_url: saved.direct_link_url || '',
                     is_download_verification_enabled: saved.is_download_verification_enabled ?? false,
                     download_ad_url_1: saved.download_ad_url_1 || '',
+                    download_ad_url_2: saved.download_ad_url_2 || '',
+                    is_verification_enabled: saved.is_verification_enabled ?? true,
+                    verification_ad_url_1: saved.verification_ad_url_1 || '',
+                    verification_ad_url_2: saved.verification_ad_url_2 || '',
+                    is_novel_verification_enabled: saved.is_novel_verification_enabled ?? true,
+                    novel_ad_url_1: saved.novel_ad_url_1 || '',
+                    novel_ad_url_2: saved.novel_ad_url_2 || '',
                 });
             }
             setAppAdsMsg('App Ads configuration saved to database!');
@@ -259,7 +280,7 @@ export default function AdsPage() {
                 )}
 
                 {/* Collapsible Content */}
-                <div className={`transition-all duration-300 overflow-hidden ${sdkExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                <div className={`transition-all duration-300 overflow-hidden ${sdkExpanded ? 'max-h-[2800px] opacity-100' : 'max-h-0 opacity-0'}`}>
                     {appAdsLoading ? (
                         <div className="p-8 text-center text-gray-400">Loading configuration...</div>
                     ) : (
@@ -308,7 +329,7 @@ export default function AdsPage() {
                                     </h3>
                                     <div className="space-y-3">
                                         {[
-                                            { key: 'unity_app_key', label: 'App Key', placeholder: 'e.g. 800107394' },
+                                            { key: 'unity_app_key', label: 'App Key (ironSource LevelPlay)', placeholder: 'e.g. 1f8a2b3c4 (alphanumeric LevelPlay App Key)' },
                                             { key: 'unity_banner_id', label: 'Banner ID', placeholder: 'e.g. Banner_Android' },
                                             { key: 'unity_interstitial_id', label: 'Interstitial ID', placeholder: 'e.g. Interstitial_Android' },
                                             { key: 'unity_rewarded_id', label: 'Rewarded ID', placeholder: 'e.g. Rewarded_Android' },
@@ -324,6 +345,11 @@ export default function AdsPage() {
                                                 />
                                             </div>
                                         ))}
+                                        {/^\d+$/.test((appAdsConfig.unity_app_key || '').trim()) && (
+                                            <p className="text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                                                ⚠️ Pure-numeric value detected (<code className="text-amber-200">{appAdsConfig.unity_app_key.trim()}</code>). IronSource LevelPlay App Keys are usually alphanumeric (separate from Start.io App IDs).
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -344,7 +370,7 @@ export default function AdsPage() {
                                     </div>
                                     <div className="mt-4 p-3 rounded-lg bg-white/[0.03] border border-white/5">
                                         <p className="text-[11px] text-gray-400 leading-relaxed">
-                                            💡 <strong className="text-gray-300">Tip:</strong> Start.io handles Banner, MREC, Interstitial, and Rewarded (Video + Non-Video fallback). Keep Test Mode OFF in production.
+                                            💡 <strong className="text-gray-300">Tip:</strong> Start.io handles Banner, MREC, Interstitial, and Rewarded (Video + Non-Video fallback). Keep Test Mode OFF for live earnings, or toggle Test Mode ON temporarily if live requests return No-Fill while Start.io reviews your app.
                                         </p>
                                     </div>
                                 </div>
@@ -358,7 +384,7 @@ export default function AdsPage() {
                                             🔗 Adsterra Direct Link (Watch, Download, Coin Offer & Fallback)
                                         </h3>
                                         <p className="text-[11px] text-gray-400 mt-0.5">
-                                            Synced with Settings. Triggers with a live countdown overlay on Watch Now / Episode Watch (5s), Download Gate (6s), Bonus Coin Explorer (+15 Coins, 10s), and Start.io No-Fill fallback (10s).
+                                            Synced with Settings. Uses an in-app Direct Link countdown overlay (12s–15s) with round-robin rotation across Watch/Episode, Download, Novel, Sponsor (+15 Coins), and No-Fill fallback URLs.
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -398,13 +424,63 @@ export default function AdsPage() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Download Direct Link Override (Optional)</label>
+                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Download Direct Link #1 (Optional Override)</label>
                                         <input
                                             type="url"
                                             className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 placeholder:text-gray-600 font-mono transition-colors"
                                             placeholder="Uses Primary Direct Link if empty"
                                             value={appAdsConfig.download_ad_url_1}
                                             onChange={(e) => setAppAdsConfig({ ...appAdsConfig, download_ad_url_1: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Download Direct Link #2 (Rotation)</label>
+                                        <input
+                                            type="url"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 placeholder:text-gray-600 font-mono transition-colors"
+                                            placeholder="Rotates with Download #1 & Primary"
+                                            value={appAdsConfig.download_ad_url_2}
+                                            onChange={(e) => setAppAdsConfig({ ...appAdsConfig, download_ad_url_2: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Stream / Watch Direct Link #1</label>
+                                        <input
+                                            type="url"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 placeholder:text-gray-600 font-mono transition-colors"
+                                            placeholder="Uses Primary Direct Link if empty"
+                                            value={appAdsConfig.verification_ad_url_1}
+                                            onChange={(e) => setAppAdsConfig({ ...appAdsConfig, verification_ad_url_1: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Stream / Watch Direct Link #2 (Rotation)</label>
+                                        <input
+                                            type="url"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 placeholder:text-gray-600 font-mono transition-colors"
+                                            placeholder="Rotates with Stream #1 & Primary"
+                                            value={appAdsConfig.verification_ad_url_2}
+                                            onChange={(e) => setAppAdsConfig({ ...appAdsConfig, verification_ad_url_2: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Novel Direct Link #1</label>
+                                        <input
+                                            type="url"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 placeholder:text-gray-600 font-mono transition-colors"
+                                            placeholder="Uses Primary Direct Link if empty"
+                                            value={appAdsConfig.novel_ad_url_1}
+                                            onChange={(e) => setAppAdsConfig({ ...appAdsConfig, novel_ad_url_1: e.target.value })}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-wider">Novel Direct Link #2 (Rotation)</label>
+                                        <input
+                                            type="url"
+                                            className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-emerald-500 placeholder:text-gray-600 font-mono transition-colors"
+                                            placeholder="Rotates with Novel #1 & Primary"
+                                            value={appAdsConfig.novel_ad_url_2}
+                                            onChange={(e) => setAppAdsConfig({ ...appAdsConfig, novel_ad_url_2: e.target.value })}
                                         />
                                     </div>
                                 </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { triggerAdminPush } from '@/lib/push-client';
 import { Season, Episode, EpisodeDownloadLink } from '@/lib/types';
 
 interface SeasonEditorProps {
@@ -150,15 +151,11 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
                     throw new Error(updData?.error || `Failed to sync Latest Update (HTTP ${updRes.status})`);
                 }
 
-                fetch('/api/push/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        mode: 'season',
-                        movieId,
-                        seasonNumber,
-                    }),
-                }).catch(() => {});
+                void triggerAdminPush({
+                    mode: 'season',
+                    movieId,
+                    seasonNumber,
+                });
             }
 
             await fetchSeasons();
@@ -288,16 +285,12 @@ export default function SeasonEditor({ movieId, movieType }: SeasonEditorProps) 
             }
 
             if ((isNewEpisode || markLatestUpdate) && selectedSeason) {
-                fetch('/api/push/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        mode: 'episode',
-                        movieId: selectedSeason.movie_id || movieId,
-                        seasonNumber: selectedSeason.season_number,
-                        episodeNumber,
-                    }),
-                }).catch(() => {});
+                void triggerAdminPush({
+                    mode: 'episode',
+                    movieId: selectedSeason.movie_id || movieId,
+                    seasonNumber: selectedSeason.season_number,
+                    episodeNumber,
+                });
             }
 
             setShowEpisodeModal(false);

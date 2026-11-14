@@ -126,6 +126,95 @@ function maskKey(key: string): string {
     return `${key.slice(0, 6)}••••••••${key.slice(-4)}`;
 }
 
+export interface OneSignalAndroidDiagnostics {
+    expectedFirebaseProjectId: string;
+    expectedFirebaseSenderId: string;
+    androidSenderId: string | null;
+    hasFcmParams: boolean;
+    senderMatchesFirebase: boolean;
+    reachable: boolean;
+}
+
+export async function inspectOneSignalAndroidConfig(
+    appId?: string | null,
+    restApiKey?: string | null
+): Promise<OneSignalAndroidDiagnostics | null> {
+    const cleanAppId = (appId || DEFAULT_NEXIPLAY_ONESIGNAL_APP_ID).trim();
+    if (!cleanAppId) return null;
+
+    const expectedFirebaseProjectId = 'nexiplay-app-f97c1';
+    const expectedFirebaseSenderId = '133365393840';
+
+    try {
+        const res = await fetch(
+            `https://api.onesignal.com/apps/${encodeURIComponent(cleanAppId)}/android_params.js`,
+            { cache: 'no-store', signal: AbortSignal.timeout(4000) }
+        );
+        if (!res.ok) {
+            return {
+                expectedFirebaseProjectId,
+                expectedFirebaseSenderId,
+                androidSenderId: null,
+                hasFcmParams: false,
+                senderMatchesFirebase: false,
+                reachable: false,
+            };
+        }
+        const rawText = await res.text();
+        const jsonMatch = rawText.trim().startsWith('{') ? rawText : rawText.replace(/^[^({]*\(/, '').replace(/\);?\s*$/, '');
+        const parsed = JSON.parse(jsonMatch);
+        const androidSenderId = parsed?.android_sender_id ? String(parsed.android_sender_id) : null;
+        const senderMatchesFirebase = androidSenderId === expectedFirebaseSenderId;
+
+        let resolvedRestKey = restApiKey?.trim() || '';
+        if (!resolvedRestKey) {
+            try {
+                resolvedRestKey = (await getPushSettings()).onesignalRestApiKey;
+            } catch {
+                // Ignore if settings cannot be read
+            }
+        }
+
+        // OneSignal public android_params.js omits fcmParams for FCM v1 and exposes android_sender_id;
+        // verify fcm_v1_service_account_json directly when a REST API Key is available.
+        let verifiedFcmV1Json: boolean | null = null;
+        if (resolvedRestKey) {
+            try {
+                const appRes = await fetch(
+                    `https://api.onesignal.com/apps/${encodeURIComponent(cleanAppId)}`,
+                    {
+                        headers: { Authorization: buildOneSignalAuthHeader(resolvedRestKey) },
+                        cache: 'no-store',
+                        signal: AbortSignal.timeout(4000),
+                    }
+                );
+                if (appRes.ok) {
+                    const appData = await appRes.json();
+                    verifiedFcmV1Json = Boolean(appData?.fcm_v1_service_account_json);
+                }
+            } catch {
+                // Fall back to android_params.js check
+            }
+        }
+
+        const hasLegacyOrV1Params = Boolean(parsed?.fcmParams && (parsed.fcmParams.project_id || parsed.fcmParams.app_id));
+        const hasFcmParams = verifiedFcmV1Json !== null
+            ? (verifiedFcmV1Json || hasLegacyOrV1Params)
+            : (hasLegacyOrV1Params || senderMatchesFirebase);
+
+        return {
+            expectedFirebaseProjectId,
+            expectedFirebaseSenderId,
+            androidSenderId,
+            hasFcmParams,
+            senderMatchesFirebase,
+            reachable: true,
+        };
+    } catch {
+        return null;
+    }
+}
+
 export async function getMaskedPushSettings() {
     const settings = await getPushSettings();
     return {

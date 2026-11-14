@@ -3,6 +3,15 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
+interface AndroidDiagnostics {
+    expectedFirebaseProjectId: string;
+    expectedFirebaseSenderId: string;
+    androidSenderId: string | null;
+    hasFcmParams: boolean;
+    senderMatchesFirebase: boolean;
+    reachable: boolean;
+}
+
 interface PushConfigState {
     onesignalAppId: string;
     hasRestApiKey: boolean;
@@ -39,6 +48,7 @@ export default function PushAlertsPage() {
         hasTableSupport: false,
     });
     const [restApiKeyInput, setRestApiKeyInput] = useState('');
+    const [androidDiagnostics, setAndroidDiagnostics] = useState<AndroidDiagnostics | null>(null);
 
     // Manual Broadcast State
     const [title, setTitle] = useState('');
@@ -70,6 +80,7 @@ export default function PushAlertsPage() {
             const cfgJson = await cfgRes.json();
             if (cfgRes.ok && cfgJson.ok && cfgJson.config) {
                 setConfig(cfgJson.config);
+                setAndroidDiagnostics(cfgJson.androidDiagnostics || null);
             }
             if (moviesRes.data) {
                 setMovies(moviesRes.data);
@@ -102,6 +113,9 @@ export default function PushAlertsPage() {
                 throw new Error(data.error || 'Failed to save OneSignal configuration');
             }
             setConfig(data.config);
+            if (data.androidDiagnostics !== undefined) {
+                setAndroidDiagnostics(data.androidDiagnostics || null);
+            }
             setRestApiKeyInput('');
             setStatusMsg({ type: 'success', text: 'OneSignal Push configuration saved securely.' });
         } catch (err: any) {
@@ -415,6 +429,23 @@ export default function PushAlertsPage() {
 
                     <div className="p-3.5 rounded-xl bg-dark-900/70 border border-white/5 text-xs text-gray-400 space-y-1.5">
                         <p className="font-bold text-gray-200">Required OneSignal Console Check:</p>
+                        {androidDiagnostics?.reachable && (!androidDiagnostics.senderMatchesFirebase || !androidDiagnostics.hasFcmParams) && (
+                            <div className="p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-200 text-[11px] space-y-1 mb-2">
+                                <p className="font-bold">⚠️ Android FCM Delivery Blocked in OneSignal Portal</p>
+                                <p>
+                                    Live OneSignal <code className="text-rose-100">android_params.js</code> reports sender ID{' '}
+                                    <code className="text-rose-100">{androidDiagnostics.androidSenderId || 'none'}</code>
+                                    {!androidDiagnostics.hasFcmParams ? ' (missing Firebase v1 Service Account JSON)' : ''}, while the Android APK uses Firebase{' '}
+                                    <code className="text-emerald-200">{androidDiagnostics.expectedFirebaseProjectId}</code> (sender{' '}
+                                    <code className="text-emerald-200">{androidDiagnostics.expectedFirebaseSenderId}</code>). Until updated in OneSignal, remote pushes will not wake closed devices outside the app.
+                                </p>
+                            </div>
+                        )}
+                        {androidDiagnostics?.reachable && androidDiagnostics.senderMatchesFirebase && androidDiagnostics.hasFcmParams && (
+                            <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-[11px] mb-2">
+                                ✅ OneSignal Android FCM matches Firebase project <code className="text-emerald-100">{androidDiagnostics.expectedFirebaseProjectId}</code>.
+                            </div>
+                        )}
                         <p>
                             1. Open OneSignal Dashboard → App <code className="text-violet-300">{config.onesignalAppId}</code> → Settings → Keys & IDs → copy <strong>App API Key</strong> above.
                         </p>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import { triggerAdminPush } from '@/lib/push-client';
 import { uploadPoster } from '@/lib/upload';
 import { Category, FullMovie, Screenshot, DownloadLink } from '@/lib/types';
 import DownloadLinksEditor from './DownloadLinksEditor';
@@ -436,11 +437,7 @@ export default function MovieForm({ initialData }: MovieFormProps) {
             }
 
             if (!initialData) {
-                fetch('/api/push/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mode: 'content', movieId }),
-                }).catch(() => {});
+                void triggerAdminPush({ mode: 'content', movieId });
             }
 
             router.push('/');

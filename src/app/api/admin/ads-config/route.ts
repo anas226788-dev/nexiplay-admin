@@ -59,7 +59,7 @@ export async function PUT(req: Request) {
         if (fetchError) throw fetchError;
         const targetId = existingRow?.id ?? 1;
 
-        const payload = {
+        const payload: Record<string, unknown> = {
             app_ad_network: ['startio', 'unity', 'both'].includes(body.app_ad_network)
                 ? body.app_ad_network
                 : 'startio',
@@ -79,6 +79,13 @@ export async function PUT(req: Request) {
             direct_link_url: String(body.direct_link_url || '').trim(),
             is_download_verification_enabled: Boolean(body.is_download_verification_enabled),
             download_ad_url_1: String(body.download_ad_url_1 || '').trim(),
+            ...(body.download_ad_url_2 !== undefined && { download_ad_url_2: String(body.download_ad_url_2 || '').trim() }),
+            ...(body.is_verification_enabled !== undefined && { is_verification_enabled: Boolean(body.is_verification_enabled) }),
+            ...(body.verification_ad_url_1 !== undefined && { verification_ad_url_1: String(body.verification_ad_url_1 || '').trim() }),
+            ...(body.verification_ad_url_2 !== undefined && { verification_ad_url_2: String(body.verification_ad_url_2 || '').trim() }),
+            ...(body.is_novel_verification_enabled !== undefined && { is_novel_verification_enabled: Boolean(body.is_novel_verification_enabled) }),
+            ...(body.novel_ad_url_1 !== undefined && { novel_ad_url_1: String(body.novel_ad_url_1 || '').trim() }),
+            ...(body.novel_ad_url_2 !== undefined && { novel_ad_url_2: String(body.novel_ad_url_2 || '').trim() }),
             updated_at: new Date().toISOString(),
         };
 

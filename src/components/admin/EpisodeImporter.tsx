@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { triggerAdminPush } from '@/lib/push-client';
 
 interface ScrapedEpisode {
     number: number;
@@ -509,17 +510,13 @@ export default function EpisodeImporter({ movieId, movieType, onImportComplete }
                     console.warn('[Importer] Updates sync failed:', updErr);
                 }
 
-                fetch('/api/push/send', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        mode: 'episode',
-                        movieId,
-                        seasonNumber,
-                        episodeNumber: highestImportedEpNum,
-                        extraCount: successCount,
-                    }),
-                }).catch(() => {});
+                void triggerAdminPush({
+                    mode: 'episode',
+                    movieId,
+                    seasonNumber,
+                    episodeNumber: highestImportedEpNum,
+                    extraCount: successCount,
+                });
             }
 
             setSuccessMessage(`✅ ${successCount}/${selectedEpisodes.length} episodes successfully imported to Season ${seasonNumber}!`);

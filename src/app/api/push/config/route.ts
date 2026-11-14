@@ -3,6 +3,7 @@ import { getAdminSupabase } from '@/lib/supabase-admin';
 import {
     DEFAULT_NEXIPLAY_ONESIGNAL_APP_ID,
     getMaskedPushSettings,
+    inspectOneSignalAndroidConfig,
 } from '@/lib/onesignal';
 
 export const dynamic = 'force-dynamic';
@@ -23,7 +24,11 @@ export async function GET(req: NextRequest) {
     }
     try {
         const config = await getMaskedPushSettings();
-        return NextResponse.json({ ok: true, config }, { headers: { 'Cache-Control': 'no-store' } });
+        const androidDiagnostics = await inspectOneSignalAndroidConfig(config.onesignalAppId);
+        return NextResponse.json(
+            { ok: true, config, androidDiagnostics },
+            { headers: { 'Cache-Control': 'no-store' } }
+        );
     } catch (err: any) {
         return NextResponse.json(
             { ok: false, error: err?.message || 'Failed to load push settings' },
@@ -72,7 +77,8 @@ export async function POST(req: NextRequest) {
         }
 
         const config = await getMaskedPushSettings();
-        return NextResponse.json({ ok: true, config });
+        const androidDiagnostics = await inspectOneSignalAndroidConfig(config.onesignalAppId);
+        return NextResponse.json({ ok: true, config, androidDiagnostics });
     } catch (err: any) {
         return NextResponse.json(
             { ok: false, error: err?.message || 'Failed to save push settings' },
